@@ -1,4 +1,5 @@
-use life_io::Life;
+use life_io::life::{iter::LifeIter, iter_life, Life};
+
 use macroquad::{
     color::{self},
     input::get_char_pressed,
@@ -14,29 +15,27 @@ pub struct ViewContext {
     speed: f64,
 }
 
-fn draw_life(life: &Life, ctx: &ViewContext) {
-    for (y, row) in life.grid.iter().enumerate() {
-        for (x, cell) in row.iter().enumerate() {
-            if cell.state > 0 {
-                let mut color = color::GREEN;
-                if cell.state == 2 {
-                    color.a = 0.75;
-                } else if cell.state == 3 {
-                    color.a = 0.5;
-                }
-                draw_rectangle(
-                    x as f32 * ctx.grid_size,
-                    y as f32 * ctx.grid_size,
-                    ctx.grid_size,
-                    ctx.grid_size,
-                    color,
-                );
+fn draw_life(life: &dyn Life, ctx: &ViewContext) {
+    for (x, y, state) in iter_life(life) {
+        if *state > 0 {
+            let mut color = color::GREEN;
+            if *state == 2 {
+                color.a = 0.75;
+            } else if *state == 3 {
+                color.a = 0.5;
             }
+            draw_rectangle(
+                x as f32 * ctx.grid_size,
+                y as f32 * ctx.grid_size,
+                ctx.grid_size,
+                ctx.grid_size,
+                color,
+            );
         }
     }
 }
 
-fn handle_input(_life: &Life, ctx: &mut ViewContext) {
+fn handle_input(_life: &LifeIter, ctx: &mut ViewContext) {
     if let Some(chr) = get_char_pressed() {
         match chr {
             'q' => ctx.request_quit = true,
@@ -54,7 +53,9 @@ async fn main() {
 
     macroquad::rand::srand(seed);
 
-    let mut life = Life::new((32, 32));
+    let mut life = LifeIter::new((32, 32));
+
+    life.randomize();
 
     let mut last_update = get_time();
 
