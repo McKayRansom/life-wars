@@ -5,7 +5,8 @@ use std::{
 
 use life_io::Life;
 
-const HISTORY_SIZE: usize = 32;
+const HISTORY_SIZE: usize = 512;
+const MAX_ITERS: usize = 2000;
 
 pub struct LifeResult {
     age: usize,
@@ -13,10 +14,10 @@ pub struct LifeResult {
     life: Life,
 }
 
-fn run_to_stabilization(seed: u64) -> LifeResult {
+fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
     macroquad::rand::srand(seed);
 
-    let mut life = Life::new((64, 64));
+    let mut life = Life::new((16, 16));
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;
 
@@ -28,12 +29,12 @@ fn run_to_stabilization(seed: u64) -> LifeResult {
         let hash = hasher.finish();
 
         if let Some(index) = life_history.iter().position(|i| i == &hash) {
-            // println!("Seed {seed} Stabilized at i: {i} period: {index} life: {life}");
-            return LifeResult {
+            // println!("Seed {seed} Stabilized at i: {i} period: {index} ");
+            return Some(LifeResult {
                 age: i,
-                period: index,
+                period: index + 1,
                 life,
-            }
+            });
         }
 
         life_history.push_front(hash);
@@ -43,6 +44,11 @@ fn run_to_stabilization(seed: u64) -> LifeResult {
 
         // next_frame().await;
         i += 1;
+
+        if i > MAX_ITERS {
+            // println!("Seed {seed} failed to stablize after {i} iters");
+            return None;
+        }
     }
 }
 
@@ -53,11 +59,15 @@ fn main() {
     let mut found_oscilators: Vec<usize> = Vec::new();
 
     // search the first 100 seeds
-    for seed in 0..1000 {
-        let res = run_to_stabilization(seed);
-        if !found_oscilators.contains(&res.period) {
-            found_oscilators.push(res.period);
-            println!("Found oscilator {} seed: {seed} iter: {} life: {}", res.period, res.age, res.life);
+    for seed in 0..100000 {
+        if let Some(res) = run_to_stabilization(seed) {
+            if !found_oscilators.contains(&res.period) {
+                found_oscilators.push(res.period);
+                println!(
+                    "Found oscilator {} seed: {seed} iter: {}",
+                    res.period, res.age
+                );
+            }
         }
     }
 }

@@ -1,9 +1,10 @@
 use std::fmt::Write;
 use std::hash::Hash;
 
+use serde::{Deserialize, Serialize};
 use macroquad::rand::RandomRange;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Serialize, Deserialize)]
 pub struct Cell {
     pub state: u8,
 }
@@ -48,7 +49,7 @@ impl Cell {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Hash)]
+#[derive(PartialEq, Eq, Debug, Hash, Serialize, Deserialize)]
 pub struct Life {
     pub grid: Vec<Vec<Cell>>,
 }

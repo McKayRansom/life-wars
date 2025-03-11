@@ -6,3 +6,5 @@ default-run = "life-io"
 
 [dependencies]
 macroquad = "0.4.13"
+ron = "0.8.1"
+serde = { version = "1.0.216", features = ["derive"] }
