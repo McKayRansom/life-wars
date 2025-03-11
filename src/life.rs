@@ -1,8 +1,9 @@
 use std::fmt::Write;
+use std::hash::Hash;
 
 use macroquad::rand::RandomRange;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct Cell {
     pub state: u8,
 }
@@ -16,38 +17,38 @@ impl Cell {
         // Bri B2/S/3
         Self {
             // SWR B2/S345/4
-            state: if self.state == 0 {
-                if neighbors == 2 { 1 } else { 0 }
-            } else if self.state == 1 {
-                if neighbors >= 3 && neighbors <= 5 {
-                    1
-                } else {
-                    2
-                }
-            } else if self.state == 3 {
-                0
-            } else {
-                self.state + 1
-            },
-            // GOL B3/S23
-            // state: if self.state > 0 {
-            //     if neighbors < 2 {
-            //         0
-            //     } else if neighbors < 4 {
+            // state: if self.state == 0 {
+            //     if neighbors == 2 { 1 } else { 0 }
+            // } else if self.state == 1 {
+            //     if neighbors >= 3 && neighbors <= 5 {
             //         1
             //     } else {
-            //         0
+            //         2
             //     }
-            // } else if neighbors == 3 {
-            //     1
-            // } else {
+            // } else if self.state == 3 {
             //     0
+            // } else {
+            //     self.state + 1
             // },
+            // GOL B3/S23
+            state: if self.state > 0 {
+                if neighbors < 2 {
+                    0
+                } else if neighbors < 4 {
+                    1
+                } else {
+                    0
+                }
+            } else if neighbors == 3 {
+                1
+            } else {
+                0
+            },
         }
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Life {
     pub grid: Vec<Vec<Cell>>,
 }
