@@ -3,7 +3,7 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
-use life_io::life::{basic::LifeBasic, Life};
+use life_io::life::{basic::LifeBasic, cached::LifeCached, Life};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -11,14 +11,14 @@ const MAX_ITERS: usize = 2000;
 pub struct LifeResult {
     age: usize,
     period: usize,
-    #[allow(unused)]
-    life: LifeBasic,
+    // #[allow(unused)]
+    life: LifeCached,
 }
 
 fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
 
-    let mut life = LifeBasic::new((16, 16));
-    life.randomize(seed);
+    let mut life = LifeCached::new((16, 16));
+    life.randomize(seed, false);
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;
 
@@ -65,8 +65,8 @@ fn main() {
             if !found_oscilators.contains(&res.period) {
                 found_oscilators.push(res.period);
                 println!(
-                    "Found oscilator {} seed: {seed} iter: {}",
-                    res.period, res.age
+                    "Found oscilator {} seed: {seed} iter: {} life: {}",
+                    res.period, res.age, &res.life as &dyn Life
                 );
             }
         }

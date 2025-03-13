@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::{Cell, Life, state_update};
 
@@ -136,15 +136,11 @@ impl LifeSparse {
             size: self.size,
         };
 
-        // println!("Update: {self:?}");
-
         for pos in &self.recent_births {
-            // check all neighbors
             self.check_cell_and_neighbors(&mut new_self, *pos);
         }
 
         for pos in &self.recent_deaths {
-            // check all neighbors
             self.check_cell_and_neighbors(&mut new_self, *pos);
         }
 
@@ -154,30 +150,30 @@ impl LifeSparse {
 
 impl From<&str> for LifeSparse {
     fn from(value: &str) -> Self {
-        let mut max_value: (usize, usize) = (0, 0);
-        let mut new_grid: HashMap<(usize, usize), Cell> = HashMap::new();
+        let mut size: (usize, usize) = (0, 0);
+        let mut living: HashMap<(usize, usize), Cell> = HashMap::new();
         let mut recent_births: Vec<(usize, usize)> = Vec::new();
         let mut pos: (usize, usize) = (0, 0);
         for line in value.split('\n') {
             for chr in line.chars() {
                 if chr != ' ' {
-                    new_grid.insert(pos, Cell::new(1, 0));
+                    living.insert(pos, Cell::new(1, 0));
                     recent_births.push(pos);
                 }
                 pos.0 += 1;
-                if pos > max_value {
-                    max_value = pos;
+                if pos > size {
+                    size = pos;
                 }
             }
             pos.1 += 1;
             pos.0 = 0;
         }
 
-        max_value.1 += 1;
+        size.1 += 1;
 
         Self {
-            size: max_value,
-            living: new_grid,
+            size,
+            living,
             recent_births,
             recent_deaths: Vec::new(),
         }

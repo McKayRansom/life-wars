@@ -33,28 +33,6 @@ impl LifeBasic {
         }
     }
 
-    // This brute force was bench_256 at 341uS  instead of 289 for iter version...
-    // pub fn neighbors(&self, pos: (usize, usize)) -> u8 {
-    //     let mut neighbors: u8 = 0;
-    //     if pos.0 > 0 {
-    //         if pos.1 > 0 {
-    //             neighbors += self.get((pos.0 - 1, pos.1 - 1)).unwrap_or(&0);
-    //         }
-    //         neighbors += self.get((pos.0 - 1, pos.1 + 1)).unwrap_or(&0);
-    //         neighbors += self.get((pos.0 - 1, pos.1)).unwrap_or(&0);
-    //     }
-    //     if pos.1 > 0 {
-    //         neighbors += self.get((pos.0, pos.1 - 1)).unwrap_or(&0);
-    //         neighbors += self.get((pos.0 + 1, pos.1 - 1)).unwrap_or(&0);
-    //     }
-
-    //     neighbors += self.get((pos.0 + 1, pos.1)).unwrap_or(&0);
-    //     neighbors += self.get((pos.0 + 1, pos.1 + 1)).unwrap_or(&0);
-    //     neighbors += self.get((pos.0, pos.1 + 1)).unwrap_or(&0);
-
-    //     neighbors
-    // }
-
     // This seemingly stupid iterator version is somehow faster?
     pub fn neighbors(&self, faction: u8, pos: (usize, usize)) -> (u8, u8) {
         let mut faction: u8 = faction;
@@ -118,7 +96,7 @@ impl From<&str> for LifeBasic {
 
 
 #[cfg(test)]
-pub mod life_iter_test {
+pub mod life_basic_test {
 
     use super::*;
     

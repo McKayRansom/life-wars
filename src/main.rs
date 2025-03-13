@@ -1,4 +1,4 @@
-use life_io::life::{iter_life, sparse::LifeSparse, Cell, Life};
+use life_io::life::{basic::LifeBasic, iter_life, Cell, Life};
 
 use macroquad::{
     color::{self},
@@ -73,8 +73,8 @@ async fn main() {
     println!("Life viewer. Seed: {seed}");
 
 
-    let mut life = LifeSparse::new((256, 256));
-    life.randomize(seed);
+    let mut life = LifeBasic::new((256, 256));
+    life.randomize(seed, true);
 
     let mut last_update = get_time();
 

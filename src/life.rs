@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
 pub mod basic;
+pub mod cached;
 pub mod sparse;
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
@@ -13,7 +14,9 @@ impl Cell {
     const FACTION_MASK: u8 = 0xF0;
 
     pub const fn new(state: u8, faction: u8) -> Self {
-        Self { value: state | (faction << 4)}
+        Self {
+            value: state | (faction << 4),
+        }
     }
 
     pub fn is_alive(&self) -> bool {
@@ -44,28 +47,32 @@ pub trait Life {
     fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell>;
 
     // fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut u8)>;
-    fn randomize(&mut self, seed: u64) {
+    fn randomize(&mut self, seed: u64, use_factions: bool) {
         macroquad::rand::srand(seed);
 
         let size = self.size();
         for x in 0..size.0 {
             for y in 0..size.1 {
-                self.insert((x, y), Cell::new(
-                    if macroquad::rand::rand() < u32::MAX / 5 {
-                        1
-                    } else {
-                        0
-                    },
-                    if y < size.1 / 2 {
-                        1
-                    } else {
-                        0
-                    }
-                ));
+                self.insert(
+                    (x, y),
+                    Cell::new(
+                        if macroquad::rand::rand() < u32::MAX / 5 {
+                            1
+                        } else {
+                            0
+                        },
+                        if use_factions && y < size.1 / 2 { 1 } else { 0 },
+                    ),
+                );
             }
         }
     }
 }
+
+// GOL B3/S23
+// const BIRTH_RULE: [u8; 9] = [0, 0, 0, 1, 0, 0, 0, 0, 0];
+// const SURVIVE_RULE: [u8; 9] = [0, 0, 1, 1, 0, 0, 0, 0, 0];
+// const STATE_RULE: [[u8; 9]; 2] = [BIRTH_RULE, SURVIVE_RULE];
 
 pub fn state_update_f(state: u8, neighbors: u8) -> u8 {
     // SWR B2/S345/4
