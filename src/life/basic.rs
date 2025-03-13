@@ -4,7 +4,7 @@ use super::{state_update, Cell, Life};
 
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct LifeBasic {
-    pub grid: Vec<Vec<Cell>>,
+    grid: Vec<Vec<Cell>>,
 }
 
 impl Life for LifeBasic {

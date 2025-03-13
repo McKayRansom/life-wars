@@ -1,4 +1,4 @@
-use life_io::life::{Cell, Life, basic::LifeBasic, iter_life};
+use life_io::life::{iter_life, sparse::LifeSparse, Cell, Life};
 
 use macroquad::{
     color::{self},
@@ -68,12 +68,12 @@ fn handle_input(life: &mut dyn Life, ctx: &mut ViewContext) {
 
 #[macroquad::main("life-io")]
 async fn main() {
-    let seed = 45;
+    let seed = 1234;
 
     println!("Life viewer. Seed: {seed}");
 
 
-    let mut life = LifeBasic::new((256, 256));
+    let mut life = LifeSparse::new((256, 256));
     life.randomize(seed);
 
     let mut last_update = get_time();
@@ -92,8 +92,9 @@ async fn main() {
             life = life.update();
         }
 
-        ctx.grid_size = (screen_width() / life.grid[0].len() as f32)
-            .min(screen_height() / life.grid.len() as f32);
+        let size = life.size();
+        ctx.grid_size = (screen_width() / size.0 as f32)
+            .min(screen_height() / size.1 as f32);
         handle_input(&mut life, &mut ctx);
 
         draw_life(&life, &ctx);

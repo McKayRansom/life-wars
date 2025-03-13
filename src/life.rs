@@ -12,7 +12,7 @@ impl Cell {
     const STATE_MASK: u8 = 0xF;
     const FACTION_MASK: u8 = 0xF0;
 
-    pub fn new(state: u8, faction: u8) -> Self {
+    pub const fn new(state: u8, faction: u8) -> Self {
         Self { value: state | (faction << 4)}
     }
 

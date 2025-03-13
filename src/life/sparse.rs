@@ -6,9 +6,11 @@ use super::{Cell, Life, state_update};
 pub struct LifeSparse {
     size: (usize, usize),
     living: HashMap<(usize, usize), Cell>,
-    recent_births: HashSet<(usize, usize)>,
-    recent_deaths: HashSet<(usize, usize)>,
+    recent_births: Vec<(usize, usize)>,
+    recent_deaths: Vec<(usize, usize)>,
 }
+
+const EMPTY_CELL: Cell = Cell::new(0, 0);
 
 impl Life for LifeSparse {
     fn size(&self) -> (usize, usize) {
@@ -16,16 +18,32 @@ impl Life for LifeSparse {
     }
 
     fn get(&self, pos: (usize, usize)) -> Option<&Cell> {
-        self.living.get(&pos)
+        self.living.get(&pos).or(Some(&EMPTY_CELL))
     }
 
     fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell> {
-        if cell.is_alive() {
-            self.living.insert(pos, cell)
+        if self.living.contains_key(&pos) {
+            if cell.is_alive() {
+                // Already alive
+                // self.living.insert(pos, cell)
+                None
+            } else {
+                // Kill
+                self.living.remove(&pos);
+                self.recent_deaths.push(pos);
+                None
+            }
         } else {
-            None
+            if cell.is_alive() {
+                // Birth
+                self.recent_births.push(pos);
+                self.living.insert(pos, cell)
+            } else {
+                // Already Dead
+                None
+            }
         }
-    }
+   }
 }
 
 impl LifeSparse {
@@ -33,8 +51,8 @@ impl LifeSparse {
         Self {
             size,
             living: HashMap::new(),
-            recent_births: HashSet::new(),
-            recent_deaths: HashSet::new(),
+            recent_births: Vec::new(),
+            recent_deaths: Vec::new(),
             // grid: HashMap::with_capacity(size.0/4)
         }
     }
@@ -88,37 +106,24 @@ impl LifeSparse {
                 if was_alive {
                     if cell.is_alive() {
                         // still alive
-                        // new_self.living.insert(new_pos, cell);
                     } else {
                         // just died
-                        new_self.living.remove(&new_pos);
-                        new_self.recent_deaths.insert(new_pos);
+                        if new_self.living.remove(&new_pos).is_some() {
+                            new_self.recent_deaths.push(new_pos);
+                        }
                         // println!("Death: {new_pos:?}");
                     }
                 } else {
                     if cell.is_alive() {
                         // just born
-                        new_self.living.insert(new_pos, cell);
-                        new_self.recent_births.insert(new_pos);
+                        if new_self.living.insert(new_pos, cell).is_none() {
+                            new_self.recent_births.push(new_pos);
+                        }
                         // println!("Birth: {new_pos:?}");
                     } else {
                         // still dead
                     }
                 }
-                // Check for births
-                // } else if !self.living.contains_key(&new_pos){
-                //     let cell =
-                //         state_update(0, self.neighbors(0, new_pos));
-
-                //     if cell.is_alive() {
-                //         println!("Born: {new_pos:?}");
-                //         // this could have duplicates
-                //         new_self.living.insert(new_pos, cell);
-                //         new_self.recent_births.insert(new_pos);
-                //     } else {
-
-                //     }
-                // }
             }
         }
     }
@@ -126,8 +131,8 @@ impl LifeSparse {
     pub fn update(&self) -> Self {
         let mut new_self: Self = Self {
             living: self.living.clone(),
-            recent_births: HashSet::new(),
-            recent_deaths: HashSet::new(),
+            recent_births: Vec::new(),
+            recent_deaths: Vec::new(),
             size: self.size,
         };
 
@@ -151,13 +156,13 @@ impl From<&str> for LifeSparse {
     fn from(value: &str) -> Self {
         let mut max_value: (usize, usize) = (0, 0);
         let mut new_grid: HashMap<(usize, usize), Cell> = HashMap::new();
-        let mut recent_births: HashSet<(usize, usize)> = HashSet::new();
+        let mut recent_births: Vec<(usize, usize)> = Vec::new();
         let mut pos: (usize, usize) = (0, 0);
         for line in value.split('\n') {
             for chr in line.chars() {
                 if chr != ' ' {
                     new_grid.insert(pos, Cell::new(1, 0));
-                    recent_births.insert(pos);
+                    recent_births.push(pos);
                 }
                 pos.0 += 1;
                 if pos > max_value {
@@ -174,7 +179,7 @@ impl From<&str> for LifeSparse {
             size: max_value,
             living: new_grid,
             recent_births,
-            recent_deaths: HashSet::new(),
+            recent_deaths: Vec::new(),
         }
     }
 }
@@ -191,9 +196,9 @@ pub mod life_sprase_test {
  * "
         .into();
 
-        assert_eq!(life.get((0, 0)), None);
+        assert_eq!(life.get((0, 0)).unwrap(), &EMPTY_CELL);
         assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
-        assert_eq!(life.get((0, 1)), None);
+        assert_eq!(life.get((0, 1)).unwrap(), &EMPTY_CELL);
 
         assert_eq!(life.neighbors(0, (0, 0)), (2, 0));
         assert_eq!(life.neighbors(0, (1, 0)), (1, 0));
@@ -204,8 +209,8 @@ pub mod life_sprase_test {
             update.living,
             <&str as Into<LifeSparse>>::into("   \n***\n   ").living
         );
-        assert_eq!(update.recent_births, [(0, 1), (2, 1)].into());
-        assert_eq!(update.recent_deaths, [(1, 0), (1, 2)].into());
+        assert_eq!(update.recent_births, [(0, 1), (2, 1)]);
+        assert_eq!(update.recent_deaths, [(1, 0), (1, 2)]);
 
         let update = update.update();
         assert_eq!(
