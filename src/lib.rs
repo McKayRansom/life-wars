@@ -16,13 +16,13 @@ pub mod life_test {
  * "
         .into();
 
-        assert_eq!(life.get((0, 0)).unwrap(), &0);
-        assert_eq!(life.get((1, 0)).unwrap(), &1);
-        assert_eq!(life.get((0, 1)).unwrap(), &0);
+        assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
+        assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
+        assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
 
-        assert_eq!(life.neighbors((0, 0)), 2);
-        assert_eq!(life.neighbors((1, 0)), 1);
-        assert_eq!(life.neighbors((0, 1)), 3);
+        assert_eq!(life.neighbors((0, 0)), (2, 0));
+        assert_eq!(life.neighbors((1, 0)), (1, 0));
+        assert_eq!(life.neighbors((0, 1)), (3, 0));
 
         assert_eq!(life.update(), "   \n***\n   ".into());
 

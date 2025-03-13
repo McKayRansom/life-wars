@@ -1,10 +1,8 @@
-use serde::{Deserialize, Serialize};
+use super::{state_update, Cell, Life};
 
-use super::{Life, state_update};
-
-#[derive(PartialEq, Eq, Debug, Hash, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub struct LifeIter {
-    pub grid: Vec<Vec<u8>>,
+    pub grid: Vec<Vec<Cell>>,
 }
 
 impl Life for LifeIter {
@@ -12,14 +10,14 @@ impl Life for LifeIter {
         (self.grid[0].len(), self.grid.len())
     }
 
-    fn get(&self, pos: (usize, usize)) -> Option<&u8> {
+    fn get(&self, pos: (usize, usize)) -> Option<&Cell> {
         self.grid
             .get(pos.1)
             .map(|thing| thing.get(pos.0))
             .unwrap_or(None)
     }
 
-    fn get_mut(&mut self, pos: (usize, usize)) -> Option<&mut u8> {
+    fn get_mut(&mut self, pos: (usize, usize)) -> Option<&mut Cell> {
         self.grid
             .get_mut(pos.1)
             .map(|thing| thing.get_mut(pos.0))
@@ -30,7 +28,7 @@ impl Life for LifeIter {
 impl LifeIter {
     pub fn new(dim: (usize, usize)) -> Self {
         Self {
-            grid: vec![vec![0; dim.0]; dim.1],
+            grid: vec![vec![Cell::new(0, 0); dim.0]; dim.1],
         }
     }
 
@@ -55,29 +53,33 @@ impl LifeIter {
 
     //     neighbors
     // }
-    
+
     // This seemingly stupid iterator version is somehow faster?
-    pub fn neighbors(&self, pos: (usize, usize)) -> u8 {
-        (-1..2)
-            .map(|y: i32| {
-                self.grid
-                    .get((pos.1 as i32 + y) as usize)
-                    .map(|row| {
-                        (-1..2)
-                            .map(|x: i32| {
-                                if x == 0 && y == 0 {
-                                    0
-                                } else {
-                                    row.get((pos.0 as i32 + x) as usize)
-                                        .map(|state| if *state == 1 { 1 } else { 0 })
-                                        .unwrap_or(0)
-                                }
-                            })
-                            .sum()
-                    })
-                    .unwrap_or(0)
-            })
-            .sum()
+    pub fn neighbors(&self, faction: u8, pos: (usize, usize)) -> (u8, u8) {
+        let mut faction: u8 = faction;
+        let mut sum: u8 = 0;
+        for dy in -1..2 {
+            if let Some(row) = self.grid.get((pos.1 as i32 + dy) as usize) {
+                for dx in -1..2 {
+                    if dx == 0 && dy == 0 {
+                        continue;
+                    }
+                    if let Some(cell) = row.get((pos.0 as i32 + dx) as usize) {
+                        if cell.is_alive() {
+                            if cell.get_faction() == faction {
+                                sum += 1;
+                            } else if sum > 0 {
+                                sum -= 1;
+                            } else {
+                                faction = cell.get_faction();
+                                sum += 1;
+                            }
+                        } 
+                    }
+                }
+            }
+        }
+        (sum, faction)
     }
 
     pub fn update(&self) -> Self {
@@ -89,7 +91,7 @@ impl LifeIter {
                 .map(|(y, row)| {
                     row.iter()
                         .enumerate()
-                        .map(|(x, cell)| state_update(*cell, self.neighbors((x, y))))
+                        .map(|(x, cell)| state_update(cell.get_state(), self.neighbors(cell.get_faction(), (x, y))))
                         .collect()
                 })
                 .collect(),
@@ -104,7 +106,7 @@ impl From<&str> for LifeIter {
                 .split('\n')
                 .map(|line| {
                     line.chars()
-                        .map(|ch| if ch == ' ' { 0 } else { 1 })
+                        .map(|ch| Cell::new(if ch == ' ' { 0 } else { 1 }, 0))
                         .collect()
                 })
                 .collect(),
