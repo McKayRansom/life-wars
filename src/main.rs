@@ -1,4 +1,4 @@
-use life_io::life::{Cell, Life, iter::LifeIter, iter_life};
+use life_io::life::{Cell, Life, basic::LifeBasic, iter_life};
 
 use macroquad::{
     color::{self},
@@ -62,9 +62,7 @@ fn handle_input(life: &mut dyn Life, ctx: &mut ViewContext) {
             (mouse_pos.0 / ctx.grid_size) as usize,
             (mouse_pos.1 / ctx.grid_size) as usize,
         );
-        if let Some(cell) = life.get_mut(pos) {
-            *cell = Cell::new(1, ctx.selected_faction)
-        }
+        life.insert(pos, Cell::new(1, ctx.selected_faction));
     }
 }
 
@@ -74,11 +72,9 @@ async fn main() {
 
     println!("Life viewer. Seed: {seed}");
 
-    macroquad::rand::srand(seed);
 
-    let mut life = LifeIter::new((256, 256));
-
-    life.randomize();
+    let mut life = LifeBasic::new((256, 256));
+    life.randomize(seed);
 
     let mut last_update = get_time();
 

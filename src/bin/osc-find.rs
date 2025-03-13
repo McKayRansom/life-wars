@@ -3,7 +3,7 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
-use life_io::life::{iter::LifeIter, Life};
+use life_io::life::{basic::LifeBasic, Life};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -12,14 +12,13 @@ pub struct LifeResult {
     age: usize,
     period: usize,
     #[allow(unused)]
-    life: LifeIter,
+    life: LifeBasic,
 }
 
 fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
-    macroquad::rand::srand(seed);
 
-    let mut life = LifeIter::new((16, 16));
-    life.randomize();
+    let mut life = LifeBasic::new((16, 16));
+    life.randomize(seed);
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;
 

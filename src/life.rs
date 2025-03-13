@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
-pub mod iter;
+pub mod basic;
+pub mod sparse;
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 pub struct Cell {
@@ -40,14 +41,16 @@ pub trait Life {
     // fn new(size: (usize, usize)) -> Self;
     fn size(&self) -> (usize, usize);
     fn get(&self, pos: (usize, usize)) -> Option<&Cell>;
-    fn get_mut(&mut self, pos: (usize, usize)) -> Option<&mut Cell>;
+    fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell>;
 
     // fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut u8)>;
-    fn randomize(&mut self) {
+    fn randomize(&mut self, seed: u64) {
+        macroquad::rand::srand(seed);
+
         let size = self.size();
         for x in 0..size.0 {
             for y in 0..size.1 {
-                *self.get_mut((x, y)).unwrap() = Cell::new(
+                self.insert((x, y), Cell::new(
                     if macroquad::rand::rand() < u32::MAX / 5 {
                         1
                     } else {
@@ -58,7 +61,7 @@ pub trait Life {
                     } else {
                         0
                     }
-                );
+                ));
             }
         }
     }
@@ -66,31 +69,31 @@ pub trait Life {
 
 pub fn state_update_f(state: u8, neighbors: u8) -> u8 {
     // SWR B2/S345/4
-    if state == 0 {
-        if neighbors == 2 { 1 } else { 0 }
-    } else if state == 1 {
-        if neighbors >= 3 && neighbors <= 5 {
-            1
-        } else {
-            2
-        }
-    } else if state == 3 {
-        0
-    } else {
-        state + 1
-    }
-    // GOL B3/S23
-    // if state > 0 {
-    //     if neighbors >= 2 && neighbors <= 3 {
+    // if state == 0 {
+    //     if neighbors == 2 { 1 } else { 0 }
+    // } else if state == 1 {
+    //     if neighbors >= 3 && neighbors <= 5 {
     //         1
     //     } else {
-    //         0
+    //         2
     //     }
-    // } else if neighbors == 3 {
-    //     1
-    // } else {
+    // } else if state == 3 {
     //     0
+    // } else {
+    //     state + 1
     // }
+    // GOL B3/S23
+    if state > 0 {
+        if neighbors >= 2 && neighbors <= 3 {
+            1
+        } else {
+            0
+        }
+    } else if neighbors == 3 {
+        1
+    } else {
+        0
+    }
     // Fake Coral that I like
 }
 

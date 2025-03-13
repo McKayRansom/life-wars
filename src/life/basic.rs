@@ -1,11 +1,13 @@
+use std::mem::replace;
+
 use super::{state_update, Cell, Life};
 
 #[derive(PartialEq, Eq, Debug, Hash)]
-pub struct LifeIter {
+pub struct LifeBasic {
     pub grid: Vec<Vec<Cell>>,
 }
 
-impl Life for LifeIter {
+impl Life for LifeBasic {
     fn size(&self) -> (usize, usize) {
         (self.grid[0].len(), self.grid.len())
     }
@@ -17,15 +19,14 @@ impl Life for LifeIter {
             .unwrap_or(None)
     }
 
-    fn get_mut(&mut self, pos: (usize, usize)) -> Option<&mut Cell> {
-        self.grid
-            .get_mut(pos.1)
-            .map(|thing| thing.get_mut(pos.0))
-            .unwrap_or(None)
+    fn insert(&mut self, pos: (usize, usize), new_cell: Cell) -> Option<Cell> {
+        let row = self.grid.get_mut(pos.1)?;
+        let cell = row.get_mut(pos.0)?;
+        Some(replace(cell, new_cell))
     }
 }
 
-impl LifeIter {
+impl LifeBasic {
     pub fn new(dim: (usize, usize)) -> Self {
         Self {
             grid: vec![vec![Cell::new(0, 0); dim.0]; dim.1],
@@ -66,6 +67,7 @@ impl LifeIter {
                     }
                     if let Some(cell) = row.get((pos.0 as i32 + dx) as usize) {
                         if cell.is_alive() {
+                            // sum += 1;
                             if cell.get_faction() == faction {
                                 sum += 1;
                             } else if sum > 0 {
@@ -99,7 +101,7 @@ impl LifeIter {
     }
 }
 
-impl From<&str> for LifeIter {
+impl From<&str> for LifeBasic {
     fn from(value: &str) -> Self {
         Self {
             grid: value
@@ -113,3 +115,33 @@ impl From<&str> for LifeIter {
         }
     }
 }
+
+
+#[cfg(test)]
+pub mod life_iter_test {
+
+    use super::*;
+    
+
+    #[test]
+    fn life_test_basic() {
+        let life: LifeBasic = 
+" * 
+ * 
+ * "
+        .into();
+
+        assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
+        assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
+        assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
+
+        assert_eq!(life.neighbors(0, (0, 0)), (2, 0));
+        assert_eq!(life.neighbors(0, (1, 0)), (1, 0));
+        assert_eq!(life.neighbors(0, (0, 1)), (3, 0));
+
+        assert_eq!(life.update(), "   \n***\n   ".into());
+
+        // as
+    }
+}
+
