@@ -1,4 +1,4 @@
-use life_io::life::{Cell, Life, LifeAlgoSelect};
+use life_io::life::{Cell, Life, LifeAlgoSelect, LifeRule};
 
 use macroquad::{
     color::{self},
@@ -76,8 +76,8 @@ async fn main() {
     println!("Life viewer. Seed: {seed}");
 
 
-    let mut life = Life::new(LifeAlgoSelect::Cached, (64, 64));
-    // life.randomize(seed, false);
+    let mut life = Life::new_rule(LifeAlgoSelect::Cached, (128, 128), LifeRule::STAR_WARS);
+    life.randomize(seed, false);
 
     let mut last_update = get_time();
 

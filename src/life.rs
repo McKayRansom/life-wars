@@ -54,46 +54,36 @@ pub trait LifeAlgo {
 pub struct LifeRule {
     birth: u16,
     survive: u16,
+    max_state: u8,
 }
 
 impl LifeRule {
-    pub const GOL: Self = Self::new(0b1000, 0b1100);
+    // GOL B3/S23
+    pub const GOL: Self = Self::new(0b1000, 0b1100, 2);
+    // SWR B2/S345/4
+    pub const STAR_WARS: Self = Self::new(0b0100, 0b111000, 3);
 
-    pub const fn new(birth: u16, survive: u16) -> Self {
-        Self { birth, survive }
+    pub const fn new(birth: u16, survive: u16, max_state: u8) -> Self {
+        Self {
+            birth,
+            survive,
+            max_state,
+        }
     }
 
     pub fn update(&self, state: u8, (neighbors, faction): (u8, u8)) -> Cell {
         Cell::new(Self::state_update_f(self, state, neighbors), faction)
     }
 
-    // fn new_life_from_string(str: &str) -> Box<dyn Life> {
-
-    // }
-
-    // GOL B3/S23
-    // const BIRTH_RULE: [u8; 9] = [0, 0, 0, 1, 0, 0, 0, 0, 0];
-    // const SURVIVE_RULE: [u8; 9] = [0, 0, 1, 1, 0, 0, 0, 0, 0];
-    // const STATE_RULE: [[u8; 9]; 2] = [BIRTH_RULE, SURVIVE_RULE];
-
     pub fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
-        // SWR B2/S345/4
-        // if state == 0 {
-        //     if neighbors == 2 { 1 } else { 0 }
-        // } else if state == 1 {
-        //     if neighbors >= 3 && neighbors <= 5 {
-        //         1
-        //     } else {
-        //         2
-        //     }
-        // } else if state == 3 {
-        //     0
-        // } else {
-        //     state + 1
-        // }
-        // GOL B3/S23
-        if state > 0 {
-            ((self.survive & 1 << neighbors) >> neighbors) as u8
+        if state == 1 {
+            ((((self.survive & 1 << neighbors) >> neighbors) as u8 ^ 1) + 1) % self.max_state
+        } else if state > 0 {
+            if state == self.max_state {
+                0
+            } else {
+                state + 1
+            }
         } else {
             ((self.birth & 1 << neighbors) >> neighbors) as u8
         }
@@ -117,7 +107,17 @@ impl Life {
                 LifeAlgoSelect::Basic => Box::new(LifeBasic::new(size)),
                 LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
             },
-            rule: LifeRule::GOL, // rule: LifeRule::new(0, 0)
+            rule: LifeRule::GOL,
+        }
+    }
+
+    pub fn new_rule(algo: LifeAlgoSelect, size: (usize, usize), rule: LifeRule) -> Self {
+        Self {
+            algo: match algo {
+                LifeAlgoSelect::Basic => Box::new(LifeBasic::new(size)),
+                LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
+            },
+            rule,
         }
     }
 
