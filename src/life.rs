@@ -1,4 +1,4 @@
-use std::{fmt::Write, hash::DefaultHasher};
+use std::{fmt::Write, hash::DefaultHasher, str::Split};
 
 use basic::LifeBasic;
 use cached::LifeCached;
@@ -51,6 +51,7 @@ pub trait LifeAlgo {
     fn hash(&self, state: &mut DefaultHasher);
 }
 
+#[derive(PartialEq, Eq, Debug)]
 pub struct LifeRule {
     birth: u16,
     survive: u16,
@@ -71,11 +72,59 @@ impl LifeRule {
         }
     }
 
+    // BXX or X
+    fn parse_rule_portion<F>(it: &mut Split<'_, char>, mut func: F)
+    where
+        F: FnMut(u32) -> (),
+    {
+        if let Some(portion) = it.next() {
+            for chr in portion.chars() {
+                if let Some(count) = chr.to_digit(10) {
+                    func(count)
+                }
+            }
+        }
+    }
+
+    // BXX/SXX or BXX/SXX/X
+    // https://conwaylife.com/wiki/Rulestring
+    pub fn from_str(str: &str) -> Self {
+        let mut new_rule: Self = Self::new(0, 0, 2);
+
+        let mut portion_it = str.split('/');
+
+        Self::parse_rule_portion(&mut portion_it, |count| new_rule.birth |= 1 << count);
+        Self::parse_rule_portion(&mut portion_it, |count| new_rule.survive |= 1 << count);
+        Self::parse_rule_portion(&mut portion_it, |count| {
+            new_rule.max_state = (count - 1) as u8
+        });
+
+        new_rule
+    }
+
+    pub fn to_str(&self) -> String {
+        let mut births: u32 = 0;
+        let mut survives: u32 = 0;
+        for i in 0..9 {
+            if (self.birth & (1 << i)) != 0 {
+                births = births * 10 | i;
+            }
+            if (self.survive & (1 << i)) != 0 {
+                survives = (survives * 10) + i;
+            }
+        }
+        if self.max_state == 2 {
+            format!("B{births}/S{survives}")
+        } else {
+            format!("B{births}/S{survives}/{}", self.max_state + 1)
+        }
+    }
+
     pub fn update(&self, state: u8, (neighbors, faction): (u8, u8)) -> Cell {
         Cell::new(Self::state_update_f(self, state, neighbors), faction)
     }
 
-    pub fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
+    fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
         if state == 1 {
             ((((self.survive & 1 << neighbors) >> neighbors) as u8 ^ 1) + 1) % self.max_state
         } else if state > 0 {
@@ -143,67 +192,138 @@ impl Life {
         }
     }
 
+    fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Self> {
+        while let Some(line) = it.next() {
+            // parse headers
+            if line.starts_with("#") {
+                // ignore tags for now
+            } else if line.starts_with("x") {
+                // header
+                let mut size: (usize, usize) = (16, 16);
+                let mut rule: LifeRule = LifeRule::GOL;
+                for field in line.split(", ") {
+                    let (name, value) = field.split_once(" = ").expect("Failed to parse field");
+                    match name {
+                        "x" => size.0 = value.parse().expect("Failed to parse field"),
+                        "y" => size.1 = value.parse().expect("Failed to parse field"),
+                        "rule" => rule = LifeRule::from_str(field),
+                        _ => panic!("Unkown header field: {}", name),
+                    }
+                }
+                return Some(Self::new_rule(LifeAlgoSelect::Cached, size, rule));
+            } else {
+                panic!("Unkown line: {}", line);
+            }
+        }
+        None
+    }
+
     /*
      *        let rle_glider = "
      *        #C This is a glider.
      *        x = 3, y = 3
      *        bo$2bo$3o!";
+     * https://conwaylife.com/wiki/Run_Length_Encoded
      */
     pub fn new_life_from_rle(rle: &str) -> Self {
-        let mut life: Option<Self> = None;
+        let mut line_it = rle.split('\n');
+        let mut life: Self =
+            Self::rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
+
         let mut pos: (usize, usize) = (0, 0);
-        for line in rle.split('\n') {
-            if life.is_none() {
-                // parse headers
-                if line.starts_with("#") {
-                    // ignore tags for now
-                } else if line.starts_with("x") {
-                    // header
-                    let (x_str, y_str) = line.split_once(',').expect("Failed to parse header");
-                    let x: usize = x_str[4..]
-                        .parse()
-                        .expect(format!("Failed to parse x '{}'", &x_str[4..]).as_str());
-                    let y: usize = y_str[5..]
-                        .parse()
-                        .expect(format!("Failed to parse y '{}'", &y_str[5..]).as_str());
-
-                    life = Some(Self::new(LifeAlgoSelect::Cached, (x, y)));
+        while let Some(line) = line_it.next() {
+            let mut run_count = 0;
+            for chr in line.chars() {
+                if let Some(count) = chr.to_digit(10) {
+                    run_count = (run_count * 10) + count;
                 } else {
-                    panic!("Unkown line: {}", line);
-                }
-            } else {
-                let mut run_count = 0;
-                for chr in line.chars() {
-                    if let Some(count) = chr.to_digit(10) {
-                        run_count = (run_count * 10) + count;
-                    } else {
-                        if run_count == 0 {
-                            run_count = 1;
-                        }
-                        match chr {
-                            'b' => pos.0 += run_count as usize,
-                            'o' => {
-                                for _ in 0..run_count {
-                                    if let Some(life) = &mut life {
-                                        life.algo.insert(pos, Cell::new(1, 0));
-                                    }
-                                    pos.0 += 1;
-                                }
-                            }
-                            '$' => {
-                                pos.1 += 1;
-                                pos.0 = 0;
-                            }
-                            '!' => break,
-
-                            _ => panic!("Unkown <tag> '{chr}'"),
-                        }
-                        run_count = 0;
+                    if run_count == 0 {
+                        run_count = 1;
                     }
+                    match chr {
+                        'b' => pos.0 += run_count as usize,
+                        'o' => {
+                            for _ in 0..run_count {
+                                life.algo.insert(pos, Cell::new(1, 0));
+                                pos.0 += 1;
+                            }
+                        }
+                        '$' => {
+                            pos.1 += 1;
+                            pos.0 = 0;
+                        }
+                        '!' => break,
+
+                        _ => panic!("Unkown <tag> '{chr}'"),
+                    }
+                    run_count = 0;
                 }
             }
         }
-        life.expect("Failed to parse header from .rle!")
+        life
+    }
+
+    fn rle_write_state(string: &mut String, count: i32, state: u8, line_count: &mut usize) {
+        if count > 1 {
+            let count_str = count.to_string();
+            *line_count += count_str.len();
+            string.push_str(count_str.as_str());
+        }
+        let pat = match state {
+            0 => 'b',
+            1 => 'o',
+            _ => todo!(),
+        };
+        string.push(pat);
+        *line_count += 1;
+        if *line_count > 64 {
+            string.push('\n');
+            *line_count = 0;
+        }
+    }
+
+    pub fn life_to_rle(&self) -> String {
+        let size = self.size();
+        let mut string = String::with_capacity(64);
+        string.push_str(
+            format!(
+                "x = {}, y = {}, rule = {}\n",
+                size.0,
+                size.1,
+                self.rule.to_str().as_str()
+            )
+            .as_str(),
+        );
+
+        let mut prev_count = 0;
+        let mut prev_state: Option<u8> = None;
+        let mut line_count: usize = 0;
+        for (x, y, cell) in self.iter() {
+            if x == 0 && y != 0 {
+                if prev_state.unwrap() != 0 {
+                    Self::rle_write_state(&mut string, prev_count, prev_state.unwrap(), &mut line_count);
+                }
+
+                prev_state = None;
+                prev_count = 0;
+                string.push('$');
+            }
+            if let Some(state) = prev_state {
+                if state != cell.get_state() {
+                    Self::rle_write_state(&mut string, prev_count, state, &mut line_count);
+                    prev_count = 0;
+                }
+            }
+            prev_state = Some(cell.get_state());
+            prev_count += 1;
+        }
+        if prev_state.unwrap() != 0 {
+            Self::rle_write_state(&mut string, prev_count, prev_state.unwrap(), &mut line_count);
+        }
+
+        string.push('!');
+
+        string
     }
 
     pub fn paste(&mut self, other: &Self, pos: (usize, usize)) {
@@ -215,7 +335,7 @@ impl Life {
     pub fn iter(&self) -> impl Iterator<Item = (usize, usize, &Cell)> {
         let size = self.algo.size();
         (0..size.1).flat_map(move |y: usize| {
-            (0..size.1).map(move |x| (x, y, self.algo.get((x, y)).unwrap()))
+            (0..size.0).map(move |x| (x, y, self.algo.get((x, y)).unwrap()))
         })
     }
 
@@ -235,11 +355,6 @@ impl Life {
         self.algo.hash(state);
     }
 }
-
-// pub fn iter_life_mut<'a>(life: &'a mut dyn Life) -> impl Iterator<Item = (usize, usize, &'a mut u8)> {
-//     let size = life.size();
-//     (0..size.1).flat_map(move |y: usize| (0..size.1).map(move |x| (x, y, life.get_mut((x, y)).unwrap())))
-// }
 
 // Should this be Display or Debug?
 impl std::fmt::Display for Life {
@@ -263,6 +378,14 @@ pub const GLIDER_RLE: &str = "\
 x = 3, y = 3
 bo$2bo$3o!";
 
+pub const GOSPER_RLE: &str = "\
+#N Gosper glider gun
+#C This was the first gun discovered.
+#C As its name suggests, it was discovered by Bill Gosper.
+x = 36, y = 9, rule = B3/S23
+24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
+obo$10bo5bo7bo$11bo3bo$12b2o!";
+
 #[cfg(test)]
 mod life_tests {
     use super::*;
@@ -272,16 +395,78 @@ mod life_tests {
         let life = Life::new_life_from_rle(GLIDER_RLE);
 
         assert_eq!(life.algo.size(), (3, 3));
-
         assert_eq!(format!("{life}"), "\n * \n  *\n***");
+        // don't compare glider rules
+        assert_eq!(life.life_to_rle()[28..], GLIDER_RLE[34..]);
     }
 
-    /*
-    #N Gosper glider gun
-    #C This was the first gun discovered.
-    #C As its name suggests, it was discovered by Bill Gosper.
-    x = 36, y = 9, rule = B3/S23
-    24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
-    obo$10bo5bo7bo$11bo3bo$12b2o!
-     */
+    #[test]
+    fn test_rle_gosper() {
+        let life = Life::new_life_from_rle(GOSPER_RLE);
+        assert_eq!(life.rule, LifeRule::GOL);
+        assert_eq!(life.size(), (36, 9));
+        assert_eq!(life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
+        assert_eq!(life.life_to_rle(), GOSPER_RLE[118..]);
+    }
+
+    #[test]
+    fn test_rule_from_str() {
+        assert_eq!(LifeRule::from_str("B3/S23"), LifeRule::GOL);
+        assert_eq!(LifeRule::from_str("B2/S345/4"), LifeRule::STAR_WARS);
+    }
+
+    #[test]
+    fn test_rule_to_str() {
+        assert_eq!(LifeRule::GOL.to_str(), "B3/S23");
+        assert_eq!(LifeRule::STAR_WARS.to_str(), "B2/S345/4");
+    }
+
+    #[test]
+    fn test_rule_life() {
+        // GOL B3/S23
+        let rule = LifeRule::GOL;
+
+        // Birth
+        assert_eq!(rule.update(0, (2, 0)), Cell::new(0, 0));
+        assert_eq!(rule.update(0, (3, 0)), Cell::new(1, 0));
+        assert_eq!(rule.update(0, (4, 0)), Cell::new(0, 0));
+
+        // Survive
+        assert_eq!(rule.update(1, (1, 0)), Cell::new(0, 0));
+        assert_eq!(rule.update(1, (2, 0)), Cell::new(1, 0));
+        assert_eq!(rule.update(1, (3, 0)), Cell::new(1, 0));
+        assert_eq!(rule.update(1, (4, 0)), Cell::new(0, 0));
+    }
+
+    #[test]
+    fn test_rule_sw() {
+        // SW B2/S345/4
+        let rule = LifeRule::STAR_WARS;
+
+        // Birth
+        assert_eq!(rule.update(0, (1, 0)), Cell::new(0, 0));
+        assert_eq!(rule.update(0, (2, 0)), Cell::new(1, 0));
+        assert_eq!(rule.update(0, (3, 0)), Cell::new(0, 0));
+        assert_eq!(rule.update(0, (4, 0)), Cell::new(0, 0));
+
+        // Survive
+        assert_eq!(rule.update(1, (3, 0)), Cell::new(1, 0));
+        assert_eq!(rule.update(1, (4, 0)), Cell::new(1, 0));
+        assert_eq!(rule.update(1, (5, 0)), Cell::new(1, 0));
+
+        // Refractory
+        assert_eq!(rule.update(1, (1, 0)), Cell::new(2, 0));
+        assert_eq!(rule.update(1, (2, 0)), Cell::new(2, 0));
+        assert_eq!(rule.update(1, (6, 0)), Cell::new(2, 0));
+
+        // Refractory 2
+        assert_eq!(rule.update(2, (1, 0)), Cell::new(3, 0));
+        assert_eq!(rule.update(2, (3, 0)), Cell::new(3, 0));
+        assert_eq!(rule.update(2, (6, 0)), Cell::new(3, 0));
+
+        // Refractory 3
+        assert_eq!(rule.update(3, (1, 0)), Cell::new(0, 0));
+        assert_eq!(rule.update(3, (3, 0)), Cell::new(0, 0));
+        assert_eq!(rule.update(3, (6, 0)), Cell::new(0, 0));
+    }
 }
