@@ -3,7 +3,7 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
-use life_io::life::{cached::LifeCached, Life};
+use life_io::life::{cached::LifeCached, LifeAlgo};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -11,7 +11,7 @@ const MAX_ITERS: usize = 2000;
 pub struct LifeResult {
     age: usize,
     period: usize,
-    // #[allow(unused)]
+    #[allow(unused)]
     life: LifeCached,
 }
 

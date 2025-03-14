@@ -1,4 +1,4 @@
-use life_io::life::{cached::LifeCached, iter_life, Cell, Life};
+use life_io::life::{Cell, Life, LifeAlgoSelect};
 
 use macroquad::{
     color::{self},
@@ -16,8 +16,8 @@ pub struct ViewContext {
     selected_faction: u8,
 }
 
-fn draw_life(life: &dyn Life, ctx: &ViewContext) {
-    for (x, y, cell) in iter_life(life) {
+fn draw_life(life: &Life, ctx: &ViewContext) {
+    for (x, y, cell) in life.iter() {
         let state = cell.get_state();
         if state > 0 {
             let mut color = match cell.get_faction() {
@@ -43,7 +43,13 @@ fn draw_life(life: &dyn Life, ctx: &ViewContext) {
     }
 }
 
-fn handle_input(life: &mut dyn Life, ctx: &mut ViewContext) {
+fn handle_input(life: &mut Life, ctx: &mut ViewContext) {
+    let mouse_pos = mouse_position();
+    let pos: (usize, usize) = (
+        (mouse_pos.0 / ctx.grid_size) as usize,
+        (mouse_pos.1 / ctx.grid_size) as usize,
+    );
+
     if let Some(chr) = get_char_pressed() {
         match chr {
             'q' => ctx.request_quit = true,
@@ -52,16 +58,13 @@ fn handle_input(life: &mut dyn Life, ctx: &mut ViewContext) {
             '2' => ctx.selected_faction = 1,
             '3' => ctx.selected_faction = 2,
             '4' => ctx.selected_faction = 3,
+            'g' => life.paste(&Life::new_life_from_rle(life_io::life::GLIDER_RLE), pos),
             _ => {}
         }
     }
 
     if is_mouse_button_down(macroquad::input::MouseButton::Left) {
-        let mouse_pos = mouse_position();
-        let pos: (usize, usize) = (
-            (mouse_pos.0 / ctx.grid_size) as usize,
-            (mouse_pos.1 / ctx.grid_size) as usize,
-        );
+
         life.insert(pos, Cell::new(1, ctx.selected_faction));
     }
 }
@@ -73,8 +76,8 @@ async fn main() {
     println!("Life viewer. Seed: {seed}");
 
 
-    let mut life = LifeCached::new((16, 16));
-    life.randomize(seed, false);
+    let mut life = Life::new(LifeAlgoSelect::Cached, (64, 64));
+    // life.randomize(seed, false);
 
     let mut last_update = get_time();
 

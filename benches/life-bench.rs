@@ -3,7 +3,7 @@
 mod life_bench {
     extern crate test;
 
-    use life_io::life::{basic::LifeBasic, cached::LifeCached, sparse::LifeSparse, Life};
+    use life_io::life::{basic::LifeBasic, cached::LifeCached, sparse::LifeSparse, LifeAlgo};
     use test::Bencher;
 
     const BENCH_SEED: u64 = 1234;

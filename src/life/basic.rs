@@ -1,13 +1,13 @@
 use std::mem::replace;
 
-use super::{state_update, Cell, Life};
+use super::{state_update, Cell, LifeAlgo};
 
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct LifeBasic {
     grid: Vec<Vec<Cell>>,
 }
 
-impl Life for LifeBasic {
+impl LifeAlgo for LifeBasic {
     fn size(&self) -> (usize, usize) {
         (self.grid[0].len(), self.grid.len())
     }
@@ -23,6 +23,10 @@ impl Life for LifeBasic {
         let row = self.grid.get_mut(pos.1)?;
         let cell = row.get_mut(pos.0)?;
         Some(replace(cell, new_cell))
+    }
+    
+    fn update(&mut self) {
+        todo!()
     }
 }
 
