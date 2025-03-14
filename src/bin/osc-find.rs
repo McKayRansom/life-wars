@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    hash::{DefaultHasher, Hasher},
+    hash::{DefaultHasher, Hasher}, time::Instant,
 };
 
 use life_io::life::Life;
@@ -21,6 +21,12 @@ fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
     life.randomize(seed, false);
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;
+
+    // pre-update to reduce hashing
+    for _ in 0..50 {
+        life.update();
+        i += 1;
+    }
 
     loop {
         life.update();
@@ -53,22 +59,26 @@ fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
     }
 }
 
-// #[macroquad::main("Tron-IO")]
 fn main() {
     println!("Life oscilator search...");
+    
+    let now = Instant::now();
 
     let mut found_oscilators: Vec<usize> = Vec::new();
 
-    // search the first 100 seeds
-    for seed in 0..100000 {
+    for seed in 0..10000 {
         if let Some(res) = run_to_stabilization(seed) {
             if !found_oscilators.contains(&res.period) {
                 found_oscilators.push(res.period);
                 println!(
-                    "Found oscilator {} seed: {seed} iter: {}",
-                    res.period, res.age
+                    "Found oscilator {} seed: {seed} iter: {} str: {}",
+                    res.period, res.age, res.life.life_to_rle()
                 );
             }
         }
     }
+
+    let elapsed = now.elapsed();
+
+    println!("Finished in : {:.1?}", elapsed);
 }
