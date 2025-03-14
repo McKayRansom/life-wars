@@ -34,7 +34,7 @@ mod life_bench {
         life.randomize(BENCH_SEED, false);
 
         b.iter(|| {
-            life = life.update();
+            life.update();
         });
     }
 }

@@ -3,7 +3,7 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
-use life_io::life::{basic::LifeBasic, cached::LifeCached, Life};
+use life_io::life::{cached::LifeCached, Life};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -23,7 +23,7 @@ fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
     let mut i: usize = 0;
 
     loop {
-        life = life.update();
+        life.update();
 
         let mut hasher = DefaultHasher::new();
         life.hash(&mut hasher);

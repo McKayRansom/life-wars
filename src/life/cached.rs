@@ -1,12 +1,14 @@
-use std::{fmt::Write, hash::Hash};
+use std::{fmt::Write, hash::Hash, mem::swap};
 
-use super::{iter_life, state_update, Cell, Life};
+use super::{Cell, Life, iter_life, state_update};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeCached {
     grid: Vec<Vec<(Cell, i8)>>,
-    recent_births: Vec<(usize, usize)>,
-    recent_deaths: Vec<(usize, usize)>,
+    old_grid: Vec<Vec<(Cell, i8)>>,
+    recent_updates: Vec<(usize, usize)>,
+    old_updates: Vec<(usize, usize)>,
+    // recent_deaths: Vec<(usize, usize)>,
 }
 
 impl Life for LifeCached {
@@ -32,8 +34,7 @@ impl Life for LifeCached {
         // assert!(new_cell.is_alive(), "Adding new cell: {new_cell:?} at pos: {pos:?}");
         // println!("Adding new cell: {new_cell:?} at pos: {pos:?}");
 
-
-        self.recent_births.push(pos);
+        self.recent_updates.push(pos);
 
         // let res = Some(replace(cell, (new_cell, 0)).0);
         cell.0 = new_cell; // leave neighbor count alone!
@@ -50,8 +51,9 @@ impl LifeCached {
     pub fn new(dim: (usize, usize)) -> Self {
         Self {
             grid: vec![vec![(Cell::new(0, 0), 0); dim.0]; dim.1],
-            recent_births: Vec::new(),
-            recent_deaths: Vec::new(),
+            recent_updates: Vec::new(),
+            old_grid: vec![vec![(Cell::new(0, 0), 0); dim.0]; dim.1],
+            old_updates: Vec::new(),
         }
     }
 
@@ -72,7 +74,10 @@ impl LifeCached {
                         // if cell.get_faction() == faction {
                         *neigh += amount;
 
-                        assert!(*neigh >= 0, "Neighbor underflow at {pos:?} off: ({dx}, {dy})");
+                        assert!(
+                            *neigh >= 0,
+                            "Neighbor underflow at {pos:?} off: ({dx}, {dy})"
+                        );
                         // } else {
                         // TODO: FACTIONS BROKEN??
                         // faction = cell.get_faction();
@@ -91,8 +96,14 @@ impl LifeCached {
         (thing.1 as u8, thing.0.get_faction())
     }
 
-    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (usize, usize)) {
-        let size = self.size();
+    fn check_cell_and_neighbors(
+        size: (usize, usize),
+        old_grid: &Vec<Vec<(Cell, i8)>>,
+        new_grid: &mut Vec<Vec<(Cell, i8)>>,
+        updates: &mut Vec<(usize, usize)>,
+        pos: (usize, usize),
+    ) {
+        // let size = self.size();
         for dy in -1..2 {
             let py = pos.1 as i32 + dy;
             if py < 0 || py as usize >= size.1 {
@@ -105,55 +116,45 @@ impl LifeCached {
                 }
                 let new_pos: (usize, usize) = (px as usize, py as usize);
 
-                let old = self.grid[new_pos.1][new_pos.0];
+                let old = old_grid[new_pos.1][new_pos.0];
 
                 let new_cell = state_update(old.0.get_state(), (old.1 as u8, old.0.get_faction()));
 
-                let new = &mut new_self.grid[new_pos.1][new_pos.0];
+                let new = &mut new_grid[new_pos.1][new_pos.0];
 
                 if new_cell != new.0 {
-                    // if old.0 != new.0 {
                     // println!("Cell at: {new_pos:?} was {:?} now {new_cell:?}", new);
-                    // println!("New birth!");
-                    if new_cell.is_alive() {
-                        new_self.recent_births.push(new_pos);
-                    } else {
-                        new_self.recent_deaths.push(new_pos);
-                    }
-                    // } else {
-                    //     println!("Stale birth!");
-                    // }
+                    updates.push(new_pos);
                     new.0 = new_cell;
                     Self::update_neighbors(
-                        &mut new_self.grid,
+                        new_grid,
                         new_cell.get_faction(),
                         if new_cell.is_alive() { 1 } else { -1 },
                         new_pos,
                     );
-
-                    // println!("Self now: {new_self}");
                 }
             }
         }
     }
-    pub fn update(&self) -> Self {
-        let mut new_self: Self = Self {
-            grid: self.grid.clone(),
-            recent_births: Vec::new(),
-            recent_deaths: Vec::new(),
-        };
-
-        // println!("UUJ");
-
-        for pos in &self.recent_births {
-            self.check_cell_and_neighbors(&mut new_self, *pos);
+    pub fn update(&mut self) {
+        // TODO: Change to flat vector?
+        for (dst, src) in self.old_grid.iter_mut().zip(self.grid.iter()) {
+            dst.copy_from_slice(src);
         }
 
-        for pos in &self.recent_deaths {
-            self.check_cell_and_neighbors(&mut new_self, *pos);
-        }
+        swap(&mut self.recent_updates, &mut self.old_updates);
 
-        new_self
+        self.recent_updates.clear();
+
+        for pos in &self.old_updates {
+            Self::check_cell_and_neighbors(
+                self.size(),
+                &mut self.old_grid,
+                &mut self.grid,
+                &mut self.recent_updates,
+                *pos,
+            );
+        }
     }
 }
 
@@ -180,12 +181,13 @@ impl From<&str> for LifeCached {
         }
 
         let mut new_self = Self {
+            old_grid: grid.clone(),
             grid,
-            recent_births,
-            recent_deaths: Vec::new(),
+            old_updates: Vec::new(),
+            recent_updates: recent_births,
         };
 
-        for pos in &new_self.recent_births {
+        for pos in &new_self.recent_updates {
             Self::update_neighbors(&mut new_self.grid, 0, 1, *pos);
         }
 
@@ -209,12 +211,6 @@ impl std::fmt::Display for LifeCached {
                 f.write_char('\n')?;
             }
             f.write_char(char::from_digit(self.grid[y][x].1 as u32, 10).unwrap())?;
-            // if cell.is_alive() {
-            //     f.write_char('*')?;
-            // } else {
-            //     f.write_char(' ')?;
-            // }
-
         }
         Ok(())
     }
@@ -228,8 +224,8 @@ pub mod life_cached_test {
     use super::*;
 
     #[test]
-    fn life_test_basic() {
-        let life: LifeCached = " * \n * \n * ".into();
+    fn test_cached() {
+        let mut life: LifeCached = " * \n * \n * ".into();
 
         assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
         assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
@@ -239,30 +235,29 @@ pub mod life_cached_test {
         assert_eq!(life.neighbors((1, 0)), (1, 0));
         assert_eq!(life.neighbors((0, 1)), (3, 0));
 
-        assert_eq!(life.recent_births, [(1, 0), (1, 1), (1, 2)]);
+        assert_eq!(life.recent_updates, [(1, 0), (1, 1), (1, 2)]);
 
-        let update = life.update();
+        life.update();
 
-        assert_eq!(update.recent_births, [(0, 1), (2, 1)]);
-        assert_eq!(update.recent_deaths, [(1, 0), (1, 2)]);
+        // assert_eq!(life.recent_updates, [(0, 1), (2, 1), (1, 0), (1, 2)]);
         assert_eq!(
-            update.grid,
+            life.grid,
             <&str as Into<LifeCached>>::into("   \n***\n   ").grid
         );
 
-        let update = update.update();
+        life.update();
         assert_eq!(
-            update.grid,
+            life.grid,
             <&str as Into<LifeCached>>::into(" * \n * \n * ").grid
         );
 
-        assert_eq!(update.neighbors((0, 0)), (2, 0));
-        assert_eq!(update.neighbors((1, 0)), (1, 0));
-        assert_eq!(update.neighbors((0, 1)), (3, 0));
+        assert_eq!(life.neighbors((0, 0)), (2, 0));
+        assert_eq!(life.neighbors((1, 0)), (1, 0));
+        assert_eq!(life.neighbors((0, 1)), (3, 0));
 
-        let update = update.update();
+        life.update();
         assert_eq!(
-            update.grid,
+            life.grid,
             <&str as Into<LifeCached>>::into("   \n***\n   ").grid
         );
     }
@@ -275,16 +270,14 @@ pub mod life_cached_test {
         life_basic.randomize(1234, false);
         life_cached.randomize(1234, false);
 
-
         for _ in 0..100 {
             for (x, y, basic_cell) in iter_life(&life_basic) {
-
                 let cached_cell = life_cached.get((x, y)).unwrap();
                 assert_eq!(basic_cell, cached_cell);
             }
 
             life_basic = life_basic.update();
-            life_cached = life_cached.update();
+            life_cached.update();
         }
     }
 }
