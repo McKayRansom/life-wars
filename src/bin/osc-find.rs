@@ -65,8 +65,8 @@ fn main() {
             if !found_oscilators.contains(&res.period) {
                 found_oscilators.push(res.period);
                 println!(
-                    "Found oscilator {} seed: {seed} iter: {} life: {}",
-                    res.period, res.age, &res.life as &dyn Life
+                    "Found oscilator {} seed: {seed} iter: {}",
+                    res.period, res.age
                 );
             }
         }

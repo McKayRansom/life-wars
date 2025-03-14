@@ -39,7 +39,7 @@ impl Life for LifeCached {
         // let res = Some(replace(cell, (new_cell, 0)).0);
         cell.0 = new_cell; // leave neighbor count alone!
 
-        Self::update_neighbors(&mut self.grid, 0, 1, pos);
+        Self::update_neighbors(&mut self.grid, new_cell.get_faction(), 1, pos);
 
         // println!("self: {self}");
         // res
@@ -57,41 +57,90 @@ impl LifeCached {
         }
     }
 
-    // This seemingly stupid iterator version is somehow faster?
-    pub fn update_neighbors(
+    fn update_neighbors(
         grid: &mut Vec<Vec<(Cell, i8)>>,
-        _faction: u8,
+        faction: u8,
         amount: i8,
         pos: (usize, usize),
     ) {
         for dy in -1..2 {
-            if let Some(row) = grid.get_mut((pos.1 as i32 + dy) as usize) {
-                for dx in -1..2 {
-                    if dx == 0 && dy == 0 {
-                        continue;
-                    }
-                    if let Some((_cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
-                        // if cell.get_faction() == faction {
-                        *neigh += amount;
+            for dx in -1..2 {
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
+                if let Some(row) = grid.get_mut((pos.1 as i32 + dy) as usize) {
+                    if let Some((cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
+                        if cell.get_faction() != faction {
+                            // cell.set_faction(faction);
+                            // amount *= -1;
+                        }
 
-                        assert!(
-                            *neigh >= 0,
-                            "Neighbor underflow at {pos:?} off: ({dx}, {dy})"
-                        );
-                        // } else {
-                        // TODO: FACTIONS BROKEN??
-                        // faction = cell.get_faction();
-                        // If this is less than 0, we need to recalc?
-                        // *neigh -= amount;
+                        *neigh += amount;
+                        // if *neigh < 0 {
+                        // we're hosed, recalc is the only option
+                        // cell.set_faction(faction);
+                        // *neigh *= -1;
+                        // let (neigh, faction) = Self::neighbors(grid, faction, pos);
+
+                        // let (dst_cell, dst_neigh) = grid
+                        //     .get_mut((pos.1 as i32 + dy) as usize)
+                        //     .unwrap()
+                        //     .get_mut((pos.0 as i32 + dx) as usize)
+                        //     .unwrap();
+
+                        // dst_cell.set_faction(faction);
+                        // *dst_neigh = neigh as i8;
                         // }
+                        // } else if *neigh > 0 {
+                        // *neigh -= amount;
+                        // } else {
+                        // *neigh
+                        // }
+
+                        // assert!(
+                        //     *neigh >= 0,
+                        //     "Neighbor underflow at {pos:?} off: ({dx}, {dy})"
+                        // );
                     }
                 }
             }
         }
     }
 
+    pub fn neighbors(
+        grid: &mut Vec<Vec<(Cell, i8)>>,
+        faction: u8,
+        pos: (usize, usize),
+    ) -> (u8, u8) {
+        let mut faction: u8 = faction;
+        let mut sum: u8 = 0;
+        for dy in -1..2 {
+            if let Some(row) = grid.get((pos.1 as i32 + dy) as usize) {
+                for dx in -1..2 {
+                    if dx == 0 && dy == 0 {
+                        continue;
+                    }
+                    if let Some((cell, _neigh)) = row.get((pos.0 as i32 + dx) as usize) {
+                        if cell.is_alive() {
+                            // sum += 1;
+                            if cell.get_faction() == faction {
+                                sum += 1;
+                            } else if sum > 0 {
+                                sum -= 1;
+                            } else {
+                                faction = cell.get_faction();
+                                sum += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        (sum, faction)
+    }
+
     #[allow(unused)]
-    fn neighbors(&self, pos: (usize, usize)) -> (u8, u8) {
+    fn neighbors_cached(&self, pos: (usize, usize)) -> (u8, u8) {
         let thing = &self.grid[pos.1][pos.0];
         (thing.1 as u8, thing.0.get_faction())
     }
@@ -125,13 +174,16 @@ impl LifeCached {
                 if new_cell != new.0 {
                     // println!("Cell at: {new_pos:?} was {:?} now {new_cell:?}", new);
                     updates.push(new_pos);
+                    let alive_changed = new_cell.is_alive() != new.0.is_alive();
                     new.0 = new_cell;
-                    Self::update_neighbors(
-                        new_grid,
-                        new_cell.get_faction(),
-                        if new_cell.is_alive() { 1 } else { -1 },
-                        new_pos,
-                    );
+                    if alive_changed {
+                        Self::update_neighbors(
+                            new_grid,
+                            new_cell.get_faction(),
+                            if new_cell.is_alive() { 1 } else { -1 },
+                            new_pos,
+                        );
+                    }
                 }
             }
         }
@@ -231,9 +283,13 @@ pub mod life_cached_test {
         assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
         assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
 
-        assert_eq!(life.neighbors((0, 0)), (2, 0));
-        assert_eq!(life.neighbors((1, 0)), (1, 0));
-        assert_eq!(life.neighbors((0, 1)), (3, 0));
+        assert_eq!(life.neighbors_cached((0, 0)), (2, 0));
+        assert_eq!(life.neighbors_cached((1, 0)), (1, 0));
+        assert_eq!(life.neighbors_cached((0, 1)), (3, 0));
+
+        assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (0, 0)), (2, 0));
+        assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (1, 0)), (1, 0));
+        assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (0, 1)), (3, 0));
 
         assert_eq!(life.recent_updates, [(1, 0), (1, 1), (1, 2)]);
 
@@ -251,9 +307,9 @@ pub mod life_cached_test {
             <&str as Into<LifeCached>>::into(" * \n * \n * ").grid
         );
 
-        assert_eq!(life.neighbors((0, 0)), (2, 0));
-        assert_eq!(life.neighbors((1, 0)), (1, 0));
-        assert_eq!(life.neighbors((0, 1)), (3, 0));
+        assert_eq!(life.neighbors_cached((0, 0)), (2, 0));
+        assert_eq!(life.neighbors_cached((1, 0)), (1, 0));
+        assert_eq!(life.neighbors_cached((0, 1)), (3, 0));
 
         life.update();
         assert_eq!(

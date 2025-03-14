@@ -76,31 +76,31 @@ pub trait Life {
 
 pub fn state_update_f(state: u8, neighbors: u8) -> u8 {
     // SWR B2/S345/4
-    // if state == 0 {
-    //     if neighbors == 2 { 1 } else { 0 }
-    // } else if state == 1 {
-    //     if neighbors >= 3 && neighbors <= 5 {
-    //         1
-    //     } else {
-    //         2
-    //     }
-    // } else if state == 3 {
-    //     0
-    // } else {
-    //     state + 1
-    // }
-    // GOL B3/S23
-    if state > 0 {
-        if neighbors >= 2 && neighbors <= 3 {
+    if state == 0 {
+        if neighbors == 2 { 1 } else { 0 }
+    } else if state == 1 {
+        if neighbors >= 3 && neighbors <= 5 {
             1
         } else {
-            0
+            2
         }
-    } else if neighbors == 3 {
-        1
-    } else {
+    } else if state == 3 {
         0
+    } else {
+        state + 1
     }
+    // GOL B3/S23
+    // if state > 0 {
+    //     if neighbors >= 2 && neighbors <= 3 {
+    //         1
+    //     } else {
+    //         0
+    //     }
+    // } else if neighbors == 3 {
+    //     1
+    // } else {
+    //     0
+    // }
     // Fake Coral that I like
 }
 
