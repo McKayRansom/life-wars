@@ -3,6 +3,7 @@ use life_io::life::{Cell, Life, LifeAlgoSelect, LifeRule};
 use macroquad::{
     color::{self},
     input::{get_char_pressed, is_mouse_button_down, mouse_position},
+    miniquad::window::clipboard_get,
     shapes::draw_rectangle,
     time::get_time,
     window::{next_frame, screen_height, screen_width},
@@ -59,12 +60,19 @@ fn handle_input(life: &mut Life, ctx: &mut ViewContext) {
             '3' => ctx.selected_faction = 2,
             '4' => ctx.selected_faction = 3,
             'g' => life.paste(&Life::new_life_from_rle(life_io::life::GLIDER_RLE), pos),
+            'p' => {
+                if let Some(string) = clipboard_get() {
+                    println!("Pasting {string:?}");
+                    life.paste(&Life::new_life_from_rle(string.as_str()), pos)
+                } else {
+                    println!("No clipboard!");
+                }
+            }
             _ => {}
         }
     }
 
     if is_mouse_button_down(macroquad::input::MouseButton::Left) {
-
         life.insert(pos, Cell::new(1, ctx.selected_faction));
     }
 }
@@ -74,7 +82,6 @@ async fn main() {
     let seed = 23317;
 
     println!("Life viewer. Seed: {seed}");
-
 
     let mut life = Life::new_rule(LifeAlgoSelect::Cached, (128, 128), LifeRule::STAR_WARS);
     life.randomize(seed, false);
@@ -96,8 +103,7 @@ async fn main() {
         }
 
         let size = life.size();
-        ctx.grid_size = (screen_width() / size.0 as f32)
-            .min(screen_height() / size.1 as f32);
+        ctx.grid_size = (screen_width() / size.0 as f32).min(screen_height() / size.1 as f32);
         handle_input(&mut life, &mut ctx);
 
         draw_life(&life, &ctx);

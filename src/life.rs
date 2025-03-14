@@ -53,23 +53,23 @@ pub trait LifeAlgo {
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeRule {
-    birth: u16,
-    survive: u16,
-    max_state: u8,
+    // TODO: Changing this to a u32 doesn't seem to impact us much
+    lut: [u16; 4],
 }
 
 impl LifeRule {
     // GOL B3/S23
-    pub const GOL: Self = Self::new(0b1000, 0b1100, 2);
+    pub const GOL: Self = Self::new([0b1_00_00, 0b01_01_00, 0, 0]);
     // SWR B2/S345/4
-    pub const STAR_WARS: Self = Self::new(0b0100, 0b111000, 3);
+    pub const STAR_WARS: Self = Self::new([
+        0b1_00,
+        0b10_10_10_01_01_01_10_10,
+        0b11_11_11_11_11_11_11_11,
+        0,
+    ]);
 
-    pub const fn new(birth: u16, survive: u16, max_state: u8) -> Self {
-        Self {
-            birth,
-            survive,
-            max_state,
-        }
+    pub const fn new(lut: [u16; 4]) -> Self {
+        Self { lut }
     }
 
     // BXX or X
@@ -89,14 +89,26 @@ impl LifeRule {
     // BXX/SXX or BXX/SXX/X
     // https://conwaylife.com/wiki/Rulestring
     pub fn from_str(str: &str) -> Self {
-        let mut new_rule: Self = Self::new(0, 0, 2);
+        let mut new_rule: Self = Self::new([0, 0, 0, 0]);
 
         let mut portion_it = str.split('/');
 
-        Self::parse_rule_portion(&mut portion_it, |count| new_rule.birth |= 1 << count);
-        Self::parse_rule_portion(&mut portion_it, |count| new_rule.survive |= 1 << count);
+        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[0] |= 1 << ((count - 1) * 2));
+        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[1] |= 1 << ((count - 1) * 2));
         Self::parse_rule_portion(&mut portion_it, |count| {
-            new_rule.max_state = (count - 1) as u8
+            match count {
+                3 => {}, // do nothing
+                4 => {
+                    // Transition to state 2 instead of state 0
+                    for i in 0..8 {
+                        if new_rule.lut[1] & 1 << (i * 2) == 0 {
+                            new_rule.lut[1] |= 2 << (i * 2);
+                        }
+                    }
+                    new_rule.lut[2] =  0b11_11_11_11_11_11_11_11;
+                },
+                _ => unimplemented!(),
+            }
         });
 
         new_rule
@@ -105,18 +117,18 @@ impl LifeRule {
     pub fn to_str(&self) -> String {
         let mut births: u32 = 0;
         let mut survives: u32 = 0;
-        for i in 0..9 {
-            if (self.birth & (1 << i)) != 0 {
+        for i in 1..9 {
+            if (self.lut[0] & (1 << (i - 1) * 2)) != 0 {
                 births = births * 10 | i;
             }
-            if (self.survive & (1 << i)) != 0 {
+            if (self.lut[1] & (1 << (i - 1) * 2)) != 0 {
                 survives = (survives * 10) + i;
             }
         }
-        if self.max_state == 2 {
+        if self.lut[2] == 0 {
             format!("B{births}/S{survives}")
         } else {
-            format!("B{births}/S{survives}/{}", self.max_state + 1)
+            format!("B{births}/S{survives}/4")
         }
     }
 
@@ -125,17 +137,7 @@ impl LifeRule {
     }
 
     fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
-        if state == 1 {
-            ((((self.survive & 1 << neighbors) >> neighbors) as u8 ^ 1) + 1) % self.max_state
-        } else if state > 0 {
-            if state == self.max_state {
-                0
-            } else {
-                state + 1
-            }
-        } else {
-            ((self.birth & 1 << neighbors) >> neighbors) as u8
-        }
+        ((self.lut[state as usize] & (3 << ((neighbors - 1) * 2))) >> ((neighbors - 1) * 2)) as u8
     }
 }
 
@@ -301,7 +303,12 @@ impl Life {
         for (x, y, cell) in self.iter() {
             if x == 0 && y != 0 {
                 if prev_state.unwrap() != 0 {
-                    Self::rle_write_state(&mut string, prev_count, prev_state.unwrap(), &mut line_count);
+                    Self::rle_write_state(
+                        &mut string,
+                        prev_count,
+                        prev_state.unwrap(),
+                        &mut line_count,
+                    );
                 }
 
                 prev_state = None;
@@ -318,7 +325,12 @@ impl Life {
             prev_count += 1;
         }
         if prev_state.unwrap() != 0 {
-            Self::rle_write_state(&mut string, prev_count, prev_state.unwrap(), &mut line_count);
+            Self::rle_write_state(
+                &mut string,
+                prev_count,
+                prev_state.unwrap(),
+                &mut line_count,
+            );
         }
 
         string.push('!');

@@ -330,7 +330,7 @@ pub mod life_cached_test {
 
     #[test]
     fn test_basic_comparee() {
-        let mut life_basic = LifeBasic::new((8, 8));
+        let mut _life_basic = LifeBasic::new((8, 8));
         let mut life_cached = LifeCached::new((8, 8));
 
         // life_basic.randomize(1234, false);
@@ -342,7 +342,7 @@ pub mod life_cached_test {
             //     assert_eq!(basic_cell, cached_cell);
             // }
 
-            life_basic = life_basic.update(&LifeRule::GOL);
+            // life_basic = life_basic.update(&LifeRule::GOL);
             life_cached.update(&LifeRule::GOL);
         }
     }
