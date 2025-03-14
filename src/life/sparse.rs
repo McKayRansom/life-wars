@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{Cell, LifeAlgo, state_update};
+use super::{Cell, LifeAlgo, LifeRule};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeSparse {
@@ -45,8 +45,12 @@ impl LifeAlgo for LifeSparse {
         }
    }
    
-    fn update(&mut self) {
+    fn update(&mut self, _rule: &LifeRule) {
         todo!()
+    }
+    
+    fn hash(&self, _state: &mut std::hash::DefaultHasher) {
+        // self.living.hash();
     }
 }
 
@@ -91,7 +95,7 @@ impl LifeSparse {
         (sum, faction)
     }
 
-    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (usize, usize)) {
+    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (usize, usize), rule: &LifeRule) {
         for dy in -1..2 {
             let py = pos.1 as i32 + dy;
             if py < 0 || py as usize >= self.size.1 {
@@ -105,7 +109,7 @@ impl LifeSparse {
                 let new_pos: (usize, usize) = (px as usize, py as usize);
                 // if new_pos == pos {
                 let was_alive = self.living.contains_key(&new_pos);
-                let cell = state_update(if was_alive { 1 } else { 0 }, self.neighbors(0, new_pos));
+                let cell = rule.update(if was_alive { 1 } else { 0 }, self.neighbors(0, new_pos));
 
                 if was_alive {
                     if cell.is_alive() {
@@ -132,7 +136,7 @@ impl LifeSparse {
         }
     }
 
-    pub fn update(&self) -> Self {
+    pub fn update(&self, rule: &LifeRule) -> Self {
         let mut new_self: Self = Self {
             living: self.living.clone(),
             recent_births: Vec::new(),
@@ -141,11 +145,11 @@ impl LifeSparse {
         };
 
         for pos in &self.recent_births {
-            self.check_cell_and_neighbors(&mut new_self, *pos);
+            self.check_cell_and_neighbors(&mut new_self, *pos, rule);
         }
 
         for pos in &self.recent_deaths {
-            self.check_cell_and_neighbors(&mut new_self, *pos);
+            self.check_cell_and_neighbors(&mut new_self, *pos, rule);
         }
 
         new_self
@@ -204,7 +208,7 @@ pub mod life_sprase_test {
         assert_eq!(life.neighbors(0, (1, 0)), (1, 0));
         assert_eq!(life.neighbors(0, (0, 1)), (3, 0));
 
-        let update = life.update();
+        let update = life.update(&LifeRule::GOL);
         assert_eq!(
             update.living,
             <&str as Into<LifeSparse>>::into("   \n***\n   ").living
@@ -212,7 +216,7 @@ pub mod life_sprase_test {
         assert_eq!(update.recent_births, [(0, 1), (2, 1)]);
         assert_eq!(update.recent_deaths, [(1, 0), (1, 2)]);
 
-        let update = update.update();
+        let update = update.update(&LifeRule::GOL);
         assert_eq!(
             update.living,
             <&str as Into<LifeSparse>>::into(" * \n * \n * ").living

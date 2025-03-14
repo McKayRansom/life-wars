@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{fmt::Write, hash::DefaultHasher};
 
 use basic::LifeBasic;
 use cached::LifeCached;
@@ -47,10 +47,82 @@ pub trait LifeAlgo {
     fn size(&self) -> (usize, usize);
     fn get(&self, pos: (usize, usize)) -> Option<&Cell>;
     fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell>;
-    fn update(&mut self);
+    fn update(&mut self, rule: &LifeRule);
+    fn hash(&self, state: &mut DefaultHasher);
+}
+
+pub struct LifeRule {
+    birth: u16,
+    survive: u16,
+}
+
+impl LifeRule {
+    pub const GOL: Self = Self::new(0b1000, 0b1100);
+
+    pub const fn new(birth: u16, survive: u16) -> Self {
+        Self { birth, survive }
+    }
+
+    pub fn update(&self, state: u8, (neighbors, faction): (u8, u8)) -> Cell {
+        Cell::new(Self::state_update_f(self, state, neighbors), faction)
+    }
+
+    // fn new_life_from_string(str: &str) -> Box<dyn Life> {
+
+    // }
+
+    // GOL B3/S23
+    // const BIRTH_RULE: [u8; 9] = [0, 0, 0, 1, 0, 0, 0, 0, 0];
+    // const SURVIVE_RULE: [u8; 9] = [0, 0, 1, 1, 0, 0, 0, 0, 0];
+    // const STATE_RULE: [[u8; 9]; 2] = [BIRTH_RULE, SURVIVE_RULE];
+
+    pub fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
+        // SWR B2/S345/4
+        // if state == 0 {
+        //     if neighbors == 2 { 1 } else { 0 }
+        // } else if state == 1 {
+        //     if neighbors >= 3 && neighbors <= 5 {
+        //         1
+        //     } else {
+        //         2
+        //     }
+        // } else if state == 3 {
+        //     0
+        // } else {
+        //     state + 1
+        // }
+        // GOL B3/S23
+        if state > 0 {
+            ((self.survive & 1 << neighbors) >> neighbors) as u8
+        } else {
+            ((self.birth & 1 << neighbors) >> neighbors) as u8
+        }
+    }
+}
+
+pub struct Life {
+    algo: Box<dyn LifeAlgo>,
+    rule: LifeRule,
+}
+
+pub enum LifeAlgoSelect {
+    Basic,
+    Cached,
+}
+
+impl Life {
+    pub fn new(algo: LifeAlgoSelect, size: (usize, usize)) -> Self {
+        Self {
+            algo: match algo {
+                LifeAlgoSelect::Basic => Box::new(LifeBasic::new(size)),
+                LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
+            },
+            rule: LifeRule::GOL, // rule: LifeRule::new(0, 0)
+        }
+    }
 
     // fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut u8)>;
-    fn randomize(&mut self, seed: u64, use_factions: bool) {
+    pub fn randomize(&mut self, seed: u64, use_factions: bool) {
         macroquad::rand::srand(seed);
 
         let size = self.size();
@@ -68,27 +140,6 @@ pub trait LifeAlgo {
                     ),
                 );
             }
-        }
-    }
-}
-
-pub struct Life {
-    algo: Box<dyn LifeAlgo>,
-    // rule?
-}
-
-pub enum LifeAlgoSelect {
-    Basic,
-    Cached,
-}
-
-impl Life {
-    pub fn new(algo: LifeAlgoSelect, size: (usize, usize)) -> Self {
-        Self {
-            algo: match algo {
-                LifeAlgoSelect::Basic => Box::new(LifeBasic::new(size)),
-                LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
-            },
         }
     }
 
@@ -169,7 +220,7 @@ impl Life {
     }
 
     pub fn update(&mut self) {
-        self.algo.update();
+        self.algo.update(&self.rule);
     }
 
     pub fn size(&self) -> (usize, usize) {
@@ -179,49 +230,10 @@ impl Life {
     pub fn insert(&mut self, pos: (usize, usize), cell: Cell) {
         self.algo.insert(pos, cell);
     }
-}
 
-// fn new_life_from_string(str: &str) -> Box<dyn Life> {
-
-// }
-
-// GOL B3/S23
-// const BIRTH_RULE: [u8; 9] = [0, 0, 0, 1, 0, 0, 0, 0, 0];
-// const SURVIVE_RULE: [u8; 9] = [0, 0, 1, 1, 0, 0, 0, 0, 0];
-// const STATE_RULE: [[u8; 9]; 2] = [BIRTH_RULE, SURVIVE_RULE];
-
-pub fn state_update_f(state: u8, neighbors: u8) -> u8 {
-    // SWR B2/S345/4
-    // if state == 0 {
-    //     if neighbors == 2 { 1 } else { 0 }
-    // } else if state == 1 {
-    //     if neighbors >= 3 && neighbors <= 5 {
-    //         1
-    //     } else {
-    //         2
-    //     }
-    // } else if state == 3 {
-    //     0
-    // } else {
-    //     state + 1
-    // }
-    // GOL B3/S23
-    if state > 0 {
-        if neighbors >= 2 && neighbors <= 3 {
-            1
-        } else {
-            0
-        }
-    } else if neighbors == 3 {
-        1
-    } else {
-        0
+    pub fn hash(&self, state: &mut DefaultHasher) {
+        self.algo.hash(state);
     }
-    // Fake Coral that I like
-}
-
-pub fn state_update(state: u8, (neighbors, faction): (u8, u8)) -> Cell {
-    Cell::new(state_update_f(state, neighbors), faction)
 }
 
 // pub fn iter_life_mut<'a>(life: &'a mut dyn Life) -> impl Iterator<Item = (usize, usize, &'a mut u8)> {
@@ -257,7 +269,6 @@ mod life_tests {
 
     #[test]
     fn test_rle_glider() {
-
         let life = Life::new_life_from_rle(GLIDER_RLE);
 
         assert_eq!(life.algo.size(), (3, 3));
@@ -266,7 +277,7 @@ mod life_tests {
     }
 
     /*
-        #N Gosper glider gun
+    #N Gosper glider gun
     #C This was the first gun discovered.
     #C As its name suggests, it was discovered by Bill Gosper.
     x = 36, y = 9, rule = B3/S23

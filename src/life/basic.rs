@@ -1,6 +1,6 @@
-use std::mem::replace;
+use std::{hash::Hash, mem::replace};
 
-use super::{state_update, Cell, LifeAlgo};
+use super::{Cell, LifeAlgo, LifeRule};
 
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct LifeBasic {
@@ -24,9 +24,13 @@ impl LifeAlgo for LifeBasic {
         let cell = row.get_mut(pos.0)?;
         Some(replace(cell, new_cell))
     }
+
+    fn update(&mut self, rule: &LifeRule) {
+        *self = Self::update(self, rule);
+    }
     
-    fn update(&mut self) {
-        todo!()
+    fn hash(&self, state: &mut std::hash::DefaultHasher) {
+        self.grid.hash(state);
     }
 }
 
@@ -58,7 +62,7 @@ impl LifeBasic {
                                 faction = cell.get_faction();
                                 sum += 1;
                             }
-                        } 
+                        }
                     }
                 }
             }
@@ -66,7 +70,7 @@ impl LifeBasic {
         (sum, faction)
     }
 
-    pub fn update(&self) -> Self {
+    pub fn update(&self, rule: &LifeRule) -> Self {
         Self {
             grid: self
                 .grid
@@ -75,7 +79,12 @@ impl LifeBasic {
                 .map(|(y, row)| {
                     row.iter()
                         .enumerate()
-                        .map(|(x, cell)| state_update(cell.get_state(), self.neighbors(cell.get_faction(), (x, y))))
+                        .map(|(x, cell)| {
+                            rule.update(
+                                cell.get_state(),
+                                self.neighbors(cell.get_faction(), (x, y)),
+                            )
+                        })
                         .collect()
                 })
                 .collect(),
@@ -98,17 +107,14 @@ impl From<&str> for LifeBasic {
     }
 }
 
-
 #[cfg(test)]
 pub mod life_basic_test {
 
     use super::*;
-    
 
     #[test]
     fn life_test_basic() {
-        let life: LifeBasic = 
-" * 
+        let life: LifeBasic = " * 
  * 
  * "
         .into();
@@ -121,9 +127,8 @@ pub mod life_basic_test {
         assert_eq!(life.neighbors(0, (1, 0)), (1, 0));
         assert_eq!(life.neighbors(0, (0, 1)), (3, 0));
 
-        assert_eq!(life.update(), "   \n***\n   ".into());
+        assert_eq!(life.update(&LifeRule::GOL), "   \n***\n   ".into());
 
         // as
     }
 }
-

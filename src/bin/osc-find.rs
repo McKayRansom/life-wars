@@ -1,9 +1,9 @@
 use std::{
     collections::VecDeque,
-    hash::{DefaultHasher, Hash, Hasher},
+    hash::{DefaultHasher, Hasher},
 };
 
-use life_io::life::{cached::LifeCached, LifeAlgo};
+use life_io::life::Life;
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -12,12 +12,12 @@ pub struct LifeResult {
     age: usize,
     period: usize,
     #[allow(unused)]
-    life: LifeCached,
+    life: Life,
 }
 
 fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
 
-    let mut life = LifeCached::new((16, 16));
+    let mut life = Life::new(life_io::life::LifeAlgoSelect::Cached, (16, 16));
     life.randomize(seed, false);
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;

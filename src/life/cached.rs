@@ -1,6 +1,6 @@
 use std::{hash::Hash, mem::swap};
 
-use super::{Cell, LifeAlgo, state_update};
+use super::{Cell, LifeAlgo, LifeRule};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeCached {
@@ -46,8 +46,12 @@ impl LifeAlgo for LifeCached {
         None
     }
     
-    fn update(&mut self) {
-        self.update();
+    fn update(&mut self, rule: &LifeRule) {
+        self.update(rule);
+    }
+    
+    fn hash(&self, state: &mut std::hash::DefaultHasher) {
+        self.grid.hash(state);
     }
 }
 
@@ -155,6 +159,7 @@ impl LifeCached {
         new_grid: &mut Vec<Vec<(Cell, i8)>>,
         updates: &mut Vec<(usize, usize)>,
         pos: (usize, usize),
+        rule: &LifeRule
     ) {
         // let size = self.size();
         for dy in -1..2 {
@@ -171,7 +176,7 @@ impl LifeCached {
 
                 let old = old_grid[new_pos.1][new_pos.0];
 
-                let new_cell = state_update(old.0.get_state(), (old.1 as u8, old.0.get_faction()));
+                let new_cell = rule.update(old.0.get_state(), (old.1 as u8, old.0.get_faction()));
 
                 let new = &mut new_grid[new_pos.1][new_pos.0];
 
@@ -192,7 +197,7 @@ impl LifeCached {
             }
         }
     }
-    pub fn update(&mut self) {
+    pub fn update(&mut self, rule: &LifeRule) {
         // TODO: Change to flat vector?
         for (dst, src) in self.old_grid.iter_mut().zip(self.grid.iter()) {
             dst.copy_from_slice(src);
@@ -209,6 +214,7 @@ impl LifeCached {
                 &mut self.grid,
                 &mut self.recent_updates,
                 *pos,
+                rule,
             );
         }
     }
@@ -297,7 +303,7 @@ pub mod life_cached_test {
 
         assert_eq!(life.recent_updates, [(1, 0), (1, 1), (1, 2)]);
 
-        life.update();
+        life.update(&LifeRule::GOL);
 
         // assert_eq!(life.recent_updates, [(0, 1), (2, 1), (1, 0), (1, 2)]);
         assert_eq!(
@@ -305,7 +311,7 @@ pub mod life_cached_test {
             <&str as Into<LifeCached>>::into("   \n***\n   ").grid
         );
 
-        life.update();
+        life.update(&LifeRule::GOL);
         assert_eq!(
             life.grid,
             <&str as Into<LifeCached>>::into(" * \n * \n * ").grid
@@ -315,7 +321,7 @@ pub mod life_cached_test {
         assert_eq!(life.neighbors_cached((1, 0)), (1, 0));
         assert_eq!(life.neighbors_cached((0, 1)), (3, 0));
 
-        life.update();
+        life.update(&LifeRule::GOL);
         assert_eq!(
             life.grid,
             <&str as Into<LifeCached>>::into("   \n***\n   ").grid
@@ -327,8 +333,8 @@ pub mod life_cached_test {
         let mut life_basic = LifeBasic::new((8, 8));
         let mut life_cached = LifeCached::new((8, 8));
 
-        life_basic.randomize(1234, false);
-        life_cached.randomize(1234, false);
+        // life_basic.randomize(1234, false);
+        // life_cached.randomize(1234, false);
 
         for _ in 0..100 {
             // for (x, y, basic_cell) in iter_life(&life_basic) {
@@ -336,8 +342,8 @@ pub mod life_cached_test {
             //     assert_eq!(basic_cell, cached_cell);
             // }
 
-            life_basic = life_basic.update();
-            life_cached.update();
+            life_basic = life_basic.update(&LifeRule::GOL);
+            life_cached.update(&LifeRule::GOL);
         }
     }
 }
