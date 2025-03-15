@@ -54,21 +54,21 @@ pub trait LifeAlgo {
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeRule {
     // TODO: Changing this to a u32 doesn't seem to impact us much
-    lut: [u16; 4],
+    lut: [u32; 4],
 }
 
 impl LifeRule {
     // GOL B3/S23
-    pub const GOL: Self = Self::new([0b1_00_00, 0b01_01_00, 0, 0]);
+    pub const GOL: Self = Self::new([0b1_00_00_00, 0b01_01_00_00, 0, 0]);
     // SWR B2/S345/4
     pub const STAR_WARS: Self = Self::new([
-        0b1_00,
-        0b10_10_10_01_01_01_10_10,
-        0b11_11_11_11_11_11_11_11,
+        0b1_00_00,
+        0b10_10_10_01_01_01_10_10_10,
+        0b11_11_11_11_11_11_11_11_11,
         0,
     ]);
 
-    pub const fn new(lut: [u16; 4]) -> Self {
+    pub const fn new(lut: [u32; 4]) -> Self {
         Self { lut }
     }
 
@@ -93,19 +93,19 @@ impl LifeRule {
 
         let mut portion_it = str.split('/');
 
-        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[0] |= 1 << ((count - 1) * 2));
-        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[1] |= 1 << ((count - 1) * 2));
+        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[0] |= 1 << (count * 2));
+        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[1] |= 1 << (count * 2));
         Self::parse_rule_portion(&mut portion_it, |count| {
             match count {
                 3 => {}, // do nothing
                 4 => {
                     // Transition to state 2 instead of state 0
-                    for i in 0..8 {
+                    for i in 0..9 {
                         if new_rule.lut[1] & 1 << (i * 2) == 0 {
                             new_rule.lut[1] |= 2 << (i * 2);
                         }
                     }
-                    new_rule.lut[2] =  0b11_11_11_11_11_11_11_11;
+                    new_rule.lut[2] =  0b11_11_11_11_11_11_11_11_11;
                 },
                 _ => unimplemented!(),
             }
@@ -118,10 +118,10 @@ impl LifeRule {
         let mut births: u32 = 0;
         let mut survives: u32 = 0;
         for i in 1..9 {
-            if (self.lut[0] & (1 << (i - 1) * 2)) != 0 {
+            if (self.lut[0] & (1 << i * 2)) != 0 {
                 births = births * 10 | i;
             }
-            if (self.lut[1] & (1 << (i - 1) * 2)) != 0 {
+            if (self.lut[1] & (1 << i * 2)) != 0 {
                 survives = (survives * 10) + i;
             }
         }
@@ -137,7 +137,7 @@ impl LifeRule {
     }
 
     fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
-        ((self.lut[state as usize] & (3 << ((neighbors - 1) * 2))) >> ((neighbors - 1) * 2)) as u8
+        ((self.lut[state as usize] & (3 << (neighbors * 2))) >> (neighbors * 2)) as u8
     }
 }
 

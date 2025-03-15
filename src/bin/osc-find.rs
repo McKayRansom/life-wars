@@ -66,7 +66,7 @@ fn main() {
 
     let mut found_oscilators: Vec<usize> = Vec::new();
 
-    for seed in 0..10000 {
+    for seed in 0..1000000 {
         if let Some(res) = run_to_stabilization(seed) {
             if !found_oscilators.contains(&res.period) {
                 found_oscilators.push(res.period);

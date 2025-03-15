@@ -67,7 +67,7 @@ impl LifeCached {
 
     fn update_neighbors(
         grid: &mut Vec<Vec<(Cell, i8)>>,
-        faction: u8,
+        _faction: u8,
         amount: i8,
         pos: (usize, usize),
     ) {
@@ -77,11 +77,11 @@ impl LifeCached {
                     continue;
                 }
                 if let Some(row) = grid.get_mut((pos.1 as i32 + dy) as usize) {
-                    if let Some((cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
-                        if cell.get_faction() != faction {
+                    if let Some((_cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
+                        // if cell.get_faction() != faction {
                             // cell.set_faction(faction);
                             // amount *= -1;
-                        }
+                        // }
 
                         *neigh += amount;
                         // if *neigh < 0 {
