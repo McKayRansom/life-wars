@@ -8,15 +8,15 @@ mod life_bench {
 
     const BENCH_SEED: u64 = 1234;
 
-    // #[bench]
-    // fn bench_life_iter(b: &mut Bencher) {
-    //     let mut life = Life::new(life_io::life::LifeAlgoSelect::Basic, (256, 256));
-    //     life.randomize(BENCH_SEED, false);
+    #[bench]
+    fn bench_life_basic(b: &mut Bencher) {
+        let mut life = Life::new(life_io::life::LifeAlgoSelect::Basic, (256, 256));
+        life.randomize(BENCH_SEED, false);
 
-    //     b.iter(|| {
-    //         life.update();
-    //     });
-    // }
+        b.iter(|| {
+            life.update();
+        });
+    }
 
     // #[bench]
     // fn bench_life_sparse(b: &mut Bencher) {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{Cell, LifeAlgo, LifeRule};
+use super::{Cell, LifeAlgo, LifePops, LifeRule};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeSparse {
@@ -45,7 +45,7 @@ impl LifeAlgo for LifeSparse {
         }
    }
    
-    fn update(&mut self, _rule: &LifeRule) {
+    fn update(&mut self, _rule: &LifeRule, _pops: &mut LifePops) {
         todo!()
     }
     

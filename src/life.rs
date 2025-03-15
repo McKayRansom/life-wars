@@ -7,6 +7,8 @@ pub mod basic;
 pub mod cached;
 pub mod sparse;
 
+pub const FACTION_MAX: usize = 16;
+
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 pub struct Cell {
     value: u8,
@@ -47,7 +49,7 @@ pub trait LifeAlgo {
     fn size(&self) -> (usize, usize);
     fn get(&self, pos: (usize, usize)) -> Option<&Cell>;
     fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell>;
-    fn update(&mut self, rule: &LifeRule);
+    fn update(&mut self, rule: &LifeRule, pops: &mut LifePops);
     fn hash(&self, state: &mut DefaultHasher);
 }
 
@@ -97,7 +99,7 @@ impl LifeRule {
         Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[1] |= 1 << (count * 2));
         Self::parse_rule_portion(&mut portion_it, |count| {
             match count {
-                3 => {}, // do nothing
+                3 => {} // do nothing
                 4 => {
                     // Transition to state 2 instead of state 0
                     for i in 0..9 {
@@ -105,8 +107,8 @@ impl LifeRule {
                             new_rule.lut[1] |= 2 << (i * 2);
                         }
                     }
-                    new_rule.lut[2] =  0b11_11_11_11_11_11_11_11_11;
-                },
+                    new_rule.lut[2] = 0b11_11_11_11_11_11_11_11_11;
+                }
                 _ => unimplemented!(),
             }
         });
@@ -141,9 +143,30 @@ impl LifeRule {
     }
 }
 
+pub struct LifePops {
+    pops: [i16; FACTION_MAX],
+}
+
+impl LifePops {
+    pub fn new() -> Self {
+        Self {
+            pops: [0; FACTION_MAX],
+        }
+    }
+
+    pub fn get(&self, faction: u8) -> i16 {
+        self.pops[faction as usize]
+    }
+
+    pub fn add(&mut self, faction: u8, amount: i16) {
+        self.pops[faction as usize] = self.pops[faction as usize].saturating_add(amount)
+    }
+}
+
 pub struct Life {
     algo: Box<dyn LifeAlgo>,
     rule: LifeRule,
+    pops: LifePops,
 }
 
 pub enum LifeAlgoSelect {
@@ -159,6 +182,7 @@ impl Life {
                 LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
             },
             rule: LifeRule::GOL,
+            pops: LifePops::new(),
         }
     }
 
@@ -169,6 +193,7 @@ impl Life {
                 LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
             },
             rule,
+            pops: LifePops::new(),
         }
     }
 
@@ -352,7 +377,7 @@ impl Life {
     }
 
     pub fn update(&mut self) {
-        self.algo.update(&self.rule);
+        self.algo.update(&self.rule, &mut self.pops);
     }
 
     pub fn size(&self) -> (usize, usize) {
@@ -360,11 +385,26 @@ impl Life {
     }
 
     pub fn insert(&mut self, pos: (usize, usize), cell: Cell) {
-        self.algo.insert(pos, cell);
+        if let Some(old_cell) = self.algo.get(pos) {
+            if old_cell != &cell {
+                // TODO: Is this edge case the reason cached is failing for multiple factions?
+                if old_cell.is_alive() {
+                    self.pops.add(old_cell.get_faction(), -1);
+                }
+                if cell.is_alive() {
+                    self.pops.add(cell.get_faction(), 1);
+                }
+                self.algo.insert(pos, cell);
+            }
+        }
     }
 
     pub fn hash(&self, state: &mut DefaultHasher) {
         self.algo.hash(state);
+    }
+
+    pub fn get_pop(&self, faction: u8) -> i16 {
+        self.pops.get(faction)
     }
 }
 

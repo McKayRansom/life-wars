@@ -8,6 +8,7 @@ use macroquad::{
 pub mod context;
 pub mod scene;
 pub mod draw;
+pub mod skin;
 
 fn window_conf() -> window::Conf {
     window::Conf {

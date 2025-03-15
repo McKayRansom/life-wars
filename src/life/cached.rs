@@ -1,6 +1,6 @@
 use std::{hash::Hash, mem::swap};
 
-use super::{Cell, LifeAlgo, LifeRule};
+use super::{Cell, LifeAlgo, LifePops, LifeRule};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeCached {
@@ -45,11 +45,11 @@ impl LifeAlgo for LifeCached {
         // res
         None
     }
-    
-    fn update(&mut self, rule: &LifeRule) {
-        self.update(rule);
+
+    fn update(&mut self, rule: &LifeRule, pops: &mut LifePops) {
+        self.update(rule, pops);
     }
-    
+
     fn hash(&self, state: &mut std::hash::DefaultHasher) {
         self.grid.hash(state);
     }
@@ -67,7 +67,7 @@ impl LifeCached {
 
     fn update_neighbors(
         grid: &mut Vec<Vec<(Cell, i8)>>,
-        _faction: u8,
+        faction: u8,
         amount: i8,
         pos: (usize, usize),
     ) {
@@ -77,10 +77,11 @@ impl LifeCached {
                     continue;
                 }
                 if let Some(row) = grid.get_mut((pos.1 as i32 + dy) as usize) {
-                    if let Some((_cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
+                    if let Some((cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
+                        // if cell.fa
                         // if cell.get_faction() != faction {
-                            // cell.set_faction(faction);
-                            // amount *= -1;
+                            cell.set_faction(faction);
+                        // amount *= -1;
                         // }
 
                         *neigh += amount;
@@ -159,7 +160,8 @@ impl LifeCached {
         new_grid: &mut Vec<Vec<(Cell, i8)>>,
         updates: &mut Vec<(usize, usize)>,
         pos: (usize, usize),
-        rule: &LifeRule
+        rule: &LifeRule,
+        pops: &mut LifePops,
     ) {
         // let size = self.size();
         for dy in -1..2 {
@@ -186,18 +188,15 @@ impl LifeCached {
                     let alive_changed = new_cell.is_alive() != new.0.is_alive();
                     new.0 = new_cell;
                     if alive_changed {
-                        Self::update_neighbors(
-                            new_grid,
-                            new_cell.get_faction(),
-                            if new_cell.is_alive() { 1 } else { -1 },
-                            new_pos,
-                        );
+                        let amount = if new_cell.is_alive() { 1 } else { -1 };
+                        pops.add(new.0.get_faction(), amount as i16);
+                        Self::update_neighbors(new_grid, new_cell.get_faction(), amount, new_pos);
                     }
                 }
             }
         }
     }
-    pub fn update(&mut self, rule: &LifeRule) {
+    pub fn update(&mut self, rule: &LifeRule, pops: &mut LifePops) {
         // TODO: Change to flat vector?
         for (dst, src) in self.old_grid.iter_mut().zip(self.grid.iter()) {
             dst.copy_from_slice(src);
@@ -215,6 +214,7 @@ impl LifeCached {
                 &mut self.recent_updates,
                 *pos,
                 rule,
+                pops,
             );
         }
     }
@@ -229,7 +229,10 @@ impl From<&str> for LifeCached {
         for line in value.split('\n') {
             let mut cell_line: Vec<(Cell, i8)> = Vec::new();
             for chr in line.chars() {
-                if chr != ' ' {
+                if let Some(digit) = chr.to_digit(10) {
+                    cell_line.push((Cell::new(1, digit as u8), 0));
+                    recent_births.push(pos);
+                } else if chr != ' ' {
                     cell_line.push((Cell::new(1, 0), 0));
                     recent_births.push(pos);
                 } else {
@@ -281,13 +284,14 @@ impl Hash for LifeCached {
 #[cfg(test)]
 pub mod life_cached_test {
 
-    use crate::life::basic::LifeBasic;
+    use crate::life::Life;
 
     use super::*;
 
     #[test]
     fn test_cached() {
         let mut life: LifeCached = " * \n * \n * ".into();
+        let mut life_pops: LifePops = LifePops::new();
 
         assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
         assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
@@ -303,7 +307,7 @@ pub mod life_cached_test {
 
         assert_eq!(life.recent_updates, [(1, 0), (1, 1), (1, 2)]);
 
-        life.update(&LifeRule::GOL);
+        life.update(&LifeRule::GOL, &mut life_pops);
 
         // assert_eq!(life.recent_updates, [(0, 1), (2, 1), (1, 0), (1, 2)]);
         assert_eq!(
@@ -311,7 +315,7 @@ pub mod life_cached_test {
             <&str as Into<LifeCached>>::into("   \n***\n   ").grid
         );
 
-        life.update(&LifeRule::GOL);
+        life.update(&LifeRule::GOL, &mut life_pops);
         assert_eq!(
             life.grid,
             <&str as Into<LifeCached>>::into(" * \n * \n * ").grid
@@ -321,7 +325,7 @@ pub mod life_cached_test {
         assert_eq!(life.neighbors_cached((1, 0)), (1, 0));
         assert_eq!(life.neighbors_cached((0, 1)), (3, 0));
 
-        life.update(&LifeRule::GOL);
+        life.update(&LifeRule::GOL, &mut life_pops);
         assert_eq!(
             life.grid,
             <&str as Into<LifeCached>>::into("   \n***\n   ").grid
@@ -329,21 +333,59 @@ pub mod life_cached_test {
     }
 
     #[test]
+    fn test_cached_faction() {
+        let mut life: LifeCached = LifeCached::new((3, 3));
+        life.insert((1, 0), Cell::new(1, 1));
+        life.insert((1, 1), Cell::new(1, 1));
+        life.insert((1, 2), Cell::new(1, 1));
+
+        assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
+        assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
+        assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
+
+        let mut life_pops: LifePops = LifePops::new();
+        life.update(&LifeRule::GOL, &mut life_pops);
+
+        assert_eq!(life.get((1, 1)).unwrap(), &Cell::new(1, 1));
+        assert_eq!(life.get((0, 1)).unwrap(), &Cell::new(1, 1));
+        assert_eq!(life.get((2, 1)).unwrap(), &Cell::new(1, 1));
+
+
+        // assert_eq!(
+        //     life.grid,
+        //     <&str as Into<LifeCached>>::into("   \n111\n   ").grid
+        // );
+    }
+
+    const MAIN_MENU_MAP: &str = "\
+#N 52514m.rle
+#C https://conwaylife.com/wiki/52513M
+#C https://www.conwaylife.com/patterns/52514m.rle
+x = 16, y = 16, rule = B3/S23
+bob2o2b5ob2o$2o3b3o2bo3b2o$2bobo7bo2bo$5bo2bob3o2bo$3o3bo2b2o3b2o$4b3o
+bo3b3o$4bo2b3o5bo$3bob2obo5bo$o2b3o4b2ob3o$obobo2bo2bo$o6bo2b2o$b2obo
+2bo4bo2bo$bo2b2o4bobob2o$2bo5b2o3bo$ob2ob3o4bo2bo$2o!
+";
+
+    #[test]
     fn test_basic_comparee() {
-        let mut _life_basic = LifeBasic::new((8, 8));
-        let mut life_cached = LifeCached::new((8, 8));
+        let mut life_basic = Life::new(crate::life::LifeAlgoSelect::Basic, (64, 64));
+        let mut life_cached = Life::new(crate::life::LifeAlgoSelect::Cached, (64, 64));
 
-        // life_basic.randomize(1234, false);
-        // life_cached.randomize(1234, false);
+        // TODO: Test factions...
+        life_basic.randomize(1234, false);
+        life_cached.randomize(1234, false);
 
-        for _ in 0..100 {
+        for i in 0..100 {
             // for (x, y, basic_cell) in iter_life(&life_basic) {
             //     let cached_cell = life_cached.get((x, y)).unwrap();
             //     assert_eq!(basic_cell, cached_cell);
             // }
 
-            // life_basic = life_basic.update(&LifeRule::GOL);
-            life_cached.update(&LifeRule::GOL);
+            life_basic.update();
+            life_cached.update();
+
+            assert_eq!(life_basic.pops.get(0), life_cached.pops.get(0), "Failed at i: {i}");
         }
     }
 }

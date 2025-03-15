@@ -7,6 +7,7 @@ use macroquad::time::get_time;
 // use crate::font;
 // use crate::save::Save;
 use crate::scene::EScene;
+use crate::skin;
 // use crate::settings::Settings;
 // use crate::tileset::Tileset;
 // use crate::ui::skin;
@@ -15,19 +16,13 @@ use crate::scene::EScene;
 // use macroquad::texture::render_target;
 // use macroquad::camera::Camera2D;
 
-pub enum GameSpeed {
-    Paused,
-    Normal,
-    FastForward,
-}
-
 /// game-wide data and resources
 pub struct Context {
     pub request_quit: bool,
     pub key_pressed: Option<char>,
     pub mouse_pos: Option<(f32, f32)>,
     pub _time: f64,
-    pub game_speed: GameSpeed,
+    pub game_speed: f64,
     // pub gamepads: Gamepads,
     // pub textures: texture::TextureAtlas,
     // pub tileset: Tileset,
@@ -45,15 +40,13 @@ impl Context {
     pub async fn new() -> Self {
         Self {
             // gamepads: Gamepads::new(),
-            game_speed: GameSpeed::Normal,
+            game_speed: 0.,
             key_pressed: None,
             mouse_pos: None,
             _time: get_time(),
             request_quit: false,
             // tileset: Tileset::new().await,
-            font: macroquad::text::load_ttf_font("resources/Micro5-Regular.ttf")
-                .await
-                .unwrap(),
+            font: skin::init().await,
             // audio: audio::AudioAtlas::new().await,
             // fonts: font::FontAtlas::new().await,
             // render_target,

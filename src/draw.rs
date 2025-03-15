@@ -1,5 +1,5 @@
-use macroquad::color;
 use life_io::life::Life;
+use macroquad::color;
 
 pub struct ViewContext {
     grid_size: f32,
@@ -19,8 +19,7 @@ impl ViewContext {
     }
 
     pub fn resize_to_fit(&mut self, size: (usize, usize), screen_size: (f32, f32)) {
-        self.grid_size = (screen_size.0 / size.0 as f32)
-            .min(screen_size.1 / size.1 as f32);
+        self.grid_size = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
         // self.ctx.grid_pos = (BORDER_SIZE, BORDER_SIZE);
     }
 
@@ -37,17 +36,21 @@ impl ViewContext {
     }
 }
 
+pub fn faction_color(faction: u8) -> color::Color {
+    match faction {
+        0 => color::GREEN,
+        1 => color::RED,
+        2 => color::YELLOW,
+        3 => color::BLUE,
+        _ => color::WHITE,
+    }
+}
+
 pub fn draw_life(life: &Life, ctx: &ViewContext) {
     for (x, y, cell) in life.iter() {
         let state = cell.get_state();
         if state > 0 {
-            let mut color = match cell.get_faction() {
-                0 => color::GREEN,
-                1 => color::RED,
-                2 => color::YELLOW,
-                3 => color::BLUE,
-                _ => color::WHITE,
-            };
+            let mut color = faction_color(cell.get_faction());
             if state == 2 {
                 color.a = 0.75;
             } else if state == 3 {

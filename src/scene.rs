@@ -15,7 +15,7 @@ pub enum EScene {
 
 use life_io::life::Life;
 
-use crate::{context::Context};
+use crate::context::Context;
 
 // pub mod credits;
 pub mod gameplay;

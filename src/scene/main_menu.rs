@@ -73,11 +73,11 @@ impl MainMenu {
             // popup: None,
             // settings_subscene: Settings::new(ctx, false),
             // credits_subscene: Credits::new(ctx),
-            life: Life::new(life_io::life::LifeAlgoSelect::Cached, (256, 256)),
+            life: Life::new(life_io::life::LifeAlgoSelect::Cached, (128, 128)),
             last_update: 0.,
         };
 
-        main_menu.life.paste(&Life::new_life_from_rle(MAIN_MENU_MAP), (128 - 8, 128 - 8));
+        main_menu.life.paste(&Life::new_life_from_rle(MAIN_MENU_MAP), (64 - 8, 64 - 8));
 
         // main_menu.map.get_city_mut(DEFAULT_CITY_ID).unwrap().name = "Alpha 0.1X - Roads".into();
 
@@ -155,7 +155,8 @@ impl Scene for MainMenu {
 
         // zoom in for a better look
         let mut view_ctx = ViewContext::new();
-        view_ctx.resize_to_fit(self.life.size(), (screen_width(), screen_height()));
+        view_ctx.resize_to_fit(self.life.size(), (screen_width(), screen_width()));
+        // view_ctx.set_pos((-screen_width() / 2., -screen_height() / 2.));
         
         draw_life(&self.life, &view_ctx);
 
