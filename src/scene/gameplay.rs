@@ -61,46 +61,36 @@ impl Gameplay {
     }
 
     fn handle_input(&mut self, ctx: &mut Context) {
+        self.viewer.handle_input(ctx);
+        // return;
+        // }
+
         let mouse_pos = input::mouse_position();
+        if let Some(pos) = self.viewer.screen_to_life_pos(mouse_pos) {
+            if input::is_mouse_button_down(macroquad::input::MouseButton::Left) {
 
-        let pos = self.viewer.screen_to_life_pos(mouse_pos);
-
-        if let Some(chr) = input::get_char_pressed() {
-            match chr {
-                'q' => ctx.request_quit = true,
-                ' ' => {
-                    if self.viewer.update_speed == viewer::GAME_SPEED_1_PAUSED {
-                        self.viewer.update_speed = viewer::GAME_SPEED_2_NORMAL;
-                    } else {
-                        self.viewer.update_speed = viewer::GAME_SPEED_1_PAUSED;
-                    }
-                }
-                // self.viewer.update_speed = !view_self.viewer.update_speed,
-                '1' => self.viewer.update_speed = viewer::GAME_SPEED_1_PAUSED,
-                '2' => self.viewer.update_speed = viewer::GAME_SPEED_2_NORMAL,
-                '3' => self.viewer.update_speed = viewer::GAME_SPEED_3_FAST,
-                '4' => self.viewer.update_speed = viewer::GAME_SPEED_4_VERY_FAST,
-                '5' => self.viewer.update_speed = viewer::GAME_SPEED_5_EXTREME,
-                '6' => self.viewer.update_speed = viewer::GAME_SPEED_6_VERY_EXTREME,
-                'g' => self.viewer.life.paste(
-                    &Life::new_life_from_rle(life_io::life::GOSPER_RLE),
-                    pos.unwrap(),
-                ),
-                'p' => {
-                    // if let Some(string) = clipboard_get() {
-                    //     println!("Pasting {string:?}");
-                    //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
-                    // } else {
-                    println!("No clipboard!");
-                    // }
-                }
-                _ => {}
+                self.viewer.life.insert(pos, Cell::new(1, 0)); //view_ctx.selected_faction));
             }
         }
 
-        if input::is_mouse_button_down(macroquad::input::MouseButton::Left) {
-            self.viewer.life.insert(pos.unwrap(), Cell::new(1, 0)); //view_ctx.selected_faction));
-        }
+        // if let Some(chr) = input::get_char_pressed() {
+        //     match chr {
+        //         'q' => ctx.request_quit = true,
+        //         'g' => self.viewer.life.paste(
+        //             &Life::new_life_from_rle(life_io::life::GOSPER_RLE),
+        //             pos.unwrap(),
+        //         ),
+        //         'p' => {
+        //             // if let Some(string) = clipboard_get() {
+        //             //     println!("Pasting {string:?}");
+        //             //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
+        //             // } else {
+        //             println!("No clipboard!");
+        //             // }
+        //         }
+        //         _ => {}
+        //     }
+        // }
     }
 }
 

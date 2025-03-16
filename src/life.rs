@@ -3,9 +3,10 @@ use std::{fmt::Write, hash::DefaultHasher, str::Split};
 use basic::LifeBasic;
 use cached::LifeCached;
 
-pub mod basic;
-pub mod cached;
-pub mod sparse;
+mod basic;
+mod cached;
+// mod sparse;
+pub mod patterns;
 
 pub const FACTION_MAX: usize = 16;
 
@@ -139,7 +140,7 @@ impl LifeRule {
     }
 
     fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
-        ((self.lut[state as usize] & (3 << (neighbors * 2))) >> (neighbors * 2)) as u8
+        ((self.lut[state as usize] & (3 << (neighbors as u32 * 2))) >> (neighbors as u32 * 2)) as u8
     }
 }
 
@@ -168,6 +169,19 @@ pub struct Life {
     rule: LifeRule,
     pops: LifePops,
     generation: u64,
+    name: String,
+}
+
+impl Default for Life {
+    fn default() -> Self {
+        Self {
+            algo: Box::new(LifeBasic::new((8, 8))),
+            rule: LifeRule::GOL,
+            pops: LifePops::new(),
+            generation: 0,
+            name: String::new(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -184,21 +198,14 @@ impl Life {
                 LifeAlgoSelect::Basic => Box::new(LifeBasic::new(size)),
                 LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
             },
-            rule: LifeRule::GOL,
-            pops: LifePops::new(),
-            generation: 0,
+            ..Default::default()
         }
     }
 
     pub fn new_rule(algo: LifeAlgoSelect, size: (usize, usize), rule: LifeRule) -> Self {
         Self {
-            algo: match algo {
-                LifeAlgoSelect::Basic => Box::new(LifeBasic::new(size)),
-                LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
-            },
             rule,
-            pops: LifePops::new(),
-            generation: 0,
+            ..Self::new(algo, size)
         }
     }
 
@@ -208,6 +215,28 @@ impl Life {
 
     pub fn get_generation(&self) -> u64 {
         self.generation
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_cell(&self, pos: (usize, usize)) -> Option<&Cell> {
+        self.algo.get(pos)
+    }
+
+    pub fn clone(&self) -> Self {
+        // this is stupid AF LOLOL
+        let str = self.life_to_rle();
+        println!("cloneing: {str}");
+        Self::new_life_from_rle(str.as_str())
+        // Self {
+        //     algo: self.algo.clone(),
+        //     rule: self.rule,
+        //     pops: self.pops,
+        //     generation: self.generation,
+        //     name: self.name.clone(),
+        // }
     }
 
     // fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut u8)>;
@@ -233,9 +262,12 @@ impl Life {
     }
 
     fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Self> {
+        let mut name = String::new();
         while let Some(line) = it.next() {
             // parse headers
-            if line.starts_with("#") {
+            if line.starts_with("#N ") {
+                name = line[3..].into()
+            } else if line.starts_with("#") {
                 // ignore tags for now
             } else if line.starts_with("x") {
                 // header
@@ -250,7 +282,11 @@ impl Life {
                         _ => panic!("Unkown header field: {}", name),
                     }
                 }
-                return Some(Self::new_rule(LifeAlgoSelect::Cached, size, rule));
+                return Some(Self {
+                    rule,
+                    name,
+                    ..Self::new(LifeAlgoSelect::Basic, size)
+                });
             } else {
                 panic!("Unkown line: {}", line);
             }
@@ -325,6 +361,11 @@ impl Life {
     pub fn life_to_rle(&self) -> String {
         let size = self.size();
         let mut string = String::with_capacity(64);
+        if !self.name.is_empty() {
+            string.push_str("#N ");
+            string.push_str(self.name.as_str());
+            string.push('\n');
+        }
         string.push_str(
             format!(
                 "x = {}, y = {}, rule = {}\n",
@@ -420,6 +461,10 @@ impl Life {
     pub fn get_pop(&self, faction: u8) -> i16 {
         self.pops.get(faction)
     }
+    
+    pub fn set_name(&mut self, as_str: &str) {
+        self.name = as_str.into();
+    }
 }
 
 // Should this be Display or Debug?
@@ -446,8 +491,6 @@ bo$2bo$3o!";
 
 pub const GOSPER_RLE: &str = "\
 #N Gosper glider gun
-#C This was the first gun discovered.
-#C As its name suggests, it was discovered by Bill Gosper.
 x = 36, y = 9, rule = B3/S23
 24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
 obo$10bo5bo7bo$11bo3bo$12b2o!";
@@ -472,7 +515,7 @@ mod life_tests {
         assert_eq!(life.rule, LifeRule::GOL);
         assert_eq!(life.size(), (36, 9));
         assert_eq!(life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
-        assert_eq!(life.life_to_rle(), GOSPER_RLE[118..]);
+        assert_eq!(life.life_to_rle(), GOSPER_RLE);
     }
 
     #[test]

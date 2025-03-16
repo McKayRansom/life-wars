@@ -6,8 +6,11 @@ use macroquad::{
 };
 
 pub const MENU_FONT_SIZE: u16 = 48;
-pub const MENU_MARGIN: f32 = 16.;
-pub const MENU_OUTER_MARGIN: f32 = 16.;
+// pub const MENU_MARGIN: f32 = 16.;
+// pub const MENU_OUTER_MARGIN: f32 = 16.;
+
+pub const MENU_MARGIN: f32 = 8.;
+pub const MENU_OUTER_MARGIN: f32 = 4.;
 
 pub const BUTTON_INNER_MARGIN: (f32, f32) = (16., 2.);
 pub const BUTTON_OUTER_MARGIN: (f32, f32) = (16., 8.);
@@ -144,21 +147,32 @@ pub async fn init() -> Font {
         //     )
         //     .build();
 
-        // let editbox_style = root_ui()
-        //     .style_builder()
-        //     .background(
-        //         Image::from_file_with_format(
-        //             include_bytes!("../examples/ui_assets/editbox_background.png"),
-        //             None,
-        //         )
-        //         .unwrap(),
-        //     )
-        //     .background_margin(RectOffset::new(2., 2., 2., 2.))
-        //     .with_font(&font)
-        //     .unwrap()
-        //     .text_color(Color::from_rgba(120, 120, 120, 255))
-        //     .font_size(25)
-        //     .build();
+        let editbox_style = root_ui()
+            .style_builder()
+            // .background(
+            //     Image::from_file_with_format(
+            //         include_bytes!("../examples/ui_assets/editbox_background.png"),
+            //         None,
+            //     )
+            //     .unwrap(),
+            // )
+            // .background_margin(RectOffset::new(2., 2., 2., 2.))
+            .with_font(&font)
+            .unwrap()
+            .text_color(color::WHITE) // THIS ONE ACTUALLY MATTERS??
+            .text_color_clicked(color::YELLOW)
+            .text_color_hovered(color::ORANGE)
+            .color_selected(color::PINK)
+            .color(color::BLACK)
+            .color_hovered(color::BLACK)
+            .color_selected_hovered(color::BLACK)
+            .color_clicked(color::BLANK)
+            .color_selected(color::BLACK)
+            .color_inactive(color::BLACK)
+            .margin(RectOffset::new(0., 0., 0., 0.))
+            // .
+            .font_size(50)
+            .build();
 
         // let combobox_style = root_ui()
         //     .style_builder()
@@ -184,7 +198,7 @@ pub async fn init() -> Font {
             button_style,
             label_style,
             // checkbox_style,
-            // editbox_style,
+            editbox_style,
             // combobox_style,
             margin,
 

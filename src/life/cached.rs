@@ -37,9 +37,18 @@ impl LifeAlgo for LifeCached {
         self.recent_updates.push(pos);
 
         // let res = Some(replace(cell, (new_cell, 0)).0);
+        let alived_changed = new_cell.is_alive() != cell.0.is_alive();
+
         cell.0 = new_cell; // leave neighbor count alone!
 
-        Self::update_neighbors(&mut self.grid, new_cell.get_faction(), 1, pos);
+        if alived_changed {
+            Self::update_neighbors(
+                &mut self.grid,
+                new_cell.get_faction(),
+                if new_cell.is_alive() { 1 } else { -1 },
+                pos,
+            );
+        }
 
         // println!("self: {self}");
         // res
@@ -80,7 +89,7 @@ impl LifeCached {
                     if let Some((cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
                         // if cell.fa
                         // if cell.get_faction() != faction {
-                            cell.set_faction(faction);
+                        cell.set_faction(faction);
                         // amount *= -1;
                         // }
 
@@ -114,38 +123,6 @@ impl LifeCached {
                 }
             }
         }
-    }
-
-    pub fn neighbors(
-        grid: &mut Vec<Vec<(Cell, i8)>>,
-        faction: u8,
-        pos: (usize, usize),
-    ) -> (u8, u8) {
-        let mut faction: u8 = faction;
-        let mut sum: u8 = 0;
-        for dy in -1..2 {
-            if let Some(row) = grid.get((pos.1 as i32 + dy) as usize) {
-                for dx in -1..2 {
-                    if dx == 0 && dy == 0 {
-                        continue;
-                    }
-                    if let Some((cell, _neigh)) = row.get((pos.0 as i32 + dx) as usize) {
-                        if cell.is_alive() {
-                            // sum += 1;
-                            if cell.get_faction() == faction {
-                                sum += 1;
-                            } else if sum > 0 {
-                                sum -= 1;
-                            } else {
-                                faction = cell.get_faction();
-                                sum += 1;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        (sum, faction)
     }
 
     #[allow(unused)]
@@ -301,9 +278,9 @@ pub mod life_cached_test {
         assert_eq!(life.neighbors_cached((1, 0)), (1, 0));
         assert_eq!(life.neighbors_cached((0, 1)), (3, 0));
 
-        assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (0, 0)), (2, 0));
-        assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (1, 0)), (1, 0));
-        assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (0, 1)), (3, 0));
+        // assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (0, 0)), (2, 0));
+        // assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (1, 0)), (1, 0));
+        // assert_eq!(LifeCached::neighbors(&mut life.grid, 0, (0, 1)), (3, 0));
 
         assert_eq!(life.recent_updates, [(1, 0), (1, 1), (1, 2)]);
 
@@ -350,7 +327,6 @@ pub mod life_cached_test {
         assert_eq!(life.get((0, 1)).unwrap(), &Cell::new(1, 1));
         assert_eq!(life.get((2, 1)).unwrap(), &Cell::new(1, 1));
 
-
         // assert_eq!(
         //     life.grid,
         //     <&str as Into<LifeCached>>::into("   \n111\n   ").grid
@@ -375,7 +351,11 @@ pub mod life_cached_test {
             life_basic.update();
             life_cached.update();
 
-            assert_eq!(life_basic.pops.get(0), life_cached.pops.get(0), "Failed at i: {i}");
+            assert_eq!(
+                life_basic.pops.get(0),
+                life_cached.pops.get(0),
+                "Failed at i: {i}"
+            );
         }
     }
 }

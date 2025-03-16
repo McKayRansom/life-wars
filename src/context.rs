@@ -1,3 +1,4 @@
+use life_io::life::patterns;
 use macroquad::text::Font;
 
 // use crate::assets_path::determine_asset_path;
@@ -31,6 +32,7 @@ pub struct Context {
     pub switch_scene_to: Option<EScene>,
     // pub settings: Settings,
     // pub save: Save,
+    pub pattern_lib: patterns::PatternLib,
 }
 
 impl Context {
@@ -49,6 +51,7 @@ impl Context {
             switch_scene_to: None,
             // settings: Settings::load(),
             // save: Save::load(),
+            pattern_lib: patterns::PatternLib::new(),
         }
     }
 }
