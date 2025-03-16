@@ -1,5 +1,4 @@
 use macroquad::text::Font;
-use macroquad::time::get_time;
 
 // use crate::assets_path::determine_asset_path;
 // use crate::audio;
@@ -21,8 +20,6 @@ pub struct Context {
     pub request_quit: bool,
     pub key_pressed: Option<char>,
     pub mouse_pos: Option<(f32, f32)>,
-    pub _time: f64,
-    pub game_speed: f64,
     // pub gamepads: Gamepads,
     // pub textures: texture::TextureAtlas,
     // pub tileset: Tileset,
@@ -40,10 +37,8 @@ impl Context {
     pub async fn new() -> Self {
         Self {
             // gamepads: Gamepads::new(),
-            game_speed: 0.,
             key_pressed: None,
             mouse_pos: None,
-            _time: get_time(),
             request_quit: false,
             // tileset: Tileset::new().await,
             font: skin::init().await,

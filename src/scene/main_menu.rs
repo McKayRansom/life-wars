@@ -4,7 +4,7 @@ use super::{EScene, Scene};
 // use crate::audio::play_sfx;
 // use crate::consts::*;
 use crate::context::Context;
-use crate::draw::{draw_life, ViewContext};
+use crate::viewer::LifeViewer;
 // use crate::map::draw::draw_map;
 // use crate::map::{Map, DEFAULT_CITY_ID};
 use crate::scene::{
@@ -18,10 +18,7 @@ use life_io::life::Life;
 use macroquad::color::{BLACK, WHITE};
 // use macroquad::math::vec2;
 use macroquad::text::{draw_text, draw_text_ex, measure_text};
-use macroquad::time;
-// use macroquad::time::get_time;
 use macroquad::ui::hash;
-// use macroquad::ui::{hash, root_ui, widgets};
 use macroquad::window::{screen_height, screen_width};
 
 const MAIN_MENU_MAP: &str = "\
@@ -36,9 +33,8 @@ bo3b3o$4bo2b3o5bo$3bob2obo5bo$o2b3o4b2ob3o$obobo2bo2bo$o6bo2b2o$b2obo
 
 #[derive(Clone)]
 enum MenuOption {
-    // Continue,
     Start,
-    // Levels,
+    Editor,
     // Freeplay,
     // Settings,
     // Credits,
@@ -51,20 +47,15 @@ pub struct MainMenu {
     // settings_subscene: Settings,
     // credits_subscene: Credits,
     // popup: Option<Popup>,
-
-    last_update: f64,
-    life: Life,
+    background_life: LifeViewer,
 }
 
 impl MainMenu {
     pub async fn new(_ctx: &mut Context) -> Self {
         let mut main_menu = Self {
             menu: Menu::new(vec![
-                // if Map::save_exists() {
-                    // MenuItem::new(MenuOption::Continue, "Continue".to_string())
-                // } else {
-                    MenuItem::new(MenuOption::Start, "Start".to_string()),
-                // },
+                MenuItem::new(MenuOption::Start, "Start".to_string()),
+                MenuItem::new(MenuOption::Editor, "Editor".to_string()),
                 // MenuItem::new(MenuOption::Levels, "Levels".to_string()),
                 // MenuItem::new(MenuOption::Freeplay, "Freeplay".to_string()),
                 #[cfg(not(target_family = "wasm"))]
@@ -73,11 +64,16 @@ impl MainMenu {
             // popup: None,
             // settings_subscene: Settings::new(ctx, false),
             // credits_subscene: Credits::new(ctx),
-            life: Life::new(life_io::life::LifeAlgoSelect::Cached, (128, 128)),
-            last_update: 0.,
+            background_life: LifeViewer::new(Box::new(Life::new(
+                life_io::life::LifeAlgoSelect::Cached,
+                (128, 128),
+            ))),
         };
 
-        main_menu.life.paste(&Life::new_life_from_rle(MAIN_MENU_MAP), (64 - 8, 64 - 8));
+        main_menu
+            .background_life
+            .life
+            .paste(&Life::new_life_from_rle(MAIN_MENU_MAP), (64 - 8, 64 - 8));
 
         // main_menu.map.get_city_mut(DEFAULT_CITY_ID).unwrap().name = "Alpha 0.1X - Roads".into();
 
@@ -91,11 +87,10 @@ impl MainMenu {
             //     Err(_) => self.popup = Some(Popup::new("Error loading save".into())),
             // },
             MenuOption::Start => {
-                ctx.switch_scene_to = Some(EScene::Gameplay(Box::new(
-                    super::GameOptions::New.create()
-                        // .create()
-                        // .expect("Error loading level"),
-                )))
+                ctx.switch_scene_to = Some(EScene::GameOptions);
+            }
+            MenuOption::Editor => {
+                ctx.switch_scene_to = Some(EScene::Editor);
             }
             // MenuOption::Levels => {
             //     ctx.switch_scene_to = Some(EScene::LevelSelect);
@@ -116,7 +111,7 @@ impl MainMenu {
             #[cfg(not(target_family = "wasm"))]
             MenuOption::Quit => {
                 ctx.request_quit = true;
-            },
+            }
         }
     }
 }
@@ -132,13 +127,8 @@ impl Scene for MainMenu {
         //     self.credits_subscene.update(ctx);
         //     return;
         // }
-        // self.map.metadata.grow_cities = false;
 
-        let speed = 1./8.;
-        if time::get_time() - self.last_update > speed {
-            self.last_update = time::get_time();
-            self.life.update();
-        }
+        self.background_life.update();
     }
     fn draw(&mut self, ctx: &mut Context) {
         // if self.settings_subscene.active {
@@ -154,11 +144,10 @@ impl Scene for MainMenu {
         // ctx.tileset.reset_camera(self.map.grid.size_px());
 
         // zoom in for a better look
-        let mut view_ctx = ViewContext::new();
-        view_ctx.resize_to_fit(self.life.size(), (screen_width(), screen_width()));
+        self.background_life.resize_to_fit(self.background_life.life.size(), (screen_width(), screen_width()));
         // view_ctx.set_pos((-screen_width() / 2., -screen_height() / 2.));
-        
-        draw_life(&self.life, &view_ctx);
+
+        self.background_life.draw();
 
         let menu_height = 200.;
 
@@ -172,29 +161,19 @@ impl Scene for MainMenu {
         let shadow_y = y + 5.;
         let shadow_x = x + 5.;
 
-        draw_text_ex(
-            "Life IO",
-            shadow_x,
-            shadow_y,
-            macroquad::text::TextParams {
-                font: Some(&ctx.font),
-                font_size,
-                color: BLACK,
-                ..Default::default()
-            },
-        );
+        draw_text_ex("Life IO", shadow_x, shadow_y, macroquad::text::TextParams {
+            font: Some(&ctx.font),
+            font_size,
+            color: BLACK,
+            ..Default::default()
+        });
 
-        draw_text_ex(
-            "Life IO",
-            x,
-            y,
-            macroquad::text::TextParams {
-                font: Some(&ctx.font),
-                font_size,
-                color: WHITE,
-                ..Default::default()
-            },
-        );
+        draw_text_ex("Life IO", x, y, macroquad::text::TextParams {
+            font: Some(&ctx.font),
+            font_size,
+            color: WHITE,
+            ..Default::default()
+        });
 
         if let Some(selected) = self.menu.draw(hash!()).cloned() {
             self.menu_option_selected(selected, ctx);

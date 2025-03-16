@@ -53,7 +53,7 @@ pub trait LifeAlgo {
     fn hash(&self, state: &mut DefaultHasher);
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct LifeRule {
     // TODO: Changing this to a u32 doesn't seem to impact us much
     lut: [u32; 4],
@@ -167,9 +167,12 @@ pub struct Life {
     algo: Box<dyn LifeAlgo>,
     rule: LifeRule,
     pops: LifePops,
+    generation: u64,
 }
 
+#[derive(Clone, Copy, Default)]
 pub enum LifeAlgoSelect {
+    #[default]
     Basic,
     Cached,
 }
@@ -183,6 +186,7 @@ impl Life {
             },
             rule: LifeRule::GOL,
             pops: LifePops::new(),
+            generation: 0,
         }
     }
 
@@ -194,7 +198,16 @@ impl Life {
             },
             rule,
             pops: LifePops::new(),
+            generation: 0,
         }
+    }
+
+    pub fn get_rule(&self) -> &LifeRule {
+        &self.rule
+    }
+
+    pub fn get_generation(&self) -> u64 {
+        self.generation
     }
 
     // fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut u8)>;
@@ -378,6 +391,7 @@ impl Life {
 
     pub fn update(&mut self) {
         self.algo.update(&self.rule, &mut self.pops);
+        self.generation = self.generation.saturating_add(1);
     }
 
     pub fn size(&self) -> (usize, usize) {

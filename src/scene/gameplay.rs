@@ -1,27 +1,35 @@
-use super::{GameOptions, Scene};
+use super::Scene;
 use crate::{
     context::Context,
-    draw::{self, ViewContext},
+    viewer::{self, LifeViewer},
 };
 
-use macroquad::{color, input, time::get_time};
+use macroquad::input;
 
 use life_io::life::{self, Cell, Life, LifeAlgoSelect, LifeRule};
 
 pub const DEFAULT_MAP_SIZE: (i16, i16) = (127, 127);
 
-pub struct Gameplay {
-    life: Box<Life>,
-    // ui: UiState,
-    last_map_update: f64,
-    // popup: Option<Popup>,
-    ctx: ViewContext,
+pub struct GameOptions {
+    pub size: (usize, usize),
+    pub rule: LifeRule,
+    pub algo: LifeAlgoSelect,
+}
+
+impl Default for GameOptions {
+    fn default() -> Self {
+        Self {
+            size: (256, 256),
+            rule: LifeRule::GOL,
+            algo: LifeAlgoSelect::Basic,
+        }
+    }
 }
 
 impl GameOptions {
     pub fn create(&self) -> Life {
         let seed = 23317;
-        let mut life = Life::new_rule(LifeAlgoSelect::Basic, (256, 256), LifeRule::STAR_WARS);
+        let mut life = Life::new_rule(self.algo, self.size, self.rule);
         life.randomize(seed, true);
         life
         // match &self {
@@ -32,70 +40,67 @@ impl GameOptions {
     }
 }
 
+pub struct Gameplay {
+    // ui: UiState,
+    // popup: Option<Popup>,
+    viewer: LifeViewer,
+}
+
 impl Gameplay {
     pub async fn new(_ctx: &mut Context, life: Box<Life>) -> Self {
         // let unlocked = map.metadata.unlocks;
         let gameplay = Gameplay {
-            life,
             // ui: UiState::new(unlocked),
-            last_map_update: get_time(),
             // popup: None,
-            ctx: ViewContext::new(),
+            viewer: LifeViewer::new(life),
         };
 
         // ctx.tileset.reset_camera(gameplay.map.grid.size_px());
 
         gameplay
     }
-}
 
-const GAME_SPEED_1_PAUSED: f64 = 0.;
-const GAME_SPEED_2_NORMAL: f64 = 1. / 8.;
-const GAME_SPEED_3_FAST: f64 = 1. / 15.;
-const GAME_SPEED_4_VERY_FAST: f64 = 1. / 30.;
-const GAME_SPEED_5_EXTREME: f64 = 1. / 60.;
-const GAME_SPEED_6_VERY_EXTREME: f64 = 1. / 120.;
+    fn handle_input(&mut self, ctx: &mut Context) {
+        let mouse_pos = input::mouse_position();
 
-fn handle_input(life: &mut Life, view_ctx: &mut ViewContext, ctx: &mut Context) {
-    let mouse_pos = input::mouse_position();
+        let pos = self.viewer.screen_to_life_pos(mouse_pos);
 
-    let pos = view_ctx.screen_to_life_pos(mouse_pos);
-
-    if let Some(chr) = input::get_char_pressed() {
-        match chr {
-            'q' => ctx.request_quit = true,
-            ' ' => {
-                if ctx.game_speed == GAME_SPEED_1_PAUSED {
-                    ctx.game_speed = GAME_SPEED_2_NORMAL;
-                } else {
-                    ctx.game_speed = GAME_SPEED_1_PAUSED;
+        if let Some(chr) = input::get_char_pressed() {
+            match chr {
+                'q' => ctx.request_quit = true,
+                ' ' => {
+                    if self.viewer.update_speed == viewer::GAME_SPEED_1_PAUSED {
+                        self.viewer.update_speed = viewer::GAME_SPEED_2_NORMAL;
+                    } else {
+                        self.viewer.update_speed = viewer::GAME_SPEED_1_PAUSED;
+                    }
                 }
+                // self.viewer.update_speed = !view_self.viewer.update_speed,
+                '1' => self.viewer.update_speed = viewer::GAME_SPEED_1_PAUSED,
+                '2' => self.viewer.update_speed = viewer::GAME_SPEED_2_NORMAL,
+                '3' => self.viewer.update_speed = viewer::GAME_SPEED_3_FAST,
+                '4' => self.viewer.update_speed = viewer::GAME_SPEED_4_VERY_FAST,
+                '5' => self.viewer.update_speed = viewer::GAME_SPEED_5_EXTREME,
+                '6' => self.viewer.update_speed = viewer::GAME_SPEED_6_VERY_EXTREME,
+                'g' => self.viewer.life.paste(
+                    &Life::new_life_from_rle(life_io::life::GOSPER_RLE),
+                    pos.unwrap(),
+                ),
+                'p' => {
+                    // if let Some(string) = clipboard_get() {
+                    //     println!("Pasting {string:?}");
+                    //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
+                    // } else {
+                    println!("No clipboard!");
+                    // }
+                }
+                _ => {}
             }
-            // ctx.paused = !view_ctx.paused,
-            '1' => ctx.game_speed = GAME_SPEED_1_PAUSED,
-            '2' => ctx.game_speed = GAME_SPEED_2_NORMAL,
-            '3' => ctx.game_speed = GAME_SPEED_3_FAST,
-            '4' => ctx.game_speed = GAME_SPEED_4_VERY_FAST,
-            '5' => ctx.game_speed = GAME_SPEED_5_EXTREME,
-            '6' => ctx.game_speed = GAME_SPEED_6_VERY_EXTREME,
-            'g' => life.paste(
-                &Life::new_life_from_rle(life_io::life::GOSPER_RLE),
-                pos.unwrap(),
-            ),
-            'p' => {
-                // if let Some(string) = clipboard_get() {
-                //     println!("Pasting {string:?}");
-                //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
-                // } else {
-                println!("No clipboard!");
-                // }
-            }
-            _ => {}
         }
-    }
 
-    if input::is_mouse_button_down(macroquad::input::MouseButton::Left) {
-        life.insert(pos.unwrap(), Cell::new(1, 0)); //view_ctx.selected_faction));
+        if input::is_mouse_button_down(macroquad::input::MouseButton::Left) {
+            self.viewer.life.insert(pos.unwrap(), Cell::new(1, 0)); //view_ctx.selected_faction));
+        }
     }
 }
 
@@ -105,13 +110,16 @@ fn draw_score(life: &Life, ctx: &Context) {
     let mut pops: Vec<(i16, u8)> = (0..life::FACTION_MAX)
         .filter_map(|faction| {
             let pop = life.get_pop(faction as u8);
-            if pop > 0 { Some((pop, faction as u8)) } else { None }
+            if pop > 0 {
+                Some((pop, faction as u8))
+            } else {
+                None
+            }
         })
         .collect();
     pops.sort();
 
     for (pop, faction) in pops.iter().rev() {
-
         let faction_text = format!("Team {faction}: {pop}");
         let measure = macroquad::text::measure_text(faction_text.as_str(), Some(&ctx.font), 40, 1.);
         macroquad::text::draw_text_ex(
@@ -121,7 +129,7 @@ fn draw_score(life: &Life, ctx: &Context) {
             macroquad::text::TextParams {
                 font: Some(&ctx.font),
                 font_size: 40,
-                color: draw::faction_color(*faction),
+                color: viewer::faction_color(*faction),
                 ..Default::default()
             },
         );
@@ -131,37 +139,26 @@ fn draw_score(life: &Life, ctx: &Context) {
 }
 
 impl Scene for Gameplay {
-    fn update(&mut self, ctx: &mut Context) {
-        if ctx.game_speed != GAME_SPEED_1_PAUSED
-            && get_time() - self.last_map_update > ctx.game_speed
-        {
-            // if self.map.update() && self.map.metadata.is_level {
-            //     self.popup = Some(Popup::new(format!(
-            //         "Level {} completed!",
-            //         self.map.metadata.level_number
-            //     )));
-            // }
-            self.last_map_update = macroquad::time::get_time();
-            self.life.update();
-        }
+    fn update(&mut self, _ctx: &mut Context) {
+        self.viewer.update();
     }
 
     fn draw(&mut self, ctx: &mut Context) {
-        let size = self.life.size();
-        self.ctx.resize_to_fit(
+        let size = self.viewer.life.size();
+        self.viewer.resize_to_fit(
             size,
             (
                 (macroquad::window::screen_width() - BORDER_SIZE * 2.),
                 (macroquad::window::screen_height() - BORDER_SIZE * 2.),
             ),
         );
-        self.ctx.set_pos((BORDER_SIZE, BORDER_SIZE));
+        self.viewer.set_pos((BORDER_SIZE, BORDER_SIZE));
 
-        handle_input(&mut self.life, &mut self.ctx, ctx);
+        self.handle_input(ctx);
 
-        crate::draw::draw_life(&self.life, &self.ctx);
+        self.viewer.draw();
 
-        draw_score(&self.life, ctx);
+        draw_score(&self.viewer.life, ctx);
 
         // self.ui.draw(&mut self.map, ctx);
 

@@ -1,15 +1,9 @@
 
-#[derive(Clone, Debug)]
-pub enum GameOptions {
-    Random(u64),
-    New,
-    Continue,
-}
-
-
 pub enum EScene {
+    GameOptions,
     Gameplay(Box<Life>),
     MainMenu,
+    Editor,
     // LevelSelect,
 }
 
@@ -20,6 +14,8 @@ use crate::context::Context;
 // pub mod credits;
 pub mod gameplay;
 pub mod main_menu;
+pub mod game_options;
+pub mod editor;
 // pub mod level_select;
 // pub mod settings;
 

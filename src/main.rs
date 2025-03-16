@@ -7,7 +7,7 @@ use macroquad::{
 
 pub mod context;
 pub mod scene;
-pub mod draw;
+pub mod viewer;
 pub mod skin;
 
 fn window_conf() -> window::Conf {
@@ -66,11 +66,16 @@ async fn main() {
             current_scene = match escene {
                 scene::EScene::MainMenu => {
                     Box::new(scene::main_menu::MainMenu::new(&mut ctx).await)
-                }
+                },
                 scene::EScene::Gameplay(map) => {
                     Box::new(scene::gameplay::Gameplay::new(&mut ctx, map).await)
-                }
-                // scene::EScene::LevelSelect => Box::new(LevelSelect::new(&mut ctx)),
+                },
+                scene::EScene::Editor => {
+                    Box::new(scene::editor::Editor::new())
+                },
+                scene::EScene::GameOptions => {
+                    Box::new(scene::game_options::GameOptions::new())
+                },
             };
         }
 
