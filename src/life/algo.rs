@@ -6,18 +6,21 @@ use super::{Cell, LifePops, LifeRule};
 
 mod basic;
 mod cached;
+mod sparse;
 
 #[derive(Clone, Copy, Default, Debug)]
 pub enum LifeAlgoSelect {
     #[default]
     Basic,
     Cached,
+    Sprase,
 }
 
 /// Algorithms working correctly with any ruleset
 pub const WORKING_ALGOS: &[LifeAlgoSelect] = &[
     LifeAlgoSelect::Basic,
     LifeAlgoSelect::Cached,
+    LifeAlgoSelect::Sprase,
 ];
 
 /// Algorithms working correctly with multiple factions
@@ -44,6 +47,7 @@ pub fn new(algo: LifeAlgoSelect, size: (usize, usize)) -> Box<dyn LifeAlgo> {
     match algo {
         LifeAlgoSelect::Basic => Box::new(basic::LifeBasic::new(size)),
         LifeAlgoSelect::Cached => Box::new(cached::LifeCached::new(size)),
+        LifeAlgoSelect::Sprase => Box::new(sparse::LifeSparse::new(size)),
     }
 }
 

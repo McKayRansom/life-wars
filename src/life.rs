@@ -10,8 +10,8 @@ pub use algo::LifeAlgoSelect;
 pub use algo::WORKING_ALGOS;
 
 mod file_format;
-pub use file_format::rle::*;
 pub use file_format::plaintext::*;
+pub use file_format::rle::*;
 
 pub mod patterns;
 
@@ -32,8 +32,14 @@ impl Cell {
         }
     }
 
+    /// NOTE: is_alive() != !is_dead() due to refactory states
     pub fn is_alive(&self) -> bool {
         self.value & Self::STATE_MASK == 0x1
+    }
+
+    /// NOTE: is_dead() != !is_alive() due to refactory states
+    pub fn is_dead(&self) -> bool {
+        self.value & Self::STATE_MASK == 0
     }
 
     pub fn get_state(&self) -> u8 {
@@ -56,6 +62,12 @@ impl Cell {
 impl From<u8> for Cell {
     fn from(value: u8) -> Self {
         Self { value }
+    }
+}
+
+impl Default for Cell {
+    fn default() -> Self {
+        Self { value: 0 }
     }
 }
 
@@ -169,8 +181,6 @@ impl Life {
             }
         }
     }
-
-
 
     pub fn paste(&mut self, other: &Self, pos: (usize, usize)) {
         for (x, y, cell) in other.iter() {

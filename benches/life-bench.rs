@@ -18,15 +18,16 @@ mod life_bench {
         });
     }
 
-    // #[bench]
-    // fn bench_life_sparse(b: &mut Bencher) {
-    //     let mut life = Life::new(Life(256, 256));
-    //     life.randomize(BENCH_SEED, false);
+    #[bench]
+    #[ignore = "VERY SLOW"]
+    fn bench_life_sparse(b: &mut Bencher) {
+        let mut life = Life::new(life_io::life::LifeAlgoSelect::Sprase, (256, 256));
+        life.randomize(BENCH_SEED, false);
 
-    //     b.iter(|| {
-    //         life.update();
-    //     });
-    // }
+        b.iter(|| {
+            life.update();
+        });
+    }
 
     #[bench]
     fn bench_life_cached(b: &mut Bencher) {

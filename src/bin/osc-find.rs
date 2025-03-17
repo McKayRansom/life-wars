@@ -17,7 +17,7 @@ pub struct LifeResult {
 
 fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
 
-    let mut life = Life::new(life_io::life::LifeAlgoSelect::Cached, (16, 16));
+    let mut life = Life::new(life_io::life::LifeAlgoSelect::Sprase, (16, 16));
     life.randomize(seed, false);
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;
@@ -66,7 +66,7 @@ fn main() {
 
     let mut found_oscilators: Vec<usize> = Vec::new();
 
-    for seed in 0..1000000 {
+    for seed in 0..100000 {
         if let Some(res) = run_to_stabilization(seed) {
             if !found_oscilators.contains(&res.period) {
                 found_oscilators.push(res.period);

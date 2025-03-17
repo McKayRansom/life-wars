@@ -9,7 +9,7 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * - Keep the old grid around instead of alloc/freeing every time (this is significant now that we do much less work on each update)
  *
  * This drastically reduces the time complexity from O(cells) to O(cells_changed)
- * at the cost of double the memory plus some
+ * at the cost of double the memory from O(cells) to O(2 * cells)
  */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeCached {
@@ -43,6 +43,8 @@ impl LifeCached {
                 }
                 if let Some(row) = grid.get_mut((pos.1 as i32 + dy) as usize) {
                     if let Some((cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
+
+                        // NOTE: This impacts performance ~20% :(
                         if cell.get_faction() != faction {
                             *neigh -= amount;
                         } else {
@@ -50,6 +52,7 @@ impl LifeCached {
                         }
 
                         if *neigh < 0 {
+                            // TODO: Just recalc?
                             *neigh *= -1;
                             cell.set_faction(cell.get_faction() ^ 1);
                         }
