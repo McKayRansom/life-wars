@@ -1,15 +1,19 @@
-use std::{hash::DefaultHasher, str::Split};
+use std::hash::DefaultHasher;
 
 mod rule;
 pub use rule::LifeRule;
 
 mod algo;
+pub use algo::FACTION_ALGOS;
 use algo::LifeAlgo;
 pub use algo::LifeAlgoSelect;
 pub use algo::WORKING_ALGOS;
-pub use algo::FACTION_ALGOS;
-pub mod patterns;
 
+mod file_format;
+pub use file_format::rle::*;
+pub use file_format::plaintext::*;
+
+pub mod patterns;
 
 pub const FACTION_MAX: usize = 16;
 
@@ -128,9 +132,9 @@ impl Life {
 
     pub fn clone(&self) -> Self {
         // this is stupid AF LOLOL
-        let str = self.life_to_rle();
+        let str = life_to_rle(self);
         println!("cloneing: {str}");
-        Self::new_life_from_rle(str.as_str())
+        new_life_from_rle(str.as_str())
         // Self {
         //     algo: self.algo.clone(),
         //     rule: self.rule,
@@ -166,223 +170,7 @@ impl Life {
         }
     }
 
-    fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Self> {
-        let mut name = String::new();
-        while let Some(line) = it.next() {
-            // parse headers
-            if line.starts_with("#N ") {
-                name = line[3..].into()
-            } else if line.starts_with("#") {
-                // ignore tags for now
-            } else if line.starts_with("x") {
-                // header
-                let mut size: (usize, usize) = (16, 16);
-                let mut rule: LifeRule = LifeRule::GOL;
-                for field in line.split(", ") {
-                    let (name, value) = field.split_once(" = ").expect("Failed to parse field");
-                    match name {
-                        "x" => size.0 = value.parse().expect("Failed to parse field"),
-                        "y" => size.1 = value.parse().expect("Failed to parse field"),
-                        "rule" => rule = LifeRule::from_str(field),
-                        _ => panic!("Unkown header field: {}", name),
-                    }
-                }
-                return Some(Self {
-                    rule,
-                    name,
-                    ..Self::new(LifeAlgoSelect::Basic, size)
-                });
-            } else {
-                panic!("Unkown line: {}", line);
-            }
-        }
-        None
-    }
 
-    /*
-     *        let rle_glider = "
-     *        #C This is a glider.
-     *        x = 3, y = 3
-     *        bo$2bo$3o!";
-     * https://conwaylife.com/wiki/Run_Length_Encoded
-     */
-    pub fn new_life_from_rle(rle: &str) -> Self {
-        let mut line_it = rle.split('\n');
-        let mut life: Self =
-            Self::rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
-
-        let mut pos: (usize, usize) = (0, 0);
-        while let Some(line) = line_it.next() {
-            let mut run_count = 0;
-            for chr in line.chars() {
-                if let Some(count) = chr.to_digit(10) {
-                    run_count = (run_count * 10) + count;
-                } else {
-                    if run_count == 0 {
-                        run_count = 1;
-                    }
-                    match chr {
-                        'b' => pos.0 += run_count as usize,
-                        'o' => {
-                            for _ in 0..run_count {
-                                life.insert(pos, Cell::new(1, 0));
-                                pos.0 += 1;
-                            }
-                        }
-                        '$' => {
-                            pos.1 += 1;
-                            pos.0 = 0;
-                        }
-                        '!' => break,
-
-                        _ => panic!("Unkown <tag> '{chr}'"),
-                    }
-                    run_count = 0;
-                }
-            }
-        }
-        life
-    }
-
-    fn rle_write_state(string: &mut String, count: i32, state: u8, line_count: &mut usize) {
-        if count > 1 {
-            let count_str = count.to_string();
-            *line_count += count_str.len();
-            string.push_str(count_str.as_str());
-        }
-        let pat = match state {
-            0 => 'b',
-            1 => 'o',
-            _ => todo!(),
-        };
-        string.push(pat);
-        *line_count += 1;
-        if *line_count > 64 {
-            string.push('\n');
-            *line_count = 0;
-        }
-    }
-
-    pub fn life_to_rle(&self) -> String {
-        let size = self.size();
-        let mut string = String::with_capacity(64);
-        if !self.name.is_empty() {
-            string.push_str("#N ");
-            string.push_str(self.name.as_str());
-            string.push('\n');
-        }
-        string.push_str(
-            format!(
-                "x = {}, y = {}, rule = {}\n",
-                size.0,
-                size.1,
-                self.rule.to_str().as_str()
-            )
-            .as_str(),
-        );
-
-        let mut prev_count = 0;
-        let mut prev_state: Option<u8> = None;
-        let mut line_count: usize = 0;
-        for (x, y, cell) in self.iter() {
-            if x == 0 && y != 0 {
-                if prev_state.unwrap() != 0 {
-                    Self::rle_write_state(
-                        &mut string,
-                        prev_count,
-                        prev_state.unwrap(),
-                        &mut line_count,
-                    );
-                }
-
-                prev_state = None;
-                prev_count = 0;
-                string.push('$');
-            }
-            if let Some(state) = prev_state {
-                if state != cell.get_state() {
-                    Self::rle_write_state(&mut string, prev_count, state, &mut line_count);
-                    prev_count = 0;
-                }
-            }
-            prev_state = Some(cell.get_state());
-            prev_count += 1;
-        }
-        if prev_state.unwrap() != 0 {
-            Self::rle_write_state(
-                &mut string,
-                prev_count,
-                prev_state.unwrap(),
-                &mut line_count,
-            );
-        }
-
-        string.push('!');
-
-        string
-    }
-
-    // Based on Plaintext format https://conwaylife.com/wiki/Plaintext
-    // TODO: TryFrom instead...
-    pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>) -> Self {
-        let mut size: (usize, usize) = (0, 0);
-        let mut name = String::new();
-        for line in value.lines() {
-            if line.starts_with("!") {
-                if let Some(pat_name) = line.strip_prefix("!Name: ") {
-                    name.push_str(pat_name);
-                }
-            } else {
-                size.1 += 1;
-                size.0 = size.0.max(line.len());
-            }
-        }
-        let mut life = Self {
-            algo: algo::new(algo.unwrap_or_default(), size),
-            name,
-            ..Default::default()
-        };
-        let mut pos: (usize, usize) = (0, 0);
-        for line in value.lines() {
-            if line.starts_with("!") {
-                continue;
-            }
-
-            for chr in line.chars() {
-                match chr {
-                    '.' => {} // ignore, dead
-                    'O' => {
-                        life.insert(pos, Cell::new(1, 0));
-                    }
-                    _ => {
-                        unimplemented!("No parse rule in PlainText format for: '{chr}'");
-                    }
-                }
-                pos.0 += 1;
-            }
-
-            pos.0 = 0;
-            pos.1 += 1;
-        }
-        life
-    }
-
-    pub fn life_to_plaintext(&self) -> String {
-        let mut string = String::with_capacity(16);
-        string.push_str("!Name: ");
-        string.push_str(self.name.as_str());
-        for (x, _y, cell) in self.iter() {
-            if x == 0 {
-                string.push('\n');
-            }
-            if cell.is_alive() {
-                string.push('O');
-            } else {
-                string.push('.');
-            }
-        }
-        string
-    }
 
     pub fn paste(&mut self, other: &Self, pos: (usize, usize)) {
         for (x, y, cell) in other.iter() {
@@ -437,14 +225,14 @@ impl Life {
 // TODO: TryFrom instead...
 impl From<&str> for Life {
     fn from(value: &str) -> Self {
-        Life::from_plaintext(value, None)
+        from_plaintext(value, None)
     }
 }
 
 // Should this be Display or Debug?
 impl std::fmt::Display for Life {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.life_to_plaintext().as_str())
+        f.write_str(life_to_plaintext(self).as_str())
     }
 }
 
@@ -493,27 +281,54 @@ mod life_tests {
 
     #[test]
     fn test_rle_glider() {
-        let life = Life::new_life_from_rle(GLIDER_RLE);
+        let life = new_life_from_rle(GLIDER_RLE);
 
         assert_eq!(life.algo.size(), (3, 3));
         // don't compare glider rules
-        assert_eq!(life.life_to_rle()[28..], GLIDER_RLE[34..]);
+        assert_eq!(life_to_rle(&life)[28..], GLIDER_RLE[34..]);
     }
 
     #[test]
     fn test_rle_gosper() {
-        let life = Life::new_life_from_rle(GOSPER_RLE);
+        let life = new_life_from_rle(GOSPER_RLE);
         assert_eq!(life.rule, LifeRule::GOL);
         assert_eq!(life.size(), (36, 9));
         assert_eq!(life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
-        assert_eq!(life.life_to_rle(), GOSPER_RLE);
+        assert_eq!(life_to_rle(&life), GOSPER_RLE);
     }
 
     #[test]
-    #[ignore = "NOT IMPLEMENTED"]
     fn test_rle_star_wars() {
-        let life = Life::new_life_from_rle(STAR_WARS_RLE);
+        let life = new_life_from_rle(STAR_WARS_RLE);
         assert_eq!(life.rule, LifeRule::STAR_WARS);
-        assert_eq!(life.life_to_rle(), STAR_WARS_RLE);
+        let new_rle = life_to_rle(&life);
+
+        for line in new_rle.lines() {
+            println!("{line}")
+        }
+
+        for line in STAR_WARS_RLE.lines() {
+            println!("{line}")
+        }
+        
+        assert_eq!(new_rle, STAR_WARS_RLE);
     }
 }
+
+/*
+ 2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.                                                                                                                                                                                                                                                                                                              ▐
+ 10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$                                                                                                                                                                                                                                                                                                              ▐
+ 39.A.C$6.A4.A6.A$5.15A$6.A2.A2.A2.A2.A$15.C$14.A.B$13.4A$12.A.A$12.B                                                                                                                                                                                                                                                                                                             ▐
+ 39.A.C$6.A4.A6.A$5.15A$6.A2.A2.A2.A2.A9$15.C$14.A.B$13.4A$12.A.A$12.B                                                                                                                                                                                                                                                                                                            ▐
+ .A$12.C3A$14.A$14.A.C$4.ABC6.3AB$2.A2.A8.A.A$.6A5.A.A$2.A3.2A4.B3A$                                                                                                                                                                                                                                                                                                              ▐
+ 2.A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B                                                                                                                                                                                                                                                                                                               ▐
+ 21.B2A.A$C9A4.A.A23.CB$2.A2.A2.A3.4A$4.ABC5.B.A$11.2AC$11.AB$6.A4.A                                                                                                                                                                                                                                                                                                              ▐
+ 6.A$5.15A$6.A2.A2.A2.A2.A$$$$$$$$!                                                                                                                                                                                                                                                                                                                                               ▐
+ x = 43, y = 48, rule = B2/S345/4                                                                                                                                                                                                                                                                                                                                                 ▐
+ 2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.                                                                                                                                                                                                                                                                                                              ▐
+ 10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$                                                                                                                                                                                                                                                                                                              ▐
+ .A$12.C3A$14.A$14.A.C$4.ABC6.3AB$2.A2.A8.A.A$.6A5.A.A$2.A3.2A4.B3A$2.                                                                                                                                                                                                                                                                                                            ▐
+ A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B21.B                                                                                                                                                                                                                                                                                                             ▐
+ 2A.A$C9A4.A.A23.CB$2.A2.A2.A3.4A$4.ABC5.B.A$11.2AC$11.AB$6.A4.A6.A$5.                                                                                                                                                                                                                                                                                                            ▐
+ 15A$6.A2.A2.A2.A2.A!  
+ */

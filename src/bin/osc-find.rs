@@ -3,7 +3,7 @@ use std::{
     hash::{DefaultHasher, Hasher}, time::Instant,
 };
 
-use life_io::life::Life;
+use life_io::life::{life_to_plaintext, Life};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -72,7 +72,7 @@ fn main() {
                 found_oscilators.push(res.period);
                 println!(
                     "Found oscilator {} seed: {seed} iter: {} str: {}",
-                    res.period, res.age, res.life.life_to_rle()
+                    res.period, res.age, life_to_plaintext(&res.life)
                 );
             }
         }

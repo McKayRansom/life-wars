@@ -31,13 +31,13 @@ impl PatternLib {
                 println!("Pattern lib loaded {} patterns", patterns_strings.len());
                 patterns_strings
                     .iter()
-                    .map(|rle| super::Life::new_life_from_rle(rle.as_str()))
+                    .map(|rle| super::new_life_from_rle(rle.as_str()))
                     .collect()
             } else {
                 println!("Pattern lib NOT FOUND!");
                 BUILT_IN_PATTERNS
                     .iter()
-                    .map(|rle| super::Life::new_life_from_rle(*rle))
+                    .map(|rle| super::new_life_from_rle(*rle))
                     .collect()
             },
         }
@@ -63,6 +63,8 @@ use std::path::PathBuf;
 
 #[cfg(not(target_family = "wasm"))]
 use directories::ProjectDirs;
+
+use super::life_to_rle;
 
 #[cfg(not(target_family = "wasm"))]
 /// returns the ProjectDirs struct from the directories crate with the proper identifier for the
@@ -187,7 +189,7 @@ impl PatternLib {
         let pattern_strings: Vec<String> = self
             .patterns
             .iter()
-            .map(|pattern| pattern.life_to_rle())
+            .map(|pattern| life_to_rle(pattern))
             .collect();
         Ok(ron::ser::to_string_pretty(
             &pattern_strings,

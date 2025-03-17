@@ -22,6 +22,10 @@ impl LifeRule {
         Self { lut }
     }
 
+    pub fn is_generations(&self) -> bool {
+        self.lut[2] != 0
+    }
+
     // BXX or X
     fn parse_rule_portion<F>(it: &mut Split<'_, char>, mut func: F)
     where
@@ -37,14 +41,21 @@ impl LifeRule {
     }
 
     // BXX/SXX or BXX/SXX/X
+    // OR
+    // SSS/BBB/GGG
     // https://conwaylife.com/wiki/Rulestring
     pub fn from_str(str: &str) -> Self {
         let mut new_rule: Self = Self::new([0, 0, 0, 0]);
 
         let mut portion_it = str.split('/');
 
-        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[0] |= 1 << (count * 2));
-        Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[1] |= 1 << (count * 2));
+        if str.starts_with('B') {
+            Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[0] |= 1 << (count * 2));
+            Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[1] |= 1 << (count * 2));
+        } else {
+            Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[1] |= 1 << (count * 2));
+            Self::parse_rule_portion(&mut portion_it, |count| new_rule.lut[0] |= 1 << (count * 2));
+        }
         Self::parse_rule_portion(&mut portion_it, |count| {
             match count {
                 3 => {} // do nothing
@@ -75,10 +86,10 @@ impl LifeRule {
                 survives = (survives * 10) + i;
             }
         }
-        if self.lut[2] == 0 {
-            format!("B{births}/S{survives}")
-        } else {
+        if self.is_generations() {
             format!("B{births}/S{survives}/4")
+        } else {
+            format!("B{births}/S{survives}")
         }
     }
 
@@ -105,6 +116,12 @@ mod rule_tests {
     fn test_rule_to_str() {
         assert_eq!(LifeRule::GOL.to_str(), "B3/S23");
         assert_eq!(LifeRule::STAR_WARS.to_str(), "B2/S345/4");
+    }
+
+    #[test]
+    fn test_rule_alt_fmt() {
+        assert_eq!(LifeRule::from_str("23/3"), LifeRule::GOL);
+        assert_eq!(LifeRule::from_str("345/2/4"), LifeRule::STAR_WARS);
     }
 
     #[test]

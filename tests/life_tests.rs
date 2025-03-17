@@ -15,11 +15,11 @@ OOO
 #[test]
 fn test_blinker() {
     for algo in WORKING_ALGOS {
-        let mut life = Life::from_plaintext(BLINKER_1, Some(*algo));
-        assert_eq!(life.life_to_plaintext(), BLINKER_1, "algo: {algo:?}");
+        let mut life = from_plaintext(BLINKER_1, Some(*algo));
+        assert_eq!(life_to_plaintext(&life), BLINKER_1, "algo: {algo:?}");
 
         life.update();
-        assert_eq!(life.life_to_plaintext(), BLINKER_2, "algo: {algo:?}");
+        assert_eq!(life_to_plaintext(&life), BLINKER_2, "algo: {algo:?}");
     }
 }
 
