@@ -1,0 +1,48 @@
+use std::hash::DefaultHasher;
+
+
+use super::{Cell, LifePops, LifeRule};
+
+
+mod basic;
+mod cached;
+
+#[derive(Clone, Copy, Default, Debug)]
+pub enum LifeAlgoSelect {
+    #[default]
+    Basic,
+    Cached,
+}
+
+/// Algorithms working correctly with any ruleset
+pub const WORKING_ALGOS: &[LifeAlgoSelect] = &[
+    LifeAlgoSelect::Basic,
+    LifeAlgoSelect::Cached,
+];
+
+/// Algorithms working correctly with multiple factions
+pub const FACTION_ALGOS: &[LifeAlgoSelect] = &[
+    LifeAlgoSelect::Basic,
+];
+
+
+pub trait LifeAlgo {
+    /// Get the size of the life grid
+    fn size(&self) -> (usize, usize);
+    /// Get a cell at a position
+    fn get(&self, pos: (usize, usize)) -> Option<&Cell>;
+    /// Insert a cell at a position, return old cell if it was present
+    fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell>;
+    /// Advance life 1 tick with given rule
+    fn update(&mut self, rule: &LifeRule, pops: &mut LifePops);
+    /// Hash is NOT consistent accross algorithms, use pop for those cases
+    fn hash(&self, state: &mut DefaultHasher);
+}
+
+pub fn new(algo: LifeAlgoSelect, size: (usize, usize)) -> Box<dyn LifeAlgo> {
+    match algo {
+        LifeAlgoSelect::Basic => Box::new(basic::LifeBasic::new(size)),
+        LifeAlgoSelect::Cached => Box::new(cached::LifeCached::new(size)),
+    }
+}
+

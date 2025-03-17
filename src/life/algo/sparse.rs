@@ -2,6 +2,14 @@ use std::collections::HashMap;
 
 use super::{Cell, LifeAlgo, LifePops, LifeRule};
 
+/*
+ * Sparse algorithm (Currently broken!)
+ * - Keep alive cells in hashmap
+ * - only check thos
+ * 
+ * Should be faster than Naiive because it's time is O(updated_cells) and it's space is O(cells)
+ * performs truely terribly at the moment, need to figure out why
+ */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeSparse {
     size: (usize, usize),

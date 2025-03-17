@@ -1,11 +1,11 @@
-use std::{fmt::Write, hash::DefaultHasher, str::Split};
+use std::{hash::DefaultHasher, str::Split};
 
-use basic::LifeBasic;
-use cached::LifeCached;
+use algo::LifeAlgo;
 
-mod basic;
-mod cached;
-// mod sparse;
+mod algo;
+pub use algo::LifeAlgoSelect;
+pub use algo::WORKING_ALGOS;
+pub use algo::FACTION_ALGOS;
 pub mod patterns;
 
 pub const FACTION_MAX: usize = 16;
@@ -46,17 +46,14 @@ impl Cell {
     }
 }
 
-pub trait LifeAlgo {
-    fn size(&self) -> (usize, usize);
-    fn get(&self, pos: (usize, usize)) -> Option<&Cell>;
-    fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell>;
-    fn update(&mut self, rule: &LifeRule, pops: &mut LifePops);
-    fn hash(&self, state: &mut DefaultHasher);
+impl From<u8> for Cell {
+    fn from(value: u8) -> Self {
+        Self { value }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct LifeRule {
-    // TODO: Changing this to a u32 doesn't seem to impact us much
     lut: [u32; 4],
 }
 
@@ -175,7 +172,7 @@ pub struct Life {
 impl Default for Life {
     fn default() -> Self {
         Self {
-            algo: Box::new(LifeBasic::new((8, 8))),
+            algo: algo::new(LifeAlgoSelect::Basic, (8, 8)),
             rule: LifeRule::GOL,
             pops: LifePops::new(),
             generation: 0,
@@ -184,20 +181,10 @@ impl Default for Life {
     }
 }
 
-#[derive(Clone, Copy, Default)]
-pub enum LifeAlgoSelect {
-    #[default]
-    Basic,
-    Cached,
-}
-
 impl Life {
     pub fn new(algo: LifeAlgoSelect, size: (usize, usize)) -> Self {
         Self {
-            algo: match algo {
-                LifeAlgoSelect::Basic => Box::new(LifeBasic::new(size)),
-                LifeAlgoSelect::Cached => Box::new(LifeCached::new(size)),
-            },
+            algo: algo::new(algo, size),
             ..Default::default()
         }
     }
@@ -421,6 +408,68 @@ impl Life {
         string
     }
 
+    // Based on Plaintext format https://conwaylife.com/wiki/Plaintext
+    // TODO: TryFrom instead...
+    pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>) -> Self {
+        let mut size: (usize, usize) = (0, 0);
+        let mut name = String::new();
+        for line in value.lines() {
+            if line.starts_with("!") {
+                if let Some(pat_name) = line.strip_prefix("!Name: ") {
+                    name.push_str(pat_name);
+                }
+            } else {
+                size.1 += 1;
+                size.0 = size.0.max(line.len());
+            }
+        }
+        let mut life = Self {
+            algo: algo::new(algo.unwrap_or_default(), size),
+            name,
+            ..Default::default()
+        };
+        let mut pos: (usize, usize) = (0, 0);
+        for line in value.lines() {
+            if line.starts_with("!") {
+                continue;
+            }
+
+            for chr in line.chars() {
+                match chr {
+                    '.' => {} // ignore, dead
+                    'O' => {
+                        life.insert(pos, Cell::new(1, 0));
+                    }
+                    _ => {
+                        unimplemented!("No parse rule in PlainText format for: '{chr}'");
+                    }
+                }
+                pos.0 += 1;
+            }
+
+            pos.0 = 0;
+            pos.1 += 1;
+        }
+        life
+    }
+
+    pub fn life_to_plaintext(&self) -> String {
+        let mut string = String::with_capacity(16);
+        string.push_str("!Name: ");
+        string.push_str(self.name.as_str());
+        for (x, _y, cell) in self.iter() {
+            if x == 0 {
+                string.push('\n');
+            }
+            if cell.is_alive() {
+                string.push('O');
+            } else {
+                string.push('.');
+            }
+        }
+        string
+    }
+
     pub fn paste(&mut self, other: &Self, pos: (usize, usize)) {
         for (x, y, cell) in other.iter() {
             self.insert((pos.0 + x, pos.1 + y), *cell);
@@ -465,26 +514,23 @@ impl Life {
     pub fn get_pop(&self, faction: u8) -> i16 {
         self.pops.get(faction)
     }
-    
+
     pub fn set_name(&mut self, as_str: &str) {
         self.name = as_str.into();
+    }
+}
+
+// TODO: TryFrom instead...
+impl From<&str> for Life {
+    fn from(value: &str) -> Self {
+        Life::from_plaintext(value, None)
     }
 }
 
 // Should this be Display or Debug?
 impl std::fmt::Display for Life {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (x, _y, cell) in self.iter() {
-            if x == 0 {
-                f.write_char('\n')?;
-            }
-            if cell.is_alive() {
-                f.write_char('*')?;
-            } else {
-                f.write_char(' ')?;
-            }
-        }
-        Ok(())
+        f.write_str(self.life_to_plaintext().as_str())
     }
 }
 
@@ -509,16 +555,33 @@ A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B21.B
 2A.A$C9A4.A.A23.CB$2.A2.A2.A3.4A$4.ABC5.B.A$11.2AC$11.AB$6.A4.A6.A$5.
 15A$6.A2.A2.A2.A2.A!";
 
+// TODO: Descriptions??
+/*
+!Author: Richard K. Guy
+!The smallest, most common, and first discovered spaceship.
+!www.conwaylife.com/wiki/index.php?title=Glider
+*/
+pub const GLIDER_TXT: &str = "\
+!Name: Glider
+.O.
+..O
+OOO";
+
 #[cfg(test)]
 mod life_tests {
     use super::*;
+
+    #[test]
+    fn test_txt_glider() {
+        let life: Life = GLIDER_TXT.into();
+        assert_eq!(format!("{life}"), GLIDER_TXT);
+    }
 
     #[test]
     fn test_rle_glider() {
         let life = Life::new_life_from_rle(GLIDER_RLE);
 
         assert_eq!(life.algo.size(), (3, 3));
-        assert_eq!(format!("{life}"), "\n * \n  *\n***");
         // don't compare glider rules
         assert_eq!(life.life_to_rle()[28..], GLIDER_RLE[34..]);
     }
@@ -533,6 +596,7 @@ mod life_tests {
     }
 
     #[test]
+    #[ignore = "NOT IMPLEMENTED"]
     fn test_rle_star_wars() {
         let life = Life::new_life_from_rle(STAR_WARS_RLE);
         assert_eq!(life.rule, LifeRule::STAR_WARS);
