@@ -21,7 +21,7 @@ use macroquad::text::{draw_text, draw_text_ex, measure_text};
 use macroquad::ui::hash;
 use macroquad::window::{screen_height, screen_width};
 
-const MAIN_MENU_MAP: &str = "\
+const _MAIN_MENU_MAP: &str = "\
 #N 52514m.rle
 #C https://conwaylife.com/wiki/52513M
 #C https://www.conwaylife.com/patterns/52514m.rle
@@ -64,16 +64,18 @@ impl MainMenu {
             // popup: None,
             // settings_subscene: Settings::new(ctx, false),
             // credits_subscene: Credits::new(ctx),
-            background_life: LifeViewer::new(Box::new(Life::new(
-                life_io::life::LifeAlgoSelect::Cached,
+            background_life: LifeViewer::new(Box::new(Life::new_rule(
+                life_io::life::LifeAlgoSelect::Basic,
                 (128, 128),
+                life_io::life::LifeRule::STAR_WARS
             ))),
         };
 
         main_menu
             .background_life
             .life
-            .paste(&Life::new_life_from_rle(MAIN_MENU_MAP), (64 - 8, 64 - 8));
+            .randomize(1234, true);
+        //     .paste(&Life::new_rule(life_io::life::LifeAlgoSelect::Basic, (1)), (64 - 8, 64 - 8));
 
         // main_menu.map.get_city_mut(DEFAULT_CITY_ID).unwrap().name = "Alpha 0.1X - Roads".into();
 
@@ -153,7 +155,7 @@ impl Scene for MainMenu {
 
         let font_size: u16 = 120;
 
-        let measure = measure_text("Life IO", Some(&ctx.font), font_size, 1.);
+        let measure = measure_text("Life Wars", Some(&ctx.font), font_size, 1.);
 
         let x = -measure.width / 2. + screen_width() / 2.;
         let y = -menu_height + screen_height() / 2.;
@@ -161,14 +163,14 @@ impl Scene for MainMenu {
         let shadow_y = y + 5.;
         let shadow_x = x + 5.;
 
-        draw_text_ex("Life IO", shadow_x, shadow_y, macroquad::text::TextParams {
+        draw_text_ex("Life Wars", shadow_x, shadow_y, macroquad::text::TextParams {
             font: Some(&ctx.font),
             font_size,
             color: BLACK,
             ..Default::default()
         });
 
-        draw_text_ex("Life IO", x, y, macroquad::text::TextParams {
+        draw_text_ex("Life Wars", x, y, macroquad::text::TextParams {
             font: Some(&ctx.font),
             font_size,
             color: WHITE,

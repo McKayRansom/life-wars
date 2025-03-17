@@ -1,14 +1,13 @@
 use super::Scene;
 use crate::{
     context::Context,
+    pattern_view::PatternLibViewer,
     viewer::{self, LifeViewer},
 };
 
-use macroquad::input;
+use macroquad::{color, input};
 
-use life_io::life::{self, Cell, Life, LifeAlgoSelect, LifeRule};
-
-pub const DEFAULT_MAP_SIZE: (i16, i16) = (127, 127);
+use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule};
 
 pub struct GameOptions {
     pub size: (usize, usize),
@@ -44,6 +43,8 @@ pub struct Gameplay {
     // ui: UiState,
     // popup: Option<Popup>,
     viewer: LifeViewer,
+    resources: [i16; FACTION_MAX],
+    pattern_view: PatternLibViewer,
 }
 
 impl Gameplay {
@@ -53,6 +54,8 @@ impl Gameplay {
             // ui: UiState::new(unlocked),
             // popup: None,
             viewer: LifeViewer::new(life),
+            resources: [0; FACTION_MAX],
+            pattern_view: PatternLibViewer::new(),
         };
 
         // ctx.tileset.reset_camera(gameplay.map.grid.size_px());
@@ -67,9 +70,19 @@ impl Gameplay {
 
         let mouse_pos = input::mouse_position();
         if let Some(pos) = self.viewer.screen_to_life_pos(mouse_pos) {
-            if input::is_mouse_button_down(macroquad::input::MouseButton::Left) {
-
-                self.viewer.life.insert(pos, Cell::new(1, 0)); //view_ctx.selected_faction));
+            if input::is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
+                if let Some(pattern) = &self.pattern_view.selected_pattern {
+                    // TODO: calc better cost...
+                    let cost = pattern.get_pop(0);
+                    if self.resources[0] >= cost {
+                        self.resources[0] -= cost;
+                        self.viewer.life.paste(pattern, pos);
+                        println!("Subing {cost} from");
+                    } else {
+                        // TODO: UI somewhere??
+                        println!("NOT ENOUGH RESOURCES");
+                    }
+                }
             }
         }
 
@@ -91,6 +104,29 @@ impl Gameplay {
         //         _ => {}
         //     }
         // }
+    }
+
+    fn draw_selected_pattern(&self) {
+        if let Some(pattern) = &self.pattern_view.selected_pattern {
+            let mouse_pos = input::mouse_position();
+            if let Some(mouse_grid_pos) = self.viewer.screen_to_life_pos(mouse_pos) {
+                // TODO: one could argue this should be centered instead of starting from the top left...
+                let start_pos = self.viewer.life_to_screen_pos(mouse_grid_pos);
+                let pattern_size = pattern.size();
+                macroquad::shapes::draw_rectangle(
+                    start_pos.0,
+                    start_pos.1,
+                    self.viewer.life_to_screen_scale(pattern_size.0),
+                    self.viewer.life_to_screen_scale(pattern_size.1),
+                    color::Color {
+                        r: 1.,
+                        g: 1.,
+                        b: 1.,
+                        a: 0.6,
+                    },
+                );
+            }
+        }
     }
 }
 
@@ -128,9 +164,16 @@ fn draw_score(life: &Life, ctx: &Context) {
     }
 }
 
+pub const CELL_PER_RESOURCE: i16 = 64;
+
 impl Scene for Gameplay {
     fn update(&mut self, _ctx: &mut Context) {
-        self.viewer.update();
+        if self.viewer.update() {
+            for i in 0..FACTION_MAX {
+                self.resources[i] = self.resources[i]
+                    .saturating_add(self.viewer.life.get_pop(i as u8) / CELL_PER_RESOURCE)
+            }
+        }
     }
 
     fn draw(&mut self, ctx: &mut Context) {
@@ -148,7 +191,35 @@ impl Scene for Gameplay {
 
         self.viewer.draw();
 
+        self.pattern_view.draw(ctx, self.viewer.life.get_rule());
+
+        self.draw_selected_pattern();
+
         draw_score(&self.viewer.life, ctx);
+
+        macroquad::text::draw_text_ex(
+            format!("Battle in progress... speed: {}", self.viewer.update_speed).as_str(),
+            10.,
+            20.,
+            macroquad::text::TextParams {
+                font: Some(&ctx.font),
+                font_size: 40,
+                color: color::GREEN,
+                ..Default::default()
+            },
+        );
+
+        macroquad::text::draw_text_ex(
+            format!("Resources: {}", self.resources[0]).as_str(),
+            10.,
+            macroquad::window::screen_height() - 20.,
+            macroquad::text::TextParams {
+                font: Some(&ctx.font),
+                font_size: 40,
+                color: color::GREEN,
+                ..Default::default()
+            },
+        );
 
         // self.ui.draw(&mut self.map, ctx);
 

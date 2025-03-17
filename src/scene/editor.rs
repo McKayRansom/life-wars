@@ -2,16 +2,15 @@ use life_io::life::{Life, LifeRule};
 use macroquad::{
     color,
     input::{self, mouse_position},
-    math,
+    math::{self, RectOffset},
     shapes::draw_rectangle,
     ui::{
-        self, hash,
-        widgets::{self, Group},
+        self, hash, root_ui, widgets::{self}, Skin
     },
     window,
 };
 
-use crate::{context::Context, viewer::LifeViewer};
+use crate::{context::Context, pattern_view::PatternLibViewer, viewer::LifeViewer};
 
 pub struct Editor {
     main_view: LifeViewer,
@@ -19,6 +18,8 @@ pub struct Editor {
     edit_select: EditBar,
     mouse_down_pos: Option<(usize, usize)>,
     pattern_name: String,
+    skin: Skin,
+    pattern_view: PatternLibViewer,
 }
 
 #[derive(PartialEq, Eq, Default, Debug)]
@@ -28,10 +29,77 @@ pub enum EditBar {
     Clear,
     Copy,
     Paste,
+    Pattern,
 }
 
 impl Editor {
-    pub fn new() -> Self {
+    pub fn new(ctx: &Context) -> Self {
+        let mut skin = root_ui().default_skin();
+
+        let window_color = color::Color::new(0., 0., 0., 0.7);
+
+        let window_style = root_ui()
+        .style_builder()
+        // .background(
+        //     Image::from_file_with_format(
+        //         include_bytes!("../../resources/window_background.png"),
+        //         None,
+        //     )
+        //     .unwrap(),
+        // )
+        .color_inactive(window_color)
+        .color_hovered(window_color)
+        .color_selected(window_color)
+        .color_clicked(window_color)
+        .color(window_color)
+        // .font_size(120)
+        // .text_color(WHITE)
+        .background_margin(RectOffset::new(
+            4.,
+            4.,
+            2.,
+            2.,
+        ))
+        .margin(RectOffset::new(
+            4.,
+            4.,
+            2.,
+            2.,
+        ))
+        .build();
+
+
+        let button_style = root_ui()
+            .style_builder()
+            .background_margin(RectOffset::new(
+                4.,
+                4., 
+                2.,
+                2.,
+            ))
+            .with_font(&ctx.font)
+            .unwrap()
+            .margin(RectOffset::new(
+                4.,
+                4.,
+                2.,
+                2.,
+            ))
+            .color_inactive(color::WHITE)
+            .color_hovered(color::LIGHTGRAY)
+            .color_clicked(color::GREEN)
+            // .color_clicked(Color::from_rgba(187, 187, 187, 255))
+            // .color_hovered(Color::from_rgba(170, 170, 170, 235))
+            // .text_color(Color::from_rgba(0, 0, 0, 255))
+            // .text_color(Color::from_rgba(180, 180, 100, 255))
+            .text_color(color::BLACK)
+            .text_color_hovered(color::BLACK)
+            .text_color_clicked(color::BLACK)
+            .font_size(24)
+            .build();
+
+        skin.button_style = button_style;
+        skin.window_style = window_style;
         Self {
             main_view: LifeViewer::new(Box::new(Life::new_rule(
                 life_io::life::LifeAlgoSelect::Cached,
@@ -42,58 +110,11 @@ impl Editor {
             edit_select: EditBar::Fill,
             mouse_down_pos: None,
             pattern_name: String::new(),
+            skin,
+            pattern_view: PatternLibViewer::new(),
         }
     }
 
-    fn draw_patterns(&mut self, ctx: &mut crate::context::Context) {
-        widgets::Window::new(
-            hash!(),
-            math::vec2(window::screen_width() * 3. / 4., 0.),
-            math::vec2(
-                window::screen_width() / 4.,
-                window::screen_height() * 3. / 4.,
-            ),
-        )
-        .titlebar(false)
-        .movable(false)
-        .ui(&mut ui::root_ui(), |ui| {
-            ui.label(None, "Patterns");
-
-            for pattern in ctx.pattern_lib.patterns.iter() {
-                if self.main_view.life.get_rule() != pattern.get_rule() {
-                    continue;
-                }
-                if ui.button(None, pattern.get_name()) {
-                    self.clipboard = Some(pattern.clone());
-                    self.edit_select = EditBar::Paste;
-                }
-            }
-        });
-
-        // draw clipboard
-        widgets::Window::new(
-            hash!(),
-            math::vec2(
-                window::screen_width() * 3. / 4.,
-                window::screen_height() * 3. / 4.,
-            ),
-            math::vec2(
-                window::screen_width() / 4.,
-                window::screen_height() * 1. / 4.,
-            ),
-        )
-        .titlebar(false)
-        .movable(false)
-        .ui(&mut ui::root_ui(), |ui| {
-            if ui.button(None, "Save") {
-                if let Some(clipboard) = &mut self.clipboard {
-                    clipboard.set_name(self.pattern_name.as_str());
-                    ctx.pattern_lib.add_pattern(clipboard);
-                }
-            }
-            ui.input_text(hash!(), "Name", &mut self.pattern_name);
-        });
-    }
 
     fn iter_area(
         min_pos: (usize, usize),
@@ -145,6 +166,11 @@ impl Editor {
                 if let Some(clipboard) = &self.clipboard {
                     self.main_view.life.paste(clipboard, start_pos);
                 }
+            },
+            EditBar::Pattern => {
+                if let Some(pattern) = &self.pattern_view.selected_pattern {
+                    self.main_view.life.paste(pattern, start_pos);
+                }
             }
         }
     }
@@ -168,10 +194,35 @@ impl Editor {
         }
     }
 
-    fn draw_edit_bar(&mut self, ctx: &crate::context::Context) {
+    fn draw_clipboard(&mut self, ctx: &mut crate::context::Context) {
         widgets::Window::new(
             hash!(),
-            math::vec2(100., window::screen_height() - BORDER_SIZE * 2.),
+            math::vec2(
+                window::screen_width() * 3. / 4.,
+                window::screen_height() * 3. / 4.,
+            ),
+            math::vec2(
+                window::screen_width() / 4.,
+                window::screen_height() * 1. / 4.,
+            ),
+        )
+        .titlebar(false)
+        .movable(false)
+        .ui(&mut ui::root_ui(), |ui| {
+            if ui.button(None, "Save") {
+                if let Some(clipboard) = &mut self.clipboard {
+                    clipboard.set_name(self.pattern_name.as_str());
+                    ctx.pattern_lib.add_pattern(clipboard);
+                }
+            }
+            ui.input_text(hash!(), "Name", &mut self.pattern_name);
+        });
+    }
+
+    fn draw_edit_bar(&mut self, _ctx: &crate::context::Context) {
+        widgets::Window::new(
+            hash!(),
+            math::vec2(100., window::screen_height() - BORDER_SIZE),
             math::vec2(window::screen_width() / 2., BORDER_SIZE * 2.),
         )
         .titlebar(false)
@@ -183,13 +234,13 @@ impl Editor {
             if ui.button(math::vec2(0., 0.), "Fill") {
                 self.edit_select = EditBar::Fill;
             }
-            if ui.button(math::vec2(150., 0.), "Clear") {
+            if ui.button(math::vec2(100., 0.), "Clear") {
                 self.edit_select = EditBar::Clear;
             }
-            if ui.button(math::vec2(300., 0.), "Copy") {
+            if ui.button(math::vec2(200., 0.), "Copy") {
                 self.edit_select = EditBar::Copy;
             }
-            if ui.button(math::vec2(450., 0.), "Paste") {
+            if ui.button(math::vec2(300., 0.), "Paste") {
                 self.edit_select = EditBar::Paste;
             }
             // if ui.button(math::vec2(600., 0.), "Save") {
@@ -226,6 +277,9 @@ impl super::Scene for Editor {
     }
 
     fn draw(&mut self, ctx: &mut crate::context::Context) {
+
+        root_ui().push_skin(&self.skin);
+
         self.handle_input(ctx);
 
         let size = self.main_view.life.size();
@@ -243,7 +297,7 @@ impl super::Scene for Editor {
         self.draw_selected();
 
         macroquad::text::draw_text_ex(
-            format!("Unnamed").as_str(),
+            format!("Editor").as_str(),
             10.,
             20.,
             macroquad::text::TextParams {
@@ -254,7 +308,10 @@ impl super::Scene for Editor {
             },
         );
 
-        self.draw_patterns(ctx);
+        if self.pattern_view.draw(ctx, self.main_view.life.get_rule()) {
+            self.edit_select = EditBar::Pattern;
+        }
+        self.draw_clipboard(ctx);
         self.draw_edit_bar(ctx);
 
         let faction_text = format!(
@@ -275,5 +332,7 @@ impl super::Scene for Editor {
                 ..Default::default()
             },
         );
+
+        root_ui().pop_skin();
     }
 }

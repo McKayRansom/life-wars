@@ -1,14 +1,14 @@
 use context::Context;
 
 use macroquad::{
-    color::colors,
-    window::{self, clear_background, next_frame},
+    color::colors, texture::set_default_filter_mode, window::{self, clear_background, next_frame}
 };
 
 pub mod context;
 pub mod scene;
 pub mod viewer;
 pub mod skin;
+pub mod pattern_view;
 
 fn window_conf() -> window::Conf {
     window::Conf {
@@ -34,6 +34,9 @@ fn window_conf() -> window::Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+
+    set_default_filter_mode(window::miniquad::FilterMode::Nearest);
+
     let mut ctx = Context {
         ..Context::new().await
     };
@@ -48,6 +51,7 @@ async fn main() {
         //     .await
         // );
     // None => 
+                    // Box::new(scene::editor::Editor::new(&ctx));
     Box::new(scene::main_menu::MainMenu::new(&mut ctx).await);
     // };
 
@@ -71,7 +75,7 @@ async fn main() {
                     Box::new(scene::gameplay::Gameplay::new(&mut ctx, map).await)
                 },
                 scene::EScene::Editor => {
-                    Box::new(scene::editor::Editor::new())
+                    Box::new(scene::editor::Editor::new(&ctx))
                 },
                 scene::EScene::GameOptions => {
                     Box::new(scene::game_options::GameOptions::new())

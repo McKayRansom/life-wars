@@ -250,7 +250,11 @@ impl Life {
                     (x, y),
                     Cell::new(
                         if macroquad::rand::rand() < u32::MAX / 5 {
-                            1
+                            if !use_factions || (y < size.1 / 4 || y > (size.1 * 3) / 4) {
+                                1
+                            } else {
+                                0
+                            }
                         } else {
                             0
                         },
@@ -320,7 +324,7 @@ impl Life {
                         'b' => pos.0 += run_count as usize,
                         'o' => {
                             for _ in 0..run_count {
-                                life.algo.insert(pos, Cell::new(1, 0));
+                                life.insert(pos, Cell::new(1, 0));
                                 pos.0 += 1;
                             }
                         }
@@ -495,6 +499,16 @@ x = 36, y = 9, rule = B3/S23
 24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
 obo$10bo5bo7bo$11bo3bo$12b2o!";
 
+pub const STAR_WARS_RLE: &str = "\
+x = 43, y = 48, rule = B2/S345/4
+2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.
+10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$
+39.A.C$6.A4.A6.A$5.15A$6.A2.A2.A2.A2.A9$15.C$14.A.B$13.4A$12.A.A$12.B
+.A$12.C3A$14.A$14.A.C$4.ABC6.3AB$2.A2.A8.A.A$.6A5.A.A$2.A3.2A4.B3A$2.
+A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B21.B
+2A.A$C9A4.A.A23.CB$2.A2.A2.A3.4A$4.ABC5.B.A$11.2AC$11.AB$6.A4.A6.A$5.
+15A$6.A2.A2.A2.A2.A!";
+
 #[cfg(test)]
 mod life_tests {
     use super::*;
@@ -516,6 +530,13 @@ mod life_tests {
         assert_eq!(life.size(), (36, 9));
         assert_eq!(life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
         assert_eq!(life.life_to_rle(), GOSPER_RLE);
+    }
+
+    #[test]
+    fn test_rle_star_wars() {
+        let life = Life::new_life_from_rle(STAR_WARS_RLE);
+        assert_eq!(life.rule, LifeRule::STAR_WARS);
+        assert_eq!(life.life_to_rle(), STAR_WARS_RLE);
     }
 
     #[test]

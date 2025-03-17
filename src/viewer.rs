@@ -35,8 +35,6 @@ impl LifeViewer {
         self.grid_pos = pos;
     }
 
-    pub fn fit_to_screen(&mut self) {}
-
     pub fn resize_to_fit(&mut self, size: (usize, usize), screen_size: (f32, f32)) {
         self.grid_size = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
         // self.ctx.grid_pos = (BORDER_SIZE, BORDER_SIZE);
@@ -65,7 +63,11 @@ impl LifeViewer {
         )
     }
 
-    pub fn update(&mut self) {
+    pub fn life_to_screen_scale(&self, distance: usize) -> f32 {
+        distance as f32 * self.grid_size
+    }
+
+    pub fn update(&mut self) -> bool {
         if self.update_speed != GAME_SPEED_1_PAUSED
             && time::get_time() - self.last_map_update > self.update_speed
         {
@@ -77,6 +79,9 @@ impl LifeViewer {
             // }
             self.last_map_update = macroquad::time::get_time();
             self.life.update();
+            true
+        } else {
+            false
         }
     }
 
@@ -128,6 +133,8 @@ impl LifeViewer {
                 '4' => self.update_speed = GAME_SPEED_4_VERY_FAST,
                 '5' => self.update_speed = GAME_SPEED_5_EXTREME,
                 '6' => self.update_speed = GAME_SPEED_6_VERY_EXTREME,
+                '=' => self.grid_size *= 1.1,
+                '-' => self.grid_size *= 0.9,
                 _ => {
                     return false;
                 }
