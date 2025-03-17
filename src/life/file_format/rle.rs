@@ -1,5 +1,14 @@
 use std::str::Split;
 
+
+/*
+ *        let rle_glider = "
+ *        #C This is a glider.
+ *        x = 3, y = 3
+ *        bo$2bo$3o!";
+ * https://conwaylife.com/wiki/Run_Length_Encoded
+ */
+
 use crate::life::{Cell, Life, LifeAlgoSelect, LifeRule};
 
 fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
@@ -35,13 +44,6 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
     None
 }
 
-/*
- *        let rle_glider = "
- *        #C This is a glider.
- *        x = 3, y = 3
- *        bo$2bo$3o!";
- * https://conwaylife.com/wiki/Run_Length_Encoded
- */
 pub fn new_life_from_rle(rle: &str) -> Life {
     let mut line_it = rle.split('\n');
     let mut life: Life = rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
@@ -126,28 +128,17 @@ struct RleItem {
 
 impl RleItem {
     fn write(&self, string: &mut String, line_count: &mut usize) {
-        // 24bo11b$22bobo11b$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o14b$2o8b
-        // 24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b\n
-        // 4bo
-
-        // 2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.\n
-        // 10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$\n
-        // 39.A.C$6.A4.A6.A$5.15A$6.A2.A2.A2.A2.A9$15.C$14.A.B$13.4A$12.A.A$12.B\n
-        // .A$12.C3A$14.A$14.A.C$4.ABC6.3AB$2.A2.A8.A.A$.6A5.A.A$2.A3.2A4.B3A$2.\n
-        // A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC2
-        // 2A38.2A2.2A2.2A11.A9.A8.2A6.2A10.2A2.2A.A2.A.B$.A39.A4.A2.A11.CBA7.AB
         if self.count > 1 {
             let count_str = self.count.to_string();
-            if *line_count + count_str.len() + 2 >= 69 {
-                println!("Wrapped at {line_count}");
+            if *line_count + count_str.len() + 2 >= 71 {
                 string.push('\n');
                 *line_count = 0;
             }
             *line_count += count_str.len();
             string.push_str(count_str.as_str());
         } else {
-            if *line_count + 1 >= 69 {
-                println!("Wrapped at {line_count}");
+            // No idea why this is off-by-one, it has to be to match which LifeWiki which is super cursed
+            if *line_count + 1 >= 70 {
                 string.push('\n');
                 *line_count = 0;
             }
@@ -155,9 +146,48 @@ impl RleItem {
         string.push(self.tag);
         *line_count += 1;
     }
+}
 
-    fn is_alive(&self) -> bool {
-        self.tag != 'b' && self.tag != '.' && self.tag != '$'
+struct RleWriter {
+    item: Option<RleItem>,
+    line_count: usize,
+    string: String,
+    dead: RleItem,
+}
+
+impl RleWriter {
+    fn push(&mut self, tag: char) {
+        if let Some(item) = &mut self.item {
+            if item.tag != tag {
+                if item.tag == '$' && tag == self.dead.tag {
+                    self.dead.count += 1;
+                } else {
+                    if tag != '$' || item.tag != self.dead.tag {
+                        item.write(&mut self.string, &mut self.line_count);
+                    }
+                    self.item = Some(RleItem { tag, count: 1 });
+                    if self.dead.count > 0 {
+                        self.dead.write(&mut self.string, &mut self.line_count);
+                        self.dead.count = 0;
+                    }
+                }
+            } else {
+                if tag == '$' {
+                    self.dead.count = 0;
+                }
+                item.count += 1;
+            }
+        } else {
+            self.item = Some(RleItem { tag, count: 1 });
+        }
+    }
+
+    fn flush(&mut self) {
+        if let Some(item) = &self.item {
+            if item.tag != self.dead.tag {
+                item.write(&mut self.string, &mut self.line_count);
+            }
+        }
     }
 }
 
@@ -185,55 +215,21 @@ pub fn life_to_rle(life: &Life) -> String {
         rle_tag
     };
 
-    // let mut prev_count = 0;
-    // let mut prev_state: Option<u8> = None;
-    let mut prev_item: Option<RleItem> = None;
-    let mut line_count: usize = 0;
+    let mut writer = RleWriter {
+        item: None,
+        line_count: 0,
+        string,
+        dead: RleItem{ tag: tag_func(0), count: 0},
+    };
+
     for (x, y, cell) in life.iter() {
         if x == 0 && y != 0 {
-            if let Some(item) = prev_item {
-                if item.is_alive() {
-                    item.write(&mut string, &mut line_count);
-                }
-                // prev_item.unwrap().write(
-                //     &mut string,
-                //     // prev_count,
-                //     // tag_func(prev_state.unwrap()),
-                //     &mut line_count,
-                // );
-            }
-
-            // prev_state = None;
-            // prev_count = 0;
-            prev_item = None;
-
-            string.push('$');
-            line_count += 1;
+            writer.push('$');
         }
-        if let Some(item) = &mut prev_item {
-            if item.tag != tag_func(cell.get_state()) {
-                item.write(&mut string, &mut line_count);
-                // rle_write_state(&mut string, prev_count, tag_func(state), &mut line_count);
-                // prev_count = 0;
-                prev_item = Some(RleItem{ tag: tag_func(cell.get_state()), count: 1});
-            } else {
-                item.count += 1;
-            }
-        } else {
-            prev_item = Some(RleItem{ tag: tag_func(cell.get_state()), count: 1});
-        }
+        writer.push(tag_func(cell.get_state()));
     }
-    if let Some(item) = &prev_item {
-        item.write(&mut string, &mut line_count);
-        // rle_write_state(
-        //     &mut string,
-        //     prev_count,
-        //     tag_func(prev_state.unwrap()),
-        //     &mut line_count,
-        // );
-    }
+    writer.flush();
+    writer.string.push('!');
 
-    string.push('!');
-
-    string
+    writer.string
 }
