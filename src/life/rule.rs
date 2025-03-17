@@ -102,6 +102,12 @@ impl LifeRule {
     }
 }
 
+impl Default for LifeRule {
+    fn default() -> Self {
+        Self::GOL
+    }
+}
+
 #[cfg(test)]
 mod rule_tests {
     use super::*;

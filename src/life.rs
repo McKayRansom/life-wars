@@ -225,7 +225,7 @@ impl Life {
 // TODO: TryFrom instead...
 impl From<&str> for Life {
     fn from(value: &str) -> Self {
-        from_plaintext(value, None)
+        from_plaintext(value, None, None)
     }
 }
 
@@ -235,100 +235,3 @@ impl std::fmt::Display for Life {
         f.write_str(life_to_plaintext(self).as_str())
     }
 }
-
-pub const GLIDER_RLE: &str = "\
-#C This is a glider.
-x = 3, y = 3
-bo$2bo$3o!";
-
-pub const GOSPER_RLE: &str = "\
-#N Gosper glider gun
-x = 36, y = 9, rule = B3/S23
-24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o
-4bobo$10bo5bo7bo$11bo3bo$12b2o!";
-
-pub const STAR_WARS_RLE: &str = "\
-x = 43, y = 48, rule = B2/S345/4
-2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.
-10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$
-39.A.C$6.A4.A6.A$5.15A$6.A2.A2.A2.A2.A9$15.C$14.A.B$13.4A$12.A.A$12.B
-.A$12.C3A$14.A$14.A.C$4.ABC6.3AB$2.A2.A8.A.A$.6A5.A.A$2.A3.2A4.B3A$2.
-A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B21.B
-2A.A$C9A4.A.A23.CB$2.A2.A2.A3.4A$4.ABC5.B.A$11.2AC$11.AB$6.A4.A6.A$5.
-15A$6.A2.A2.A2.A2.A!";
-
-// TODO: Descriptions??
-/*
-!Author: Richard K. Guy
-!The smallest, most common, and first discovered spaceship.
-!www.conwaylife.com/wiki/index.php?title=Glider
-*/
-pub const GLIDER_TXT: &str = "\
-!Name: Glider
-.O.
-..O
-OOO";
-
-#[cfg(test)]
-mod life_tests {
-    use super::*;
-
-    #[test]
-    fn test_txt_glider() {
-        let life: Life = GLIDER_TXT.into();
-        assert_eq!(format!("{life}"), GLIDER_TXT);
-    }
-
-    #[test]
-    fn test_rle_glider() {
-        let life = new_life_from_rle(GLIDER_RLE);
-
-        assert_eq!(life.algo.size(), (3, 3));
-        // don't compare glider rules
-        assert_eq!(life_to_rle(&life)[28..], GLIDER_RLE[34..]);
-    }
-
-    #[test]
-    fn test_rle_gosper() {
-        let life = new_life_from_rle(GOSPER_RLE);
-        assert_eq!(life.rule, LifeRule::GOL);
-        assert_eq!(life.size(), (36, 9));
-        assert_eq!(life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
-        assert_eq!(life_to_rle(&life), GOSPER_RLE);
-    }
-
-    #[test]
-    fn test_rle_star_wars() {
-        let life = new_life_from_rle(STAR_WARS_RLE);
-        assert_eq!(life.rule, LifeRule::STAR_WARS);
-        let new_rle = life_to_rle(&life);
-
-        for line in new_rle.lines() {
-            println!("{line}")
-        }
-
-        for line in STAR_WARS_RLE.lines() {
-            println!("{line}")
-        }
-        
-        assert_eq!(new_rle, STAR_WARS_RLE);
-    }
-}
-
-/*
- 2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.                                                                                                                                                                                                                                                                                                              ▐
- 10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$                                                                                                                                                                                                                                                                                                              ▐
- 39.A.C$6.A4.A6.A$5.15A$6.A2.A2.A2.A2.A$15.C$14.A.B$13.4A$12.A.A$12.B                                                                                                                                                                                                                                                                                                             ▐
- 39.A.C$6.A4.A6.A$5.15A$6.A2.A2.A2.A2.A9$15.C$14.A.B$13.4A$12.A.A$12.B                                                                                                                                                                                                                                                                                                            ▐
- .A$12.C3A$14.A$14.A.C$4.ABC6.3AB$2.A2.A8.A.A$.6A5.A.A$2.A3.2A4.B3A$                                                                                                                                                                                                                                                                                                              ▐
- 2.A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B                                                                                                                                                                                                                                                                                                               ▐
- 21.B2A.A$C9A4.A.A23.CB$2.A2.A2.A3.4A$4.ABC5.B.A$11.2AC$11.AB$6.A4.A                                                                                                                                                                                                                                                                                                              ▐
- 6.A$5.15A$6.A2.A2.A2.A2.A$$$$$$$$!                                                                                                                                                                                                                                                                                                                                               ▐
- x = 43, y = 48, rule = B2/S345/4                                                                                                                                                                                                                                                                                                                                                 ▐
- 2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.                                                                                                                                                                                                                                                                                                              ▐
- 10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$                                                                                                                                                                                                                                                                                                              ▐
- .A$12.C3A$14.A$14.A.C$4.ABC6.3AB$2.A2.A8.A.A$.6A5.A.A$2.A3.2A4.B3A$2.                                                                                                                                                                                                                                                                                                            ▐
- A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B21.B                                                                                                                                                                                                                                                                                                             ▐
- 2A.A$C9A4.A.A23.CB$2.A2.A2.A3.4A$4.ABC5.B.A$11.2AC$11.AB$6.A4.A6.A$5.                                                                                                                                                                                                                                                                                                            ▐
- 15A$6.A2.A2.A2.A2.A!  
- */

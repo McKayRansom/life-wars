@@ -22,6 +22,7 @@ pub const WORKING_ALGOS: &[LifeAlgoSelect] = &[
 
 /// Algorithms working correctly with multiple factions
 pub const FACTION_ALGOS: &[LifeAlgoSelect] = &[
+    LifeAlgoSelect::Cached, // Cached ONLY WORKS for 2 factions...
     LifeAlgoSelect::Basic,
 ];
 
