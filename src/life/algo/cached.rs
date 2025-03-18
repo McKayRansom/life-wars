@@ -29,17 +29,17 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
 pub struct LifeCached {
     grid: Vec<Vec<(Cell, i8)>>,
     old_grid: Vec<Vec<(Cell, i8)>>,
-    recent_updates: Vec<(usize, usize)>,
-    old_updates: Vec<(usize, usize)>,
+    recent_updates: Vec<(u16, u16)>,
+    old_updates: Vec<(u16, u16)>,
     // recent_deaths: Vec<(usize, usize)>,
 }
 
 impl LifeCached {
-    pub fn new(dim: (usize, usize)) -> Self {
+    pub fn new(dim: (u16, u16)) -> Self {
         Self {
-            grid: vec![vec![(Cell::new(0, 0), 0); dim.0]; dim.1],
+            grid: vec![vec![(Cell::new(0, 0), 0); dim.0 as usize]; dim.1 as usize],
             recent_updates: Vec::new(),
-            old_grid: vec![vec![(Cell::new(0, 0), 0); dim.0]; dim.1],
+            old_grid: vec![vec![(Cell::new(0, 0), 0); dim.0 as usize]; dim.1 as usize],
             old_updates: Vec::new(),
         }
     }
@@ -48,7 +48,7 @@ impl LifeCached {
         grid: &mut Vec<Vec<(Cell, i8)>>,
         faction: u8,
         amount: i8,
-        pos: (usize, usize),
+        pos: (u16, u16),
     ) {
         for dy in -1..2 {
             for dx in -1..2 {
@@ -83,32 +83,32 @@ impl LifeCached {
     }
 
     fn check_cell_and_neighbors(
-        size: (usize, usize),
+        size: (u16, u16),
         old_grid: &Vec<Vec<(Cell, i8)>>,
         new_grid: &mut Vec<Vec<(Cell, i8)>>,
-        updates: &mut Vec<(usize, usize)>,
-        pos: (usize, usize),
+        updates: &mut Vec<(u16, u16)>,
+        pos: (u16, u16),
         rule: &LifeRule,
         pops: &mut LifePops,
     ) {
         // let size = self.size();
         for dy in -1..2 {
             let py = pos.1 as i32 + dy;
-            if py < 0 || py as usize >= size.1 {
+            if py < 0 || py as u16 >= size.1 {
                 continue;
             }
             for dx in -1..2 {
                 let px = pos.0 as i32 + dx;
-                if px < 0 || px as usize >= size.0 {
+                if px < 0 || px as u16 >= size.0 {
                     continue;
                 }
-                let new_pos: (usize, usize) = (px as usize, py as usize);
+                let new_pos: (u16, u16) = (px as u16, py as u16);
 
-                let old = old_grid[new_pos.1][new_pos.0];
+                let old = old_grid[new_pos.1 as usize][new_pos.0 as usize];
 
                 let new_cell = rule.update(old.0.get_state(), (old.1 as u8, old.0.get_faction()));
 
-                let new = &mut new_grid[new_pos.1][new_pos.0];
+                let new = &mut new_grid[new_pos.1 as usize][new_pos.0 as usize];
 
                 if new_cell != new.0 {
                     // println!("Cell at: {new_pos:?} was {:?} now {new_cell:?}", new);
@@ -127,20 +127,20 @@ impl LifeCached {
 }
 
 impl LifeAlgo for LifeCached {
-    fn size(&self) -> (usize, usize) {
-        (self.grid[0].len(), self.grid.len())
+    fn size(&self) -> (u16, u16) {
+        (self.grid[0].len() as u16, self.grid.len() as u16)
     }
 
-    fn get(&self, pos: (usize, usize)) -> Option<&Cell> {
+    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
         self.grid
-            .get(pos.1)
-            .map(|thing| thing.get(pos.0).map(|(cell, _neigh)| cell))
+            .get(pos.1 as usize)
+            .map(|thing| thing.get(pos.0 as usize).map(|(cell, _neigh)| cell))
             .unwrap_or(None)
     }
 
-    fn insert(&mut self, pos: (usize, usize), new_cell: Cell) -> Option<Cell> {
-        let row = self.grid.get_mut(pos.1)?;
-        let cell = row.get_mut(pos.0)?;
+    fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
+        let row = self.grid.get_mut(pos.1 as usize)?;
+        let cell = row.get_mut(pos.0 as usize)?;
 
         if new_cell == cell.0 {
             return None;

@@ -16,7 +16,7 @@ pub struct Editor {
     main_view: LifeViewer,
     clipboard: Option<Life>,
     edit_select: EditBar,
-    mouse_down_pos: Option<(usize, usize)>,
+    mouse_down_pos: Option<(u16, u16)>,
     pattern_name: String,
     skin: Skin,
     pattern_view: PatternLibViewer,
@@ -117,13 +117,13 @@ impl Editor {
 
 
     fn iter_area(
-        min_pos: (usize, usize),
-        max_pos: (usize, usize),
-    ) -> impl Iterator<Item = (usize, usize)> {
-        (min_pos.1..max_pos.1).flat_map(move |y: usize| (min_pos.0..max_pos.0).map(move |x| (x, y)))
+        min_pos: (u16, u16),
+        max_pos: (u16, u16),
+    ) -> impl Iterator<Item = (u16, u16)> {
+        (min_pos.1..max_pos.1).flat_map(move |y: u16| (min_pos.0..max_pos.0).map(move |x| (x, y)))
     }
 
-    fn do_edit_action(&mut self, start_pos: (usize, usize), end_pos: (usize, usize)) {
+    fn do_edit_action(&mut self, start_pos: (u16, u16), end_pos: (u16, u16)) {
         let min_pos = (start_pos.0.min(end_pos.0), start_pos.1.min(end_pos.1));
         let max_pos = (start_pos.0.max(end_pos.0), start_pos.1.max(end_pos.1));
         println!("Mouse down: {start_pos:?} to {end_pos:?}");

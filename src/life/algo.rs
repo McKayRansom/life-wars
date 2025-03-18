@@ -34,18 +34,18 @@ pub const FACTION_ALGOS: &[LifeAlgoSelect] = &[
 
 pub trait LifeAlgo {
     /// Get the size of the life grid
-    fn size(&self) -> (usize, usize);
+    fn size(&self) -> (u16, u16);
     /// Get a cell at a position
-    fn get(&self, pos: (usize, usize)) -> Option<&Cell>;
+    fn get(&self, pos: (u16, u16)) -> Option<&Cell>;
     /// Insert a cell at a position, return old cell if it was present
-    fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell>;
+    fn insert(&mut self, pos: (u16, u16), cell: Cell) -> Option<Cell>;
     /// Advance life 1 tick with given rule
     fn update(&mut self, rule: &LifeRule, pops: &mut LifePops);
     /// Hash is NOT consistent accross algorithms, use pop for those cases
     fn hash(&self, state: &mut DefaultHasher);
 }
 
-pub fn new(algo: LifeAlgoSelect, size: (usize, usize)) -> Box<dyn LifeAlgo> {
+pub fn new(algo: LifeAlgoSelect, size: (u16, u16)) -> Box<dyn LifeAlgo> {
     match algo {
         LifeAlgoSelect::Basic => Box::new(basic::LifeBasic::new(size)),
         LifeAlgoSelect::Cached => Box::new(cached::LifeCached::new(size)),

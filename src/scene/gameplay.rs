@@ -10,7 +10,7 @@ use macroquad::{color, input};
 use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule};
 
 pub struct GameOptions {
-    pub size: (usize, usize),
+    pub size: (u16, u16),
     pub rule: LifeRule,
     pub algo: LifeAlgoSelect,
 }

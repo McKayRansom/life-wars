@@ -19,15 +19,15 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeSparse {
-    size: (usize, usize),
-    living: HashMap<(usize, usize), Cell>,
-    recent_updates: Vec<(usize, usize)>,
+    size: (u16, u16),
+    living: HashMap<(u16, u16), Cell>,
+    recent_updates: Vec<(u16, u16)>,
 }
 
 const EMPTY_CELL: Cell = Cell::new(0, 0);
 
 impl LifeSparse {
-    pub fn new(size: (usize, usize)) -> Self {
+    pub fn new(size: (u16, u16)) -> Self {
         Self {
             size,
             living: HashMap::new(),
@@ -36,7 +36,7 @@ impl LifeSparse {
         }
     }
 
-    pub fn neighbors(&self, faction: u8, pos: (usize, usize)) -> (u8, u8) {
+    pub fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for dy in -1..2 {
@@ -47,7 +47,7 @@ impl LifeSparse {
                 }
                 if let Some(cell) = self
                     .living
-                    .get(&((pos.0 as i32 + dx) as usize, (pos.1 as i32 + dy) as usize))
+                    .get(&((pos.0 as i32 + dx) as u16, (pos.1 as i32 + dy) as u16))
                 {
                     if cell.is_alive() {
                         // sum += 1;
@@ -66,18 +66,18 @@ impl LifeSparse {
         (sum, faction)
     }
 
-    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (usize, usize), rule: &LifeRule) {
+    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (u16, u16), rule: &LifeRule) {
         for dy in -1..2 {
             let py = pos.1 as i32 + dy;
-            if py < 0 || py as usize >= self.size.1 {
+            if py < 0 || py as u16 >= self.size.1 {
                 continue;
             }
             for dx in -1..2 {
                 let px = pos.0 as i32 + dx;
-                if px < 0 || px as usize >= self.size.0 {
+                if px < 0 || px as u16 >= self.size.0 {
                     continue;
                 }
-                let new_pos: (usize, usize) = (px as usize, py as usize);
+                let new_pos: (u16, u16) = (px as u16, py as u16);
                 // if new_pos == pos {
                 let old_cell = self.living.get(&new_pos).unwrap_or(&EMPTY_CELL);
                 let new_cell = rule.update(
@@ -100,15 +100,15 @@ impl LifeSparse {
 }
 
 impl LifeAlgo for LifeSparse {
-    fn size(&self) -> (usize, usize) {
+    fn size(&self) -> (u16, u16) {
         self.size
     }
 
-    fn get(&self, pos: (usize, usize)) -> Option<&Cell> {
+    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
         self.living.get(&pos).or(Some(&EMPTY_CELL))
     }
 
-    fn insert(&mut self, pos: (usize, usize), cell: Cell) -> Option<Cell> {
+    fn insert(&mut self, pos: (u16, u16), cell: Cell) -> Option<Cell> {
         if self.living.contains_key(&pos) {
             if cell.is_alive() {
                 // Already alive

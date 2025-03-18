@@ -20,7 +20,7 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
             // ignore tags for now
         } else if line.starts_with("x") {
             // header
-            let mut size: (usize, usize) = (16, 16);
+            let mut size: (u16, u16) = (16, 16);
             let mut rule: LifeRule = LifeRule::GOL;
             for field in line.split(", ") {
                 let (name, value) = field.split_once(" = ").expect("Failed to parse field");
@@ -47,7 +47,7 @@ pub fn new_life_from_rle(rle: &str) -> Life {
     let mut line_it = rle.split('\n');
     let mut life: Life = rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
 
-    let mut pos: (usize, usize) = (0, 0);
+    let mut pos: (u16, u16) = (0, 0);
     while let Some(line) = line_it.next() {
         let mut run_count = 0;
         for chr in line.chars() {
@@ -59,8 +59,8 @@ pub fn new_life_from_rle(rle: &str) -> Life {
                 }
                 match chr {
                     // Default Life tags
-                    'b' => pos.0 += run_count as usize,
-                    '.' => pos.0 += run_count as usize,
+                    'b' => pos.0 += run_count as u16,
+                    '.' => pos.0 += run_count as u16,
                     'o' => {
                         for _ in 0..run_count {
                             life.insert(pos, Cell::new(1, 0));
@@ -88,7 +88,7 @@ pub fn new_life_from_rle(rle: &str) -> Life {
                     }
 
                     '$' => {
-                        pos.1 += run_count as usize;
+                        pos.1 += run_count as u16;
                         pos.0 = 0;
                     }
                     '!' => break,

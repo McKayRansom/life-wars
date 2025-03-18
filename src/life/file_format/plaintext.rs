@@ -3,7 +3,7 @@ use crate::life::{algo, Cell, Life, LifeAlgoSelect, LifeRule};
 // Based on Plaintext format https://conwaylife.com/wiki/Plaintext
 // TODO: TryFrom instead...
 pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>, rule: Option<LifeRule>) -> Life {
-    let mut size: (usize, usize) = (0, 0);
+    let mut size: (u16, u16) = (0, 0);
     let mut name = String::new();
     for line in value.lines() {
         if line.starts_with("!") {
@@ -12,7 +12,7 @@ pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>, rule: Option<Li
             }
         } else {
             size.1 += 1;
-            size.0 = size.0.max(line.len());
+            size.0 = size.0.max(line.len() as u16);
         }
     }
     let mut life = Life {
@@ -21,7 +21,7 @@ pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>, rule: Option<Li
         rule: rule.unwrap_or_default(),
         ..Default::default()
     };
-    let mut pos: (usize, usize) = (0, 0);
+    let mut pos: (u16, u16) = (0, 0);
     for line in value.lines() {
         if line.starts_with("!") {
             continue;

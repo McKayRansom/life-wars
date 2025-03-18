@@ -42,7 +42,7 @@ impl GameOptions {
 const GAME_RULES: &[&LifeRule] = &[&LifeRule::GOL, &LifeRule::STAR_WARS];
 const GAME_RULES_NAMES: &[&str] = &["Game of Life", "Star Wars"];
 
-const GAME_SIZES: &[(usize, usize)] = &[(64, 64), (128, 128), (256, 256), (512, 512)];
+const GAME_SIZES: &[(u16, u16)] = &[(64, 64), (128, 128), (256, 256), (512, 512)];
 const GAME_SIZES_NAMES: &[&str] = &["small", "medium", "large", "huge"];
 
 impl super::Scene for GameOptions {

@@ -17,20 +17,20 @@ pub struct LifeBasic {
 }
 
 impl LifeAlgo for LifeBasic {
-    fn size(&self) -> (usize, usize) {
-        (self.grid[0].len(), self.grid.len())
+    fn size(&self) -> (u16, u16) {
+        (self.grid[0].len() as u16, self.grid.len() as u16)
     }
 
-    fn get(&self, pos: (usize, usize)) -> Option<&Cell> {
+    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
         self.grid
-            .get(pos.1)
-            .map(|thing| thing.get(pos.0))
+            .get(pos.1 as usize)
+            .map(|thing| thing.get(pos.0 as usize))
             .unwrap_or(None)
     }
 
-    fn insert(&mut self, pos: (usize, usize), new_cell: Cell) -> Option<Cell> {
-        let row = self.grid.get_mut(pos.1)?;
-        let cell = row.get_mut(pos.0)?;
+    fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
+        let row = self.grid.get_mut(pos.1 as usize)?;
+        let cell = row.get_mut(pos.0 as usize)?;
         Some(replace(cell, new_cell))
     }
 
@@ -44,14 +44,14 @@ impl LifeAlgo for LifeBasic {
 }
 
 impl LifeBasic {
-    pub fn new(dim: (usize, usize)) -> Self {
+    pub fn new(dim: (u16, u16)) -> Self {
         Self {
-            grid: vec![vec![Cell::new(0, 0); dim.0]; dim.1],
+            grid: vec![vec![Cell::new(0, 0); dim.0 as usize]; dim.1 as usize],
         }
     }
 
     // This seemingly stupid iterator version is somehow faster?
-    fn neighbors(&self, faction: u8, pos: (usize, usize)) -> (u8, u8) {
+    fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for dy in -1..2 {
@@ -92,7 +92,7 @@ impl LifeBasic {
                         .map(|(x, cell)| {
                             let new_cell = rule.update(
                                 cell.get_state(),
-                                self.neighbors(cell.get_faction(), (x, y)),
+                                self.neighbors(cell.get_faction(), (x as u16, y as u16)),
                             );
 
                             if new_cell.is_alive() {

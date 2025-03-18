@@ -112,14 +112,14 @@ impl Default for Life {
 }
 
 impl Life {
-    pub fn new(algo: LifeAlgoSelect, size: (usize, usize)) -> Self {
+    pub fn new(algo: LifeAlgoSelect, size: (u16, u16)) -> Self {
         Self {
             algo: algo::new(algo, size),
             ..Default::default()
         }
     }
 
-    pub fn new_rule(algo: LifeAlgoSelect, size: (usize, usize), rule: LifeRule) -> Self {
+    pub fn new_rule(algo: LifeAlgoSelect, size: (u16, u16), rule: LifeRule) -> Self {
         Self {
             rule,
             ..Self::new(algo, size)
@@ -138,7 +138,7 @@ impl Life {
         self.name.as_str()
     }
 
-    pub fn get_cell(&self, pos: (usize, usize)) -> Option<&Cell> {
+    pub fn get_cell(&self, pos: (u16, u16)) -> Option<&Cell> {
         self.algo.get(pos)
     }
 
@@ -156,7 +156,7 @@ impl Life {
         // }
     }
 
-    // fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut u8)>;
+    // fn iter_mut(&mut self) -> impl Iterator<Item = (u16, u16, &mut u8)>;
     pub fn randomize(&mut self, seed: u64, use_factions: bool) {
         macroquad::rand::srand(seed);
 
@@ -182,15 +182,15 @@ impl Life {
         }
     }
 
-    pub fn paste(&mut self, other: &Self, pos: (usize, usize)) {
+    pub fn paste(&mut self, other: &Self, pos: (u16, u16)) {
         for (x, y, cell) in other.iter() {
             self.insert((pos.0 + x, pos.1 + y), *cell);
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (usize, usize, &Cell)> {
+    pub fn iter(&self) -> impl Iterator<Item = (u16, u16, &Cell)> {
         let size = self.algo.size();
-        (0..size.1).flat_map(move |y: usize| {
+        (0..size.1).flat_map(move |y: u16| {
             (0..size.0).map(move |x| (x, y, self.algo.get((x, y)).unwrap()))
         })
     }
@@ -200,11 +200,11 @@ impl Life {
         self.generation = self.generation.saturating_add(1);
     }
 
-    pub fn size(&self) -> (usize, usize) {
+    pub fn size(&self) -> (u16, u16) {
         self.algo.size()
     }
 
-    pub fn insert(&mut self, pos: (usize, usize), cell: Cell) {
+    pub fn insert(&mut self, pos: (u16, u16), cell: Cell) {
         if let Some(old_cell) = self.algo.get(pos) {
             if old_cell != &cell {
                 // TODO: Is this edge case the reason cached is failing for multiple factions?

@@ -35,18 +35,18 @@ impl LifeViewer {
         self.grid_pos = pos;
     }
 
-    pub fn resize_to_fit(&mut self, size: (usize, usize), screen_size: (f32, f32)) {
+    pub fn resize_to_fit(&mut self, size: (u16, u16), screen_size: (f32, f32)) {
         self.grid_size = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
         // self.ctx.grid_pos = (BORDER_SIZE, BORDER_SIZE);
     }
 
-    pub fn screen_to_life_pos(&self, screen_pos: (f32, f32)) -> Option<(usize, usize)> {
+    pub fn screen_to_life_pos(&self, screen_pos: (f32, f32)) -> Option<(u16, u16)> {
         if screen_pos.0 < self.grid_pos.0 || screen_pos.1 < self.grid_pos.1 {
             return None;
         }
-        let pos: (usize, usize) = (
-            ((screen_pos.0 - self.grid_pos.0) / self.grid_size) as usize,
-            ((screen_pos.1 - self.grid_pos.1) / self.grid_size) as usize,
+        let pos: (u16, u16) = (
+            ((screen_pos.0 - self.grid_pos.0) / self.grid_size) as u16,
+            ((screen_pos.1 - self.grid_pos.1) / self.grid_size) as u16,
         );
         let size = self.life.size();
 
@@ -56,14 +56,14 @@ impl LifeViewer {
         Some(pos)
     }
 
-    pub fn life_to_screen_pos(&self, (x, y): (usize, usize)) -> (f32, f32) {
+    pub fn life_to_screen_pos(&self, (x, y): (u16, u16)) -> (f32, f32) {
         (
             self.grid_pos.0 + x as f32 * self.grid_size,
             self.grid_pos.1 + y as f32 * self.grid_size,
         )
     }
 
-    pub fn life_to_screen_scale(&self, distance: usize) -> f32 {
+    pub fn life_to_screen_scale(&self, distance: u16) -> f32 {
         distance as f32 * self.grid_size
     }
 
