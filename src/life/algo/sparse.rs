@@ -9,6 +9,13 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  *
  * Should be faster than Naiive because it's time is O(updated_cells) and it's space is O(cells)
  * performs truely terribly at the moment, need to figure out why
+ * 
+ * Possible improvements:
+ * - All of cached can be done again (neighbor counts, change list)
+ * - use u16 or even u8 instead of usize for coords (which would by definition consume more memory than a 64-bit machine can address)
+ * - Better hashing algo, or just use the coords since they are unique
+ * 
+ * Based on https://ericlippert.com/2020/07/09/life-part-22/
  */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeSparse {

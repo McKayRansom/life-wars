@@ -19,7 +19,7 @@ mod life_bench {
     }
 
     #[bench]
-    #[ignore = "VERY SLOW"]
+    // #[ignore = "VERY SLOW"]
     fn bench_life_sparse(b: &mut Bencher) {
         let mut life = Life::new(life_io::life::LifeAlgoSelect::Sprase, (256, 256));
         life.randomize(BENCH_SEED, false);

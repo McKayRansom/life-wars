@@ -10,6 +10,20 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  *
  * This drastically reduces the time complexity from O(cells) to O(cells_changed)
  * at the cost of double the memory from O(cells) to O(2 * cells)
+ * 
+ * Possible improvements:
+ * - instead of a list of cells changed, keep a (probably deduplicated) (HashSet) list of Cells AND neighbors that could change, then the loop is faster
+ * - 1d Vec instead of 2d Vec
+ * - Instead of having a 2nd copy of the array, store in a high-bit of the cell (or in the change list) a Next state and add changes to NextChanges. 
+ *     Iterate through NextChanges and change the array in-place!
+ * - instead of a double for-loop, build a static array of the 8 neighbors
+ * 
+ * Based partly on Abrash/Stafford algorithims from https://ericlippert.com/2020/06/29/life-part-19/
+ * In those algorithms but not in mine:
+ * - Store  3 (state + neighbors) in a u16. I don't want to do that because I have 4 states instead of 2
+ * - Once you've done that, add a bunch of lookups for updating triplets instead of doing bit-math
+ * - This saw a 10x speedup in 1990 and a 2x speedup in 2020 so I'm not sure it's worth it
+ * - They also did the above improvement of storing and applying changes instead of a 2nd copy
  */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeCached {

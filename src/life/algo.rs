@@ -7,6 +7,7 @@ use super::{Cell, LifePops, LifeRule};
 mod basic;
 mod cached;
 mod sparse;
+mod quick;
 
 #[derive(Clone, Copy, Default, Debug)]
 pub enum LifeAlgoSelect {
@@ -14,6 +15,7 @@ pub enum LifeAlgoSelect {
     Basic,
     Cached,
     Sprase,
+    // Quick,
 }
 
 /// Algorithms working correctly with any ruleset
