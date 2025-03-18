@@ -24,6 +24,12 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * - Once you've done that, add a bunch of lookups for updating triplets instead of doing bit-math
  * - This saw a 10x speedup in 1990 and a 2x speedup in 2020 so I'm not sure it's worth it
  * - They also did the above improvement of storing and applying changes instead of a 2nd copy
+ * 
+ * WINS:
+ * - Checking if new is already updated automatically de-dups the changes list
+ * 
+ * Fails:
+ * - Faction checking affects performance about 20% and is still broken
  */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeCached {
@@ -31,7 +37,6 @@ pub struct LifeCached {
     old_grid: Vec<Vec<(Cell, i8)>>,
     recent_updates: Vec<(u16, u16)>,
     old_updates: Vec<(u16, u16)>,
-    // recent_deaths: Vec<(usize, usize)>,
 }
 
 impl LifeCached {
@@ -166,7 +171,7 @@ impl LifeAlgo for LifeCached {
 
     fn update(&mut self, rule: &LifeRule, pops: &mut LifePops) {
         let this = &mut *self;
-        // TODO: Change to flat vector?
+
         for (dst, src) in this.old_grid.iter_mut().zip(this.grid.iter()) {
             dst.copy_from_slice(src);
         }

@@ -12,8 +12,11 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * 
  * Possible improvements:
  * - All of cached can be done again (neighbor counts, change list)
- * - use u16 or even u8 instead of usize for coords (which would by definition consume more memory than a 64-bit machine can address)
  * - Better hashing algo, or just use the coords since they are unique
+ * 
+ * WINS:
+ * - use u16 instead of usize for coords (which would by definition consume more memory than a 64-bit machine can address)
+ *   - 8000 -> 2500 us/iter
  * 
  * Based on https://ericlippert.com/2020/07/09/life-part-22/
  */

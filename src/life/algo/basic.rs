@@ -10,6 +10,10 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * 
  * Always works but is O(cells)
  * 
+ * Fails:
+ * - manually unroll neighbors double-loop 
+ *   - (about even perf)
+ * 
  */
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct LifeBasic {

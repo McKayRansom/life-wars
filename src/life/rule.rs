@@ -2,6 +2,16 @@ use std::str::Split;
 
 use super::Cell;
 
+/*
+ * Calc life rules with LUT
+ * 
+ * WINS:
+ * - LUT is slightly faster than if statements
+ * 
+ * Fails:
+ * - simple life algo is faster than this version that can handle generations rules
+ *   - It's not a lot tho
+ */
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct LifeRule {
     lut: [u32; 4],
