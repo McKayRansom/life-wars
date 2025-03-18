@@ -6,8 +6,9 @@ default-run = "life-io"
 
 [dependencies]
 directories = "6.0.0"
+fxhash = "0.2.1"
 macroquad = "0.4.13"
-ron = "0.8.1"
+ron = "0.9.0"
 serde = { version = "1.0.216", features = ["derive"] }
 
 [profile.release-with-debug]

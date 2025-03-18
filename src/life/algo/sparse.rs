@@ -1,4 +1,6 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::{BuildHasherDefault, Hash}};
+
+use fxhash::FxHasher;
 
 use super::{Cell, LifeAlgo, LifePops, LifeRule};
 
@@ -12,18 +14,22 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * 
  * Possible improvements:
  * - All of cached can be done again (neighbor counts, change list)
- * - Better hashing algo, or just use the coords since they are unique
  * 
  * WINS:
  * - use u16 instead of usize for coords (which would by definition consume more memory than a 64-bit machine can address)
  *   - 8000 -> 2500 us/iter
+ * - use FxHasher instead of default Sip hasher
+ *   - 2500 -> 930 us/iter
+ * 
+ * Fail:
+ * - Use NoHash, was really slow... collisions??
  * 
  * Based on https://ericlippert.com/2020/07/09/life-part-22/
  */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeSparse {
     size: (u16, u16),
-    living: HashMap<(u16, u16), Cell>,
+    living: HashMap<(u16, u16), Cell, BuildHasherDefault<FxHasher>>,
     recent_updates: Vec<(u16, u16)>,
 }
 
@@ -33,7 +39,7 @@ impl LifeSparse {
     pub fn new(size: (u16, u16)) -> Self {
         Self {
             size,
-            living: HashMap::new(),
+            living: HashMap::with_capacity_and_hasher(64, BuildHasherDefault::default()),
             recent_updates: Vec::new(),
             // grid: HashMap::with_capacity(size.0/4)
         }
