@@ -7,13 +7,16 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * - Check every cell every tick
  * - calculate neighbors
  * - apply rule
- * 
+ *
  * Always works but is O(cells)
- * 
+ *
  * Fails:
- * - manually unroll neighbors double-loop 
+ * - manually unroll neighbors double-loop
  *   - (about even perf)
  * 
+ * Wins:
+ * - NEIGHBOR_OFFSETS array is slightly faster than loop
+ *
  */
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct LifeBasic {
@@ -56,29 +59,41 @@ impl LifeBasic {
 
     // This seemingly stupid iterator version is somehow faster?
     fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
+        const NEIGHBOR_OFFSETS: &[(i32, i32)] = &[
+            (-1, -1),
+            (0, -1),
+            (1, -1),
+            (1, 0),
+            (1, 1),
+            (0, 1),
+            (-1, 1),
+            (-1, 0),
+        ];
+
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
-        for dy in -1..2 {
+        for (dx, dy) in NEIGHBOR_OFFSETS {
+            // for dy in -1..2 {
             if let Some(row) = self.grid.get((pos.1 as i32 + dy) as usize) {
-                for dx in -1..2 {
-                    if dx == 0 && dy == 0 {
-                        continue;
-                    }
-                    if let Some(cell) = row.get((pos.0 as i32 + dx) as usize) {
-                        if cell.is_alive() {
-                            // sum += 1;
-                            if cell.get_faction() == faction {
-                                sum += 1;
-                            } else if sum > 0 {
-                                sum -= 1;
-                            } else {
-                                faction = cell.get_faction();
-                                sum += 1;
-                            }
+                // for dx in -1..2 {
+                // if dx == 0 && dy == 0 {
+                // continue;
+                // }
+                if let Some(cell) = row.get((pos.0 as i32 + dx) as usize) {
+                    if cell.is_alive() {
+                        // sum += 1;
+                        if cell.get_faction() == faction {
+                            sum += 1;
+                        } else if sum > 0 {
+                            sum -= 1;
+                        } else {
+                            faction = cell.get_faction();
+                            sum += 1;
                         }
                     }
                 }
             }
+            // }
         }
         (sum, faction)
     }

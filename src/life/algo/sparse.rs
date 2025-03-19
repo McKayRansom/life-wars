@@ -1,29 +1,35 @@
-use std::{collections::HashMap, hash::{BuildHasherDefault, Hash}};
+use std::{
+    collections::HashMap,
+    hash::{BuildHasherDefault, Hash},
+};
 
 use fxhash::FxHasher;
 
 use super::{Cell, LifeAlgo, LifePops, LifeRule};
 
 /*
- * Sparse algorithm 
+ * Sparse algorithm
  * - Keep alive cells in hashmap
  * - only check thos
  *
  * Should be faster than Naiive because it's time is O(updated_cells) and it's space is O(cells)
  * performs truely terribly at the moment, need to figure out why
- * 
+ *
  * Possible improvements:
  * - All of cached can be done again (neighbor counts, change list)
- * 
+ * - Alternate Sparse matrix layouts https://en.wikipedia.org/wiki/Sparse_matrix#Storage
+ *   - List of Lists, Coordiante list, and Compressed all potentially are more efficient than a HashMap
+ *
  * WINS:
  * - use u16 instead of usize for coords (which would by definition consume more memory than a 64-bit machine can address)
  *   - 8000 -> 2500 us/iter
  * - use FxHasher instead of default Sip hasher
  *   - 2500 -> 930 us/iter
- * 
+ *
  * Fail:
  * - Use NoHash, was really slow... collisions??
- * 
+ * - NEIGHBOR_OFFSETS array is waay slower??
+ *
  * Based on https://ericlippert.com/2020/07/09/life-part-22/
  */
 #[derive(PartialEq, Eq, Debug)]
@@ -46,9 +52,11 @@ impl LifeSparse {
     }
 
     pub fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
+
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for dy in -1..2 {
+            // for (dx, dy) in NEIGHBOR_OFFSETS {
             // TODO: Try doing calc here...
             for dx in -1..2 {
                 if dx == 0 && dy == 0 {
