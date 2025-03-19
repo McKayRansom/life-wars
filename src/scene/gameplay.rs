@@ -5,7 +5,7 @@ use crate::{
     viewer::{self, LifeViewer},
 };
 
-use macroquad::{color, input};
+use macroquad::{color, input::{self, mouse_position}, ui::root_ui};
 
 use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule};
 
@@ -64,6 +64,10 @@ impl Gameplay {
     }
 
     fn handle_input(&mut self, ctx: &mut Context) {
+        if root_ui().is_mouse_over(mouse_position().into()) {
+            return;
+        }
+
         self.viewer.handle_input(ctx);
         // return;
         // }
@@ -177,15 +181,15 @@ impl Scene for Gameplay {
     }
 
     fn draw(&mut self, ctx: &mut Context) {
-        let size = self.viewer.life.size();
-        self.viewer.resize_to_fit(
-            size,
-            (
-                (macroquad::window::screen_width() - BORDER_SIZE * 2.),
-                (macroquad::window::screen_height() - BORDER_SIZE * 2.),
-            ),
-        );
-        self.viewer.set_pos((BORDER_SIZE, BORDER_SIZE));
+        // let size = self.viewer.life.size();
+        // self.viewer.resize_to_fit(
+        //     size,
+        //     (
+        //         (macroquad::window::screen_width() - BORDER_SIZE * 2.),
+        //         (macroquad::window::screen_height() - BORDER_SIZE * 2.),
+        //     ),
+        // );
+        // self.viewer.set_pos((BORDER_SIZE, BORDER_SIZE));
 
         self.handle_input(ctx);
 
@@ -243,4 +247,4 @@ impl Scene for Gameplay {
     }
 }
 
-const BORDER_SIZE: f32 = 40.;
+// const BORDER_SIZE: f32 = 40.;

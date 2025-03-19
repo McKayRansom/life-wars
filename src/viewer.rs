@@ -1,17 +1,29 @@
 use life_io::life::Life;
-use macroquad::{color, input, time};
+use macroquad::{
+    color,
+    input::{self, is_key_down, mouse_wheel, KeyCode},
+    time,
+    window::{screen_height, screen_width},
+};
 
 use crate::context::Context;
 
 pub struct LifeViewer {
-    grid_size: f32,
-    grid_pos: (f32, f32),
+    zoom: f32,
+    camera: (f32, f32),
 
     last_map_update: f64,
     pub update_speed: f64,
 
     pub life: Box<Life>,
 }
+
+const MIN_ZOOM: f32 = 0.3;
+const MAX_ZOOM: f32 = 10.;
+
+const WASD_MOVE_SENSITIVITY: f32 = 20.;
+const SCROLL_SENSITIVITY: f32 = 0.1;
+const PLUS_MINUS_SENSITVITY: f32 = 0.8; // 20% zoom seems pretty standard (I.E. that is also what VSCode does)
 
 pub const GAME_SPEED_1_PAUSED: f64 = 0.;
 pub const GAME_SPEED_2_NORMAL: f64 = 1. / 8.;
@@ -23,48 +35,65 @@ pub const GAME_SPEED_6_VERY_EXTREME: f64 = 1. / 120.;
 impl LifeViewer {
     pub fn new(life: Box<Life>) -> Self {
         Self {
-            grid_size: 0.,
-            grid_pos: (0., 0.),
-            last_map_update: time::get_time(),
+            zoom: 1.,
+            camera: (0., 0.),
+            last_map_update: 0.,
             update_speed: GAME_SPEED_2_NORMAL,
             life,
         }
     }
 
     pub fn set_pos(&mut self, pos: (f32, f32)) {
-        self.grid_pos = pos;
+        self.camera = pos;
     }
 
     pub fn resize_to_fit(&mut self, size: (u16, u16), screen_size: (f32, f32)) {
-        self.grid_size = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
+        self.zoom = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
         // self.ctx.grid_pos = (BORDER_SIZE, BORDER_SIZE);
     }
 
-    pub fn screen_to_life_pos(&self, screen_pos: (f32, f32)) -> Option<(u16, u16)> {
-        if screen_pos.0 < self.grid_pos.0 || screen_pos.1 < self.grid_pos.1 {
-            return None;
-        }
-        let pos: (u16, u16) = (
-            ((screen_pos.0 - self.grid_pos.0) / self.grid_size) as u16,
-            ((screen_pos.1 - self.grid_pos.1) / self.grid_size) as u16,
-        );
-        let size = self.life.size();
+    pub fn change_zoom(&mut self, amount: f32) {
+        let new_zoom = self.zoom + amount;
 
-        if size.0 <= pos.0 || size.1 <= pos.1 {
-            return None;
+        if new_zoom <= MIN_ZOOM || new_zoom >= MAX_ZOOM {
+            return;
         }
+
+        let old_screen_zoom = 1. / self.zoom;
+        let new_screen_zoom = 1. / new_zoom;
+        self.camera.0 += screen_width() * (old_screen_zoom - new_screen_zoom) / 2.;
+        self.camera.1 += screen_height() * (old_screen_zoom - new_screen_zoom) / 2.;
+
+        self.zoom += amount;
+        // println!("Zoom + {} = {}", amount, self.zoom);
+        // let self.zoom = self.zoom.round();
+    }
+
+    pub fn screen_to_life_pos(&self, screen_pos: (f32, f32)) -> Option<(u16, u16)> {
+        // if screen_pos.0 < self.camera.0 || screen_pos.1 < self.camera.1 {
+        //     return None;
+        // }
+        let pos: (u16, u16) = (
+            (self.camera.0 + (screen_pos.0 / self.zoom)) as u16,
+            (self.camera.1 + (screen_pos.1 / self.zoom)) as u16,
+        );
+        // let size = self.life.size();
+
+        // if size.0 <= pos.0 || size.1 <= pos.1 {
+        //     return None;
+        // }
         Some(pos)
     }
 
     pub fn life_to_screen_pos(&self, (x, y): (u16, u16)) -> (f32, f32) {
         (
-            self.grid_pos.0 + x as f32 * self.grid_size,
-            self.grid_pos.1 + y as f32 * self.grid_size,
+            (x as f32 - self.camera.0) * self.zoom,
+            (y as f32 - self.camera.1) * self.zoom,
         )
     }
 
     pub fn life_to_screen_scale(&self, distance: u16) -> f32 {
-        distance as f32 * self.grid_size
+        distance as f32 * self.zoom
     }
 
     pub fn update(&mut self) -> bool {
@@ -96,26 +125,44 @@ impl LifeViewer {
                     color.a = 0.5;
                 }
                 macroquad::shapes::draw_rectangle(
-                    self.grid_pos.0 + x as f32 * self.grid_size,
-                    self.grid_pos.1 + y as f32 * self.grid_size,
-                    self.grid_size,
-                    self.grid_size,
+                    (x as f32  - self.camera.0) * self.zoom,
+                    (y as f32  - self.camera.1) * self.zoom,
+                    self.zoom,
+                    self.zoom,
                     color,
                 );
             }
         }
         let size = self.life.size();
         macroquad::shapes::draw_rectangle_lines(
-            self.grid_pos.0,
-            self.grid_pos.1,
-            size.0 as f32 * self.grid_size,
-            size.1 as f32 * self.grid_size,
+            -self.camera.0 * self.zoom,
+            -self.camera.1 * self.zoom,
+            size.0 as f32 * self.zoom,
+            size.1 as f32 * self.zoom,
             2.,
             color::WHITE,
         );
     }
 
     pub fn handle_input(&mut self, ctx: &mut Context) -> bool {
+        if is_key_down(KeyCode::W) {
+            self.camera.1 -= WASD_MOVE_SENSITIVITY / self.zoom;
+        }
+        if is_key_down(KeyCode::A) {
+            self.camera.0 -= WASD_MOVE_SENSITIVITY / self.zoom;
+        }
+        if is_key_down(KeyCode::S) {
+            self.camera.1 += WASD_MOVE_SENSITIVITY / self.zoom;
+        }
+        if is_key_down(KeyCode::D) {
+            self.camera.0 += WASD_MOVE_SENSITIVITY / self.zoom;
+        }
+
+        let new_mouse_wheel = mouse_wheel();
+        if new_mouse_wheel.1 != 0. {
+            self.change_zoom(SCROLL_SENSITIVITY * new_mouse_wheel.1);
+        }
+        // if scrol
         if let Some(chr) = input::get_char_pressed() {
             match chr {
                 'q' => ctx.request_quit = true,
@@ -133,8 +180,8 @@ impl LifeViewer {
                 '4' => self.update_speed = GAME_SPEED_4_VERY_FAST,
                 '5' => self.update_speed = GAME_SPEED_5_EXTREME,
                 '6' => self.update_speed = GAME_SPEED_6_VERY_EXTREME,
-                '=' => self.grid_size *= 1.1,
-                '-' => self.grid_size *= 0.9,
+                '=' => self.change_zoom(PLUS_MINUS_SENSITVITY),
+                '-' => self.change_zoom(-PLUS_MINUS_SENSITVITY),
                 _ => {
                     return false;
                 }
@@ -154,5 +201,49 @@ pub fn faction_color(faction: u8) -> color::Color {
         2 => color::YELLOW,
         3 => color::BLUE,
         _ => color::WHITE,
+    }
+}
+
+#[cfg(test)]
+mod viewer_tests {
+
+    use super::*;
+
+    #[test]
+    fn test_viewer_camera() {
+        let mut viewer = LifeViewer::new(Box::new(Life::default()));
+
+        viewer.zoom = 16.;
+
+        assert_eq!(viewer.life_to_screen_scale(1), 16.);
+        assert_eq!(viewer.life_to_screen_scale(2), 32.);
+
+        assert_eq!(viewer.screen_to_life_pos((0., 0.)), Some((0, 0)));
+        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some((1, 1)));
+        assert_eq!(viewer.screen_to_life_pos((16. * 8., 16. * 8.)), None);
+
+        assert_eq!(viewer.life_to_screen_pos((0, 0)), (0., 0.));
+        assert_eq!(viewer.life_to_screen_pos((1, 1)), (16., 16.));
+    }
+
+    #[test]
+    fn test_viewer_camera_offset() {
+        let mut viewer = LifeViewer::new(Box::new(Life::default()));
+
+        viewer.zoom = 16.;
+        viewer.camera = (8., 8.);
+
+        assert_eq!(viewer.life_to_screen_scale(1), 16.);
+        assert_eq!(viewer.life_to_screen_scale(2), 32.);
+
+        assert_eq!(viewer.screen_to_life_pos((0., 0.)), None);
+        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some((0, 0)));
+        assert_eq!(
+            viewer.screen_to_life_pos((16. * 8., 16. * 8.)),
+            Some((7, 7))
+        );
+
+        assert_eq!(viewer.life_to_screen_pos((0, 0)), (-8., -8.));
+        assert_eq!(viewer.life_to_screen_pos((1, 1)), (8., 8.));
     }
 }

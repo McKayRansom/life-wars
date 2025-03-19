@@ -95,7 +95,7 @@ impl Editor {
             .text_color(color::BLACK)
             .text_color_hovered(color::BLACK)
             .text_color_clicked(color::BLACK)
-            .font_size(24)
+            .font_size(32)
             .build();
 
         skin.button_style = button_style;
@@ -282,15 +282,15 @@ impl super::Scene for Editor {
 
         self.handle_input(ctx);
 
-        let size = self.main_view.life.size();
-        self.main_view.resize_to_fit(
-            size,
-            (
-                (macroquad::window::screen_width() - BORDER_SIZE * 2.),
-                (macroquad::window::screen_height() - BORDER_SIZE * 2.),
-            ),
-        );
-        self.main_view.set_pos((BORDER_SIZE, BORDER_SIZE));
+        // let size = self.main_view.life.size();
+        // self.main_view.resize_to_fit(
+        //     size,
+        //     (
+        //         (macroquad::window::screen_width() - BORDER_SIZE * 2.),
+        //         (macroquad::window::screen_height() - BORDER_SIZE * 2.),
+        //     ),
+        // );
+        // self.main_view.set_pos((BORDER_SIZE, BORDER_SIZE));
 
         self.main_view.draw();
 
