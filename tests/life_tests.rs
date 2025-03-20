@@ -28,6 +28,7 @@ fn test_compare() {
     let mut life_basic = Life::new(LifeAlgoSelect::Basic, (64, 64));
     let mut life_cached = Life::new(LifeAlgoSelect::Cached, (64, 64));
 
+    // TODO: THIS IS NOT THREAD SAFE!
     life_basic.randomize(1234, false);
     life_cached.randomize(1234, false);
 
@@ -76,8 +77,32 @@ fn test_faction() {
 
         life.update();
         assert_eq!(life_to_plaintext(&life), FACTION_3, "algo: {algo:?} life: {life}");
+
+        // life.update();
+        // assert_eq!(life_to_plaintext(&life), FACTION_3, "algo: {algo:?} life: {life}");
     }
 }
+
+// #[test]
+// fn test_faction_compare() {
+//     let mut life_basic = Life::new(LifeAlgoSelect::Basic, (64, 64));
+//     let mut life_cached = Life::new(LifeAlgoSelect::Cached, (64, 64));
+
+//     life_basic.randomize(1234, false);
+//     life_cached.randomize(1234, false);
+
+//     for i in 0..50 {
+
+//         life_basic.update();
+//         life_cached.update();
+
+//         assert_eq!(
+//             life_basic.get_pop(0),
+//             life_cached.get_pop(0),
+//             "Failed at i: {i}"
+//         );
+//     }
+// }
 
 const STAR_WARS_SHIP_STATES: &[&str] = &[
 "!Name: SW_SHIP

@@ -9,7 +9,9 @@ use macroquad::{
 use crate::context::Context;
 
 pub struct LifeViewer {
+    // pixels per life cell
     zoom: f32,
+    // camera position in Life space
     camera: (f32, f32),
 
     last_map_update: f64,
@@ -49,7 +51,8 @@ impl LifeViewer {
 
     pub fn resize_to_fit(&mut self, size: (u16, u16), screen_size: (f32, f32)) {
         self.zoom = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
-        // self.ctx.grid_pos = (BORDER_SIZE, BORDER_SIZE);
+        self.camera.0 = (-(screen_size.0 - self.life_to_screen_scale(size.0)) / 2.) / self.zoom;
+        self.camera.1 = (-(screen_size.1 - self.life_to_screen_scale(size.1)) / 2.) / self.zoom;
     }
 
     pub fn change_zoom(&mut self, amount: f32, center: (f32, f32)) {
@@ -126,6 +129,7 @@ impl LifeViewer {
             size.1 as f32 * self.zoom,
             // 2.,
             // color::BLACK
+            // color::WHITE,
             color::Color::from_hex(0x202020),
             // color::Color::from_hex(0x161616),
         );

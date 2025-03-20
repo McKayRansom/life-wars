@@ -5,7 +5,8 @@ use macroquad::{
     math::{self, RectOffset},
     shapes::draw_rectangle,
     ui::{
-        self, hash, root_ui, widgets::{self}, Skin
+        self, Skin, hash, root_ui,
+        widgets::{self},
     },
     window,
 };
@@ -39,52 +40,31 @@ impl Editor {
         let window_color = color::Color::new(0., 0., 0., 0.7);
 
         let window_style = root_ui()
-        .style_builder()
-        // .background(
-        //     Image::from_file_with_format(
-        //         include_bytes!("../../resources/window_background.png"),
-        //         None,
-        //     )
-        //     .unwrap(),
-        // )
-        .color_inactive(window_color)
-        .color_hovered(window_color)
-        .color_selected(window_color)
-        .color_clicked(window_color)
-        .color(window_color)
-        // .font_size(120)
-        // .text_color(WHITE)
-        .background_margin(RectOffset::new(
-            4.,
-            4.,
-            2.,
-            2.,
-        ))
-        .margin(RectOffset::new(
-            4.,
-            4.,
-            2.,
-            2.,
-        ))
-        .build();
-
+            .style_builder()
+            // .background(
+            //     Image::from_file_with_format(
+            //         include_bytes!("../../resources/window_background.png"),
+            //         None,
+            //     )
+            //     .unwrap(),
+            // )
+            .color_inactive(window_color)
+            .color_hovered(window_color)
+            .color_selected(window_color)
+            .color_clicked(window_color)
+            .color(window_color)
+            // .font_size(120)
+            // .text_color(WHITE)
+            .background_margin(RectOffset::new(4., 4., 2., 2.))
+            .margin(RectOffset::new(4., 4., 2., 2.))
+            .build();
 
         let button_style = root_ui()
             .style_builder()
-            .background_margin(RectOffset::new(
-                4.,
-                4., 
-                2.,
-                2.,
-            ))
+            .background_margin(RectOffset::new(4., 4., 2., 2.))
             .with_font(&ctx.font)
             .unwrap()
-            .margin(RectOffset::new(
-                4.,
-                4.,
-                2.,
-                2.,
-            ))
+            .margin(RectOffset::new(4., 4., 2., 2.))
             .color_inactive(color::WHITE)
             .color_hovered(color::LIGHTGRAY)
             .color_clicked(color::GREEN)
@@ -115,11 +95,7 @@ impl Editor {
         }
     }
 
-
-    fn iter_area(
-        min_pos: (u16, u16),
-        max_pos: (u16, u16),
-    ) -> impl Iterator<Item = (u16, u16)> {
+    fn iter_area(min_pos: (u16, u16), max_pos: (u16, u16)) -> impl Iterator<Item = (u16, u16)> {
         (min_pos.1..max_pos.1).flat_map(move |y: u16| (min_pos.0..max_pos.0).map(move |x| (x, y)))
     }
 
@@ -166,7 +142,7 @@ impl Editor {
                 if let Some(clipboard) = &self.clipboard {
                     self.main_view.life.paste(clipboard, start_pos);
                 }
-            },
+            }
             EditBar::Pattern => {
                 if let Some(pattern) = &self.pattern_view.selected_pattern {
                     self.main_view.life.paste(pattern, start_pos);
@@ -252,19 +228,21 @@ impl Editor {
     fn draw_selected(&self) {
         if let Some(mouse_down_pos) = self.mouse_down_pos {
             let mouse_pos = mouse_position();
-            let mouse_down_screen_pos = self.main_view.life_to_screen_pos(mouse_down_pos);
-            draw_rectangle(
-                mouse_down_screen_pos.0,
-                mouse_down_screen_pos.1,
-                mouse_pos.0 - mouse_down_screen_pos.0,
-                mouse_pos.1 - mouse_down_screen_pos.1,
-                color::Color {
-                    r: 1.,
-                    g: 1.,
-                    b: 1.,
-                    a: 0.6,
-                },
-            );
+            if let Some(life_pos) = self.main_view.screen_to_life_pos(mouse_pos) {
+                let mouse_down_screen_pos = self.main_view.life_to_screen_pos(mouse_down_pos);
+                draw_rectangle(
+                    mouse_down_screen_pos.0,
+                    mouse_down_screen_pos.1,
+                    self.main_view.life_to_screen_scale(life_pos.0 - mouse_down_pos.0),
+                    self.main_view.life_to_screen_scale(life_pos.1 - mouse_down_pos.1),
+                    color::Color {
+                        r: 1.,
+                        g: 1.,
+                        b: 1.,
+                        a: 0.6,
+                    },
+                );
+            }
         }
     }
 }
@@ -277,7 +255,6 @@ impl super::Scene for Editor {
     }
 
     fn draw(&mut self, ctx: &mut crate::context::Context) {
-
         root_ui().push_skin(&self.skin);
 
         self.handle_input(ctx);

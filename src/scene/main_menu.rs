@@ -66,15 +66,12 @@ impl MainMenu {
             // credits_subscene: Credits::new(ctx),
             background_life: LifeViewer::new(Box::new(Life::new_rule(
                 life_io::life::LifeAlgoSelect::Basic,
-                (128, 128),
-                life_io::life::LifeRule::STAR_WARS
+                (512, 300),
+                life_io::life::LifeRule::STAR_WARS,
             ))),
         };
 
-        main_menu
-            .background_life
-            .life
-            .randomize(1234, true);
+        // main_menu.background_life.life.randomize(1234, true);
         //     .paste(&Life::new_rule(life_io::life::LifeAlgoSelect::Basic, (1)), (64 - 8, 64 - 8));
 
         // main_menu.map.get_city_mut(DEFAULT_CITY_ID).unwrap().name = "Alpha 0.1X - Roads".into();
@@ -130,7 +127,33 @@ impl Scene for MainMenu {
         //     return;
         // }
 
-        self.background_life.update();
+        if self.background_life.update() {
+            let size = self.background_life.life.size();
+            for x in 0..size.0 {
+                self.background_life.life.insert(
+                    (x, 0),
+                    life_io::life::Cell::new(
+                        if macroquad::rand::rand() < u32::MAX / 20 {
+                            1
+                        } else {
+                            0
+                        },
+                        1,
+                    ),
+                );
+                self.background_life.life.insert(
+                    (x, size.1 - 1),
+                    life_io::life::Cell::new(
+                        if macroquad::rand::rand() < u32::MAX / 20 {
+                            1
+                        } else {
+                            0
+                        },
+                        0,
+                    ),
+                );
+            }
+        }
     }
     fn draw(&mut self, ctx: &mut Context) {
         // if self.settings_subscene.active {
@@ -146,7 +169,12 @@ impl Scene for MainMenu {
         // ctx.tileset.reset_camera(self.map.grid.size_px());
 
         // zoom in for a better look
-        self.background_life.resize_to_fit(self.background_life.life.size(), (screen_width(), screen_width()));
+        self.background_life.resize_to_fit(
+            self.background_life.life.size(),
+            (screen_width(), screen_height()),
+        );
+        self.background_life
+            .change_zoom(0.8, (screen_width() / 2., screen_height() / 2.));
         // view_ctx.set_pos((-screen_width() / 2., -screen_height() / 2.));
 
         self.background_life.draw();
@@ -163,12 +191,17 @@ impl Scene for MainMenu {
         let shadow_y = y + 5.;
         let shadow_x = x + 5.;
 
-        draw_text_ex("Life Wars", shadow_x, shadow_y, macroquad::text::TextParams {
-            font: Some(&ctx.font),
-            font_size,
-            color: BLACK,
-            ..Default::default()
-        });
+        draw_text_ex(
+            "Life Wars",
+            shadow_x,
+            shadow_y,
+            macroquad::text::TextParams {
+                font: Some(&ctx.font),
+                font_size,
+                color: BLACK,
+                ..Default::default()
+            },
+        );
 
         draw_text_ex("Life Wars", x, y, macroquad::text::TextParams {
             font: Some(&ctx.font),

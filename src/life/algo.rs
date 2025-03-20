@@ -8,6 +8,7 @@ mod basic;
 mod cached;
 mod sparse;
 mod quick;
+// mod hash;
 
 #[derive(Clone, Copy, Default, Debug)]
 pub enum LifeAlgoSelect {
@@ -16,6 +17,7 @@ pub enum LifeAlgoSelect {
     Cached,
     Sprase,
     // Quick,
+    // Hash,
 }
 
 /// Algorithms working correctly with any ruleset
@@ -27,8 +29,8 @@ pub const WORKING_ALGOS: &[LifeAlgoSelect] = &[
 
 /// Algorithms working correctly with multiple factions
 pub const FACTION_ALGOS: &[LifeAlgoSelect] = &[
-    LifeAlgoSelect::Cached, // Cached ONLY WORKS for 2 factions...
     LifeAlgoSelect::Basic,
+    LifeAlgoSelect::Cached, // Cached ONLY WORKS for 2 factions...
 ];
 
 
