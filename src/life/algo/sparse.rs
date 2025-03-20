@@ -83,7 +83,7 @@ impl LifeSparse {
         (sum, faction)
     }
 
-    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (u16, u16), rule: &LifeRule) {
+    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (u16, u16), rule: &LifeRule, pops: &mut LifePops) {
         for dy in -1..2 {
             let py = pos.1 as i32 + dy;
             if py < 0 || py as u16 >= self.size.1 {
@@ -106,8 +106,10 @@ impl LifeSparse {
                     new_self.recent_updates.push(new_pos);
 
                     if !new_cell.is_dead() {
+                        pops.add(old_cell.get_faction(), 1);
                         new_self.living.insert(new_pos, new_cell);
                     } else if !old_cell.is_dead() {
+                        pops.add(old_cell.get_faction(), -1);
                         new_self.living.remove(&new_pos);
                     }
                 }
@@ -149,7 +151,7 @@ impl LifeAlgo for LifeSparse {
         }
     }
 
-    fn update(&mut self, rule: &LifeRule, _pops: &mut LifePops) {
+    fn update(&mut self, rule: &LifeRule, pops: &mut LifePops) {
         let mut new_self: Self = Self {
             living: self.living.clone(),
             recent_updates: Vec::new(),
@@ -157,7 +159,7 @@ impl LifeAlgo for LifeSparse {
         };
 
         for pos in &self.recent_updates {
-            self.check_cell_and_neighbors(&mut new_self, *pos, rule);
+            self.check_cell_and_neighbors(&mut new_self, *pos, rule, pops);
         }
 
         *self = new_self
