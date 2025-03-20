@@ -1,7 +1,7 @@
 use life_io::life::Life;
 use macroquad::{
     color,
-    input::{self, is_key_down, mouse_wheel, KeyCode},
+    input::{self, KeyCode, is_key_down, mouse_position, mouse_wheel},
     time,
     window::{screen_height, screen_width},
 };
@@ -18,8 +18,8 @@ pub struct LifeViewer {
     pub life: Box<Life>,
 }
 
-const MIN_ZOOM: f32 = 0.3;
-const MAX_ZOOM: f32 = 10.;
+const MIN_ZOOM: f32 = 1.; // don't zoom in to more than 1 cell per pixel
+const MAX_ZOOM: f32 = 16.;
 
 const WASD_MOVE_SENSITIVITY: f32 = 20.;
 const SCROLL_SENSITIVITY: f32 = 0.1;
@@ -52,7 +52,7 @@ impl LifeViewer {
         // self.ctx.grid_pos = (BORDER_SIZE, BORDER_SIZE);
     }
 
-    pub fn change_zoom(&mut self, amount: f32) {
+    pub fn change_zoom(&mut self, amount: f32, center: (f32, f32)) {
         let new_zoom = self.zoom + amount;
 
         if new_zoom <= MIN_ZOOM || new_zoom >= MAX_ZOOM {
@@ -61,8 +61,10 @@ impl LifeViewer {
 
         let old_screen_zoom = 1. / self.zoom;
         let new_screen_zoom = 1. / new_zoom;
-        self.camera.0 += screen_width() * (old_screen_zoom - new_screen_zoom) / 2.;
-        self.camera.1 += screen_height() * (old_screen_zoom - new_screen_zoom) / 2.;
+        // self.camera.0 += screen_width() * (old_screen_zoom - new_screen_zoom) / 2.;
+        // self.camera.1 += screen_height() * (old_screen_zoom - new_screen_zoom) / 2.;
+        self.camera.0 += center.0 * (old_screen_zoom - new_screen_zoom);
+        self.camera.1 += center.1 * (old_screen_zoom - new_screen_zoom);
 
         self.zoom += amount;
         // println!("Zoom + {} = {}", amount, self.zoom);
@@ -115,6 +117,18 @@ impl LifeViewer {
     }
 
     pub fn draw(&self) {
+        let size = self.life.size();
+        // macroquad::shapes::draw_rectangle_lines(
+        macroquad::shapes::draw_rectangle(
+            -self.camera.0 * self.zoom,
+            -self.camera.1 * self.zoom,
+            size.0 as f32 * self.zoom,
+            size.1 as f32 * self.zoom,
+            // 2.,
+            // color::BLACK
+            color::Color::from_hex(0x202020),
+            // color::Color::from_hex(0x161616),
+        );
         for (x, y, cell) in self.life.iter() {
             let state = cell.get_state();
             if state > 0 {
@@ -125,23 +139,14 @@ impl LifeViewer {
                     color.a = 0.5;
                 }
                 macroquad::shapes::draw_rectangle(
-                    (x as f32  - self.camera.0) * self.zoom,
-                    (y as f32  - self.camera.1) * self.zoom,
+                    (x as f32 - self.camera.0) * self.zoom,
+                    (y as f32 - self.camera.1) * self.zoom,
                     self.zoom,
                     self.zoom,
                     color,
                 );
             }
         }
-        let size = self.life.size();
-        macroquad::shapes::draw_rectangle_lines(
-            -self.camera.0 * self.zoom,
-            -self.camera.1 * self.zoom,
-            size.0 as f32 * self.zoom,
-            size.1 as f32 * self.zoom,
-            2.,
-            color::WHITE,
-        );
     }
 
     pub fn handle_input(&mut self, ctx: &mut Context) -> bool {
@@ -160,7 +165,7 @@ impl LifeViewer {
 
         let new_mouse_wheel = mouse_wheel();
         if new_mouse_wheel.1 != 0. {
-            self.change_zoom(SCROLL_SENSITIVITY * new_mouse_wheel.1);
+            self.change_zoom(SCROLL_SENSITIVITY * new_mouse_wheel.1, mouse_position());
         }
         // if scrol
         if let Some(chr) = input::get_char_pressed() {
@@ -180,8 +185,14 @@ impl LifeViewer {
                 '4' => self.update_speed = GAME_SPEED_4_VERY_FAST,
                 '5' => self.update_speed = GAME_SPEED_5_EXTREME,
                 '6' => self.update_speed = GAME_SPEED_6_VERY_EXTREME,
-                '=' => self.change_zoom(PLUS_MINUS_SENSITVITY),
-                '-' => self.change_zoom(-PLUS_MINUS_SENSITVITY),
+                '=' => self.change_zoom(
+                    PLUS_MINUS_SENSITVITY,
+                    (screen_width() / 2., screen_height() / 2.),
+                ),
+                '-' => self.change_zoom(
+                    -PLUS_MINUS_SENSITVITY,
+                    (screen_width() / 2., screen_height() / 2.),
+                ),
                 _ => {
                     return false;
                 }
@@ -220,7 +231,10 @@ mod viewer_tests {
 
         assert_eq!(viewer.screen_to_life_pos((0., 0.)), Some((0, 0)));
         assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some((1, 1)));
-        assert_eq!(viewer.screen_to_life_pos((16. * 8., 16. * 8.)), None);
+        assert_eq!(
+            viewer.screen_to_life_pos((16. * 8., 16. * 8.)),
+            Some((8, 8))
+        );
 
         assert_eq!(viewer.life_to_screen_pos((0, 0)), (0., 0.));
         assert_eq!(viewer.life_to_screen_pos((1, 1)), (16., 16.));
@@ -236,14 +250,14 @@ mod viewer_tests {
         assert_eq!(viewer.life_to_screen_scale(1), 16.);
         assert_eq!(viewer.life_to_screen_scale(2), 32.);
 
-        assert_eq!(viewer.screen_to_life_pos((0., 0.)), None);
-        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some((0, 0)));
+        assert_eq!(viewer.screen_to_life_pos((0., 0.)), Some((8, 8)));
+        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some((9, 9)));
         assert_eq!(
             viewer.screen_to_life_pos((16. * 8., 16. * 8.)),
-            Some((7, 7))
+            Some((16, 16))
         );
 
-        assert_eq!(viewer.life_to_screen_pos((0, 0)), (-8., -8.));
-        assert_eq!(viewer.life_to_screen_pos((1, 1)), (8., 8.));
+        assert_eq!(viewer.life_to_screen_pos((0, 0)), (-128., -128.));
+        assert_eq!(viewer.life_to_screen_pos((1, 1)), (-112., -112.));
     }
 }

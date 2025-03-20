@@ -58,7 +58,7 @@ async fn main() {
     loop {
         current_scene.update(&mut ctx);
 
-        clear_background(colors::BLACK);
+        clear_background(colors::DARKGRAY);
 
         current_scene.draw(&mut ctx);
 
