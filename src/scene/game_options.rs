@@ -12,6 +12,7 @@ pub struct GameOptions {
 
     selected_rule: usize,
     selected_size: usize,
+    selected_difficulty: usize,
 }
 
 impl GameOptions {
@@ -22,8 +23,9 @@ impl GameOptions {
                 (256, 256),
             ))),
 
-            selected_rule: 0,
-            selected_size: 0,
+            selected_rule: 1,
+            selected_size: 1,
+            selected_difficulty: 0,
         }
     }
 
@@ -44,6 +46,8 @@ const GAME_RULES_NAMES: &[&str] = &["Game of Life", "Star Wars"];
 
 const GAME_SIZES: &[(u16, u16)] = &[(64, 64), (128, 128), (256, 256), (512, 512)];
 const GAME_SIZES_NAMES: &[&str] = &["small", "medium", "large", "huge"];
+
+const GAME_DIFFICULTY_NAMES: &[&str]= &["easy", "normal", "hard"];
 
 impl super::Scene for GameOptions {
     fn update(&mut self, _ctx: &mut crate::context::Context) {
@@ -73,8 +77,9 @@ impl super::Scene for GameOptions {
         .ui(&mut ui::root_ui(), |ui| {
             ui.label(None, "Game Options");
 
-            self.selected_rule = ui.combo_box(hash!(), "Rule", GAME_RULES_NAMES, None);
-            self.selected_size = ui.combo_box(hash!(), "Size", GAME_SIZES_NAMES, None);
+            ui.combo_box(hash!(), "Rule", GAME_RULES_NAMES, Some(&mut self.selected_rule));
+            ui.combo_box(hash!(), "Size", GAME_SIZES_NAMES, Some(&mut self.selected_size));
+            ui.combo_box(hash!(), "Difficulty", GAME_DIFFICULTY_NAMES, Some(&mut self.selected_difficulty));
 
             if ui.button(None, "Start") {
                 ctx.switch_scene_to = Some(super::EScene::Gameplay(self.create_life()));

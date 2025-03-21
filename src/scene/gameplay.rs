@@ -5,9 +5,14 @@ use crate::{
     viewer::{self, LifeViewer},
 };
 
-use macroquad::{color, input::{self, mouse_position}, ui::root_ui};
+use macroquad::{
+    color,
+    input::{self, mouse_position},
+    ui::root_ui,
+    window::{screen_height, screen_width},
+};
 
-use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule};
+use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule, new_life_from_rle};
 
 pub struct GameOptions {
     pub size: (u16, u16),
@@ -45,20 +50,25 @@ pub struct Gameplay {
     viewer: LifeViewer,
     resources: [i16; FACTION_MAX],
     pattern_view: PatternLibViewer,
+    ai_update_ticks: u32,
 }
 
 impl Gameplay {
     pub async fn new(_ctx: &mut Context, life: Box<Life>) -> Self {
         // let unlocked = map.metadata.unlocks;
-        let gameplay = Gameplay {
+        let mut gameplay = Gameplay {
             // ui: UiState::new(unlocked),
             // popup: None,
             viewer: LifeViewer::new(life),
             resources: [0; FACTION_MAX],
             pattern_view: PatternLibViewer::new(),
+            ai_update_ticks: 0,
         };
 
-        // ctx.tileset.reset_camera(gameplay.map.grid.size_px());
+        gameplay.viewer.resize_to_fit(
+            gameplay.viewer.life.size(),
+            (screen_width(), screen_height()),
+        );
 
         gameplay
     }
@@ -80,7 +90,7 @@ impl Gameplay {
                     let cost = pattern.get_pop(0);
                     if self.resources[0] >= cost {
                         self.resources[0] -= cost;
-                        self.viewer.life.paste(pattern, pos);
+                        self.viewer.life.paste(pattern, pos, None);
                         println!("Subing {cost} from");
                     } else {
                         // TODO: UI somewhere??
@@ -168,14 +178,57 @@ fn draw_score(life: &Life, ctx: &Context) {
     }
 }
 
-pub const CELL_PER_RESOURCE: i16 = 64;
+pub const PLAYER_CELL_PER_RESOURCE: i16 = 64;
+pub const AI_CELL_PER_RESOURCE: i16 = 2;
+// pub const AI_UPDATE_TICKS: u32 = 4;
+pub const AI_UPDATE_TICKS: u32 = 16;
+
+// TODO: This bomber is great but it's facing left
+const BOMBER_RLE: &str = "\
+#N bomber
+x = 16, y = 10, rule = B2/S345/4
+3$7.A$6.B.B$4.3AC2A$4.3ACA.CB.C$5.A.BA.CBA2$!";
 
 impl Scene for Gameplay {
-    fn update(&mut self, _ctx: &mut Context) {
+    fn update(&mut self, ctx: &mut Context) {
         if self.viewer.update() {
-            for i in 0..FACTION_MAX {
-                self.resources[i] = self.resources[i]
-                    .saturating_add(self.viewer.life.get_pop(i as u8) / CELL_PER_RESOURCE)
+            self.ai_update_ticks += 1;
+
+            if self.ai_update_ticks > AI_UPDATE_TICKS {
+                for i in 0..FACTION_MAX {
+                    let cell_per_resource = if i == 0 {
+                        PLAYER_CELL_PER_RESOURCE
+                    } else {
+                        AI_CELL_PER_RESOURCE
+                    };
+                    self.resources[i] = self.resources[i]
+                        .saturating_add(self.viewer.life.get_pop(i as u8) / cell_per_resource)
+                }
+
+                self.ai_update_ticks = 0;
+
+                // Idea: Easy/Medium/Hard determins what the AI will spawn...
+                // let bomber_life = new_life_from_rle(BOMBER_RLE);
+                // MEAN: Steal our patterns!
+                let rand_pattern_i = macroquad::rand::rand() as usize % ctx.pattern_lib.patterns.len();
+                let rand_patter= &ctx.pattern_lib.patterns[rand_pattern_i];
+                if rand_patter.get_rule() != self.viewer.life.get_rule() {
+                    return;
+                }
+
+                let bomber_life = rand_patter;
+                
+                // let rand_
+
+                if self.resources[1] > bomber_life.get_pop(0) {
+                    self.resources[1] -= bomber_life.get_pop(0);
+                    let size = self.viewer.life.size();
+                    let rand_x = macroquad::rand::rand() % (size.0 as u32);
+                    let rand_y = macroquad::rand::rand() % (size.1 as u32) / 4;
+                    self.viewer
+                        .life
+                        .paste(bomber_life, (rand_x as u16, rand_y as u16), Some(1));
+                }
             }
         }
     }

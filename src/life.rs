@@ -182,9 +182,11 @@ impl Life {
         }
     }
 
-    pub fn paste(&mut self, other: &Self, pos: (u16, u16)) {
+    pub fn paste(&mut self, other: &Self, pos: (u16, u16), faction: Option<u8>) {
+        let faction = faction.unwrap_or(0);
         for (x, y, cell) in other.iter() {
-            self.insert((pos.0 + x, pos.1 + y), *cell);
+            let cell = Cell::new(cell.get_state(), faction);
+            self.insert((pos.0 + x, pos.1 + y), cell);
         }
     }
 

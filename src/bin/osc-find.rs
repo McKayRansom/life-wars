@@ -1,9 +1,10 @@
 use std::{
     collections::VecDeque,
-    hash::{DefaultHasher, Hasher}, time::Instant,
+    hash::{DefaultHasher, Hasher},
+    time::Instant,
 };
 
-use life_io::life::{life_to_plaintext, Life};
+use life_io::life::{life_to_plaintext, Cell, Life};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -15,12 +16,38 @@ pub struct LifeResult {
     life: Life,
 }
 
-fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
+fn randomize(life: &mut Life, pos: (u16, u16), area: (u16, u16), seed: u64) {
+    {
+        let this = &mut *life;
+        macroquad::rand::srand(seed);
 
-    let mut life = Life::new(life_io::life::LifeAlgoSelect::Cached, (16, 16));
-    life.randomize(seed, false);
+        // vertically symetric
+        for x in 0..area.0 {
+            for y in 0..area.1/2 {
+                let cell = Cell::new(
+                    if macroquad::rand::rand() < u32::MAX / 3 {
+                        1
+                    } else {
+                        0
+                    },
+                    0,
+                );
+
+                this.insert((x + pos.0, y + pos.1), cell);
+                this.insert((pos.0 + x, pos.1 + area.1 - 1 - y), cell);
+            }
+        }
+    };
+}
+
+fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
+    let mut life = Life::new(life_io::life::LifeAlgoSelect::Cached, (32, 32));
+    randomize(&mut life, (8, 8), (16, 16), seed);
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;
+
+    // println!("{life}");
+    // assert!(false);
 
     // pre-update to reduce hashing
     for _ in 0..50 {
@@ -59,20 +86,29 @@ fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
     }
 }
 
+/*
+ * Basic soup search
+ * Enhancements: 
+ * - Find patterns not whole grids
+ * - Find spaceships somehow
+ * - Experiment with sizes and such
+ */
 fn main() {
     println!("Life oscilator search...");
-    
+
     let now = Instant::now();
 
     let mut found_oscilators: Vec<usize> = Vec::new();
 
-    for seed in 0..10000 {
+    for seed in 0..100000 {
         if let Some(res) = run_to_stabilization(seed) {
-            if !found_oscilators.contains(&res.period) {
+            if res.period == 5 {
                 found_oscilators.push(res.period);
                 println!(
                     "Found oscilator {} seed: {seed} iter: {} str: {}",
-                    res.period, res.age, life_to_plaintext(&res.life)
+                    res.period,
+                    res.age,
+                    life_to_plaintext(&res.life)
                 );
             }
         }
@@ -80,5 +116,9 @@ fn main() {
 
     let elapsed = now.elapsed();
 
-    println!("Finished in : {:.1?}", elapsed);
+    println!(
+        "Finished in : {:.1?} found {}",
+        elapsed,
+        found_oscilators.len()
+    );
 }

@@ -8,7 +8,7 @@ mod basic;
 mod cached;
 mod sparse;
 mod quick;
-// mod hash;
+// mod quad;
 
 #[derive(Clone, Copy, Default, Debug)]
 pub enum LifeAlgoSelect {

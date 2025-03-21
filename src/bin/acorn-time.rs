@@ -34,7 +34,7 @@ fn main() {
 
     for algo in WORKING_ALGOS {
         let mut life = Life::new(*algo, (256, 256));
-        life.paste(&acorn_life, (128, 128));
+        life.paste(&acorn_life, (128, 128), None);
 
         let now = Instant::now();
 

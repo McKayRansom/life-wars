@@ -140,12 +140,12 @@ impl Editor {
             }
             EditBar::Paste => {
                 if let Some(clipboard) = &self.clipboard {
-                    self.main_view.life.paste(clipboard, start_pos);
+                    self.main_view.life.paste(clipboard, start_pos, None);
                 }
             }
             EditBar::Pattern => {
                 if let Some(pattern) = &self.pattern_view.selected_pattern {
-                    self.main_view.life.paste(pattern, start_pos);
+                    self.main_view.life.paste(pattern, start_pos, None);
                 }
             }
         }
