@@ -8,7 +8,7 @@ use macroquad::{
         self, Skin, hash, root_ui,
         widgets::{self},
     },
-    window,
+    window::{self, screen_height, screen_width},
 };
 
 use crate::{context::Context, pattern_view::PatternLibViewer, viewer::LifeViewer};
@@ -80,7 +80,7 @@ impl Editor {
 
         skin.button_style = button_style;
         skin.window_style = window_style;
-        Self {
+        let mut editor = Self {
             main_view: LifeViewer::new(Box::new(Life::new_rule(
                 life_io::life::LifeAlgoSelect::Cached,
                 (256, 256),
@@ -92,7 +92,14 @@ impl Editor {
             pattern_name: String::new(),
             skin,
             pattern_view: PatternLibViewer::new(),
-        }
+        };
+
+        editor.main_view.resize_to_fit(
+            editor.main_view.life.size(),
+            (screen_width(), screen_height()),
+        );
+
+        editor
     }
 
     fn iter_area(min_pos: (u16, u16), max_pos: (u16, u16)) -> impl Iterator<Item = (u16, u16)> {
@@ -233,8 +240,10 @@ impl Editor {
                 draw_rectangle(
                     mouse_down_screen_pos.0,
                     mouse_down_screen_pos.1,
-                    self.main_view.life_to_screen_scale(life_pos.0 - mouse_down_pos.0),
-                    self.main_view.life_to_screen_scale(life_pos.1 - mouse_down_pos.1),
+                    self.main_view
+                        .life_to_screen_scale(life_pos.0 - mouse_down_pos.0),
+                    self.main_view
+                        .life_to_screen_scale(life_pos.1 - mouse_down_pos.1),
                     color::Color {
                         r: 1.,
                         g: 1.,

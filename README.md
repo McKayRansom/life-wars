@@ -35,6 +35,7 @@ Required features:
  - [ ] Stats (pop history?)
  - [ ] Global stats win/losses 
 - [ ] Pattern cost/resource rethink
+- [ ] Don't allow patterns to be placed on (enemys OR empty space only?)
 
 Maybe features:
 - Achevements or tracking of wins on easy/medium/hard
