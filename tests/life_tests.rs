@@ -28,9 +28,8 @@ fn test_compare() {
     let mut life_basic = Life::new(LifeAlgoSelect::Basic, (64, 64));
     let mut life_cached = Life::new(LifeAlgoSelect::Cached, (64, 64));
 
-    // TODO: THIS IS NOT THREAD SAFE!
-    life_basic.randomize(1234, false);
-    life_cached.randomize(1234, false);
+    rand::rand_life(&mut life_basic, (0, 0), (64, 64), 1234, None);
+    rand::rand_life(&mut life_cached, (0, 0), (64, 64), 1234, None);
 
     for i in 0..50 {
 

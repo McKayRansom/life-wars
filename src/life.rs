@@ -9,6 +9,10 @@ use algo::LifeAlgo;
 pub use algo::LifeAlgoSelect;
 pub use algo::WORKING_ALGOS;
 
+pub mod rand;
+mod pos;
+pub use pos::Pos;
+
 mod file_format;
 pub use file_format::plaintext::*;
 pub use file_format::rle::*;

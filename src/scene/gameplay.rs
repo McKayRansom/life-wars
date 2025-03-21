@@ -12,7 +12,7 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule, new_life_from_rle};
+use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule};
 
 pub struct GameOptions {
     pub size: (u16, u16),
@@ -184,10 +184,10 @@ pub const AI_CELL_PER_RESOURCE: i16 = 2;
 pub const AI_UPDATE_TICKS: u32 = 16;
 
 // TODO: This bomber is great but it's facing left
-const BOMBER_RLE: &str = "\
-#N bomber
-x = 16, y = 10, rule = B2/S345/4
-3$7.A$6.B.B$4.3AC2A$4.3ACA.CB.C$5.A.BA.CBA2$!";
+// const BOMBER_RLE: &str = "\
+// #N bomber
+// x = 16, y = 10, rule = B2/S345/4
+// 3$7.A$6.B.B$4.3AC2A$4.3ACA.CB.C$5.A.BA.CBA2$!";
 
 impl Scene for Gameplay {
     fn update(&mut self, ctx: &mut Context) {
