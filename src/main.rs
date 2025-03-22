@@ -6,7 +6,7 @@ use macroquad::{
 
 pub mod context;
 pub mod scene;
-pub mod viewer;
+// pub mod viewer;
 pub mod skin;
 pub mod pattern_view;
 

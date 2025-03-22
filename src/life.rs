@@ -1,4 +1,5 @@
 use std::hash::DefaultHasher;
+use std::hash::Hasher;
 
 mod rule;
 pub use rule::LifeRule;
@@ -225,8 +226,11 @@ impl Life {
         }
     }
 
-    pub fn hash(&self, state: &mut DefaultHasher) {
-        self.algo.hash(state);
+    pub fn hash(&self) -> u64 {
+        // TODO: Use other hasher?
+        let mut hasher = DefaultHasher::new();
+        self.algo.hash(&mut hasher);
+        hasher.finish()
     }
 
     pub fn get_pop(&self, faction: u8) -> i16 {

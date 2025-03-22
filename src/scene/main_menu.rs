@@ -4,14 +4,13 @@ use super::{EScene, Scene};
 // use crate::audio::play_sfx;
 // use crate::consts::*;
 use crate::context::Context;
-use crate::viewer::LifeViewer;
 // use crate::map::draw::draw_map;
 // use crate::map::{Map, DEFAULT_CITY_ID};
 use crate::scene::{
     menu::{Menu, MenuItem},
     // popup::Popup,
 };
-use life_io::life::Life;
+use life_io::{life::Life, viewer::LifeViewer};
 // use crate::ui::skin::{MENU_FONT_SIZE, MENU_MARGIN};
 // use crate::input::{action_pressed, Action};
 // use crate::text::{self, draw_text};

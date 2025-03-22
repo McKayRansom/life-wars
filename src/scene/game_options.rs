@@ -1,11 +1,9 @@
-use life_io::life::{Life, LifeRule};
+use life_io::{life::{Life, LifeRule}, viewer::LifeViewer};
 use macroquad::{
     math,
     ui::{self, hash, widgets},
     window::{self, screen_height, screen_width},
 };
-
-use crate::viewer::LifeViewer;
 
 pub struct GameOptions {
     preview_life: LifeViewer,

@@ -1,6 +1,5 @@
 use std::{
     collections::VecDeque,
-    hash::{DefaultHasher, Hasher},
     time::Instant,
 };
 
@@ -34,9 +33,7 @@ fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
     loop {
         life.update();
 
-        let mut hasher = DefaultHasher::new();
-        life.hash(&mut hasher);
-        let hash = hasher.finish();
+        let hash = life.hash();
 
         if let Some(index) = life_history.iter().position(|i| i == &hash) {
             // println!("Seed {seed} Stabilized at i: {i} period: {index} ");

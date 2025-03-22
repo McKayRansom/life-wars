@@ -35,6 +35,7 @@ pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>, rule: Option<Li
                 'C' => Some(Cell::new(3, 0)),
                 '1' => Some(Cell::new(1, 1)),
                 '2' => Some(Cell::new(1, 2)),
+                ' ' => continue,
                 _ => unimplemented!("No parse rule in PlainText format for: '{chr}'"),
             } {
                 life.insert(pos, cell);

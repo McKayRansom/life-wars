@@ -2,7 +2,6 @@ use super::Scene;
 use crate::{
     context::Context,
     pattern_view::PatternLibViewer,
-    viewer::{self, LifeViewer},
 };
 
 use macroquad::{
@@ -12,7 +11,7 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-use life_io::life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule};
+use life_io::{life::{self, Life, LifeAlgoSelect, LifeRule, FACTION_MAX}, viewer::{self, LifeViewer}};
 
 pub struct GameOptions {
     pub size: (u16, u16),
@@ -73,12 +72,12 @@ impl Gameplay {
         gameplay
     }
 
-    fn handle_input(&mut self, ctx: &mut Context) {
+    fn handle_input(&mut self, _ctx: &mut Context) {
         if root_ui().is_mouse_over(mouse_position().into()) {
             return;
         }
 
-        self.viewer.handle_input(ctx);
+        self.viewer.handle_input();
         // return;
         // }
 

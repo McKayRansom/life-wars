@@ -1,4 +1,3 @@
-use life_io::life::Life;
 use macroquad::{
     color,
     input::{self, KeyCode, is_key_down, mouse_position, mouse_wheel},
@@ -6,7 +5,7 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-use crate::context::Context;
+use crate::life::Life;
 
 pub struct LifeViewer {
     // pixels per life cell
@@ -153,7 +152,7 @@ impl LifeViewer {
         }
     }
 
-    pub fn handle_input(&mut self, ctx: &mut Context) -> bool {
+    pub fn handle_input(&mut self) -> bool {
         if is_key_down(KeyCode::W) {
             self.camera.1 -= WASD_MOVE_SENSITIVITY / self.zoom;
         }
@@ -174,13 +173,17 @@ impl LifeViewer {
         // if scrol
         if let Some(chr) = input::get_char_pressed() {
             match chr {
-                'q' => ctx.request_quit = true,
+                // 'q' => ctx.request_quit = true,
                 ' ' => {
                     if self.update_speed == GAME_SPEED_1_PAUSED {
                         self.update_speed = GAME_SPEED_2_NORMAL;
                     } else {
                         self.update_speed = GAME_SPEED_1_PAUSED;
                     }
+                }
+                '\t' => {
+                    self.update_speed = GAME_SPEED_1_PAUSED;
+                    self.life.update();
                 }
                 // self.viewer.update_speed = !view_self.viewer.update_speed,
                 '1' => self.update_speed = GAME_SPEED_1_PAUSED,

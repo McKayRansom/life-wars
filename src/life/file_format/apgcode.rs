@@ -147,7 +147,7 @@ pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Patter
     Pattern {
         life,
         classification,
-        period,
+        period_or_pop_or_lifespan: period,
         ..Default::default()
     }
 }
@@ -159,7 +159,7 @@ pub fn apgcode_from_pattern(pattern: &Pattern) -> String {
 
     string.push_str(prefix_from_classification(pattern.classification));
 
-    if let Some(period) = pattern.period {
+    if let Some(period) = pattern.period_or_pop_or_lifespan {
         string.push_str(format!("{period}").as_str());
     }
 
