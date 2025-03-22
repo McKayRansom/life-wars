@@ -1,7 +1,7 @@
 use crate::life::Life;
 
-pub mod classify;
-pub mod identify;
+// pub mod classify;
+// pub mod identify;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

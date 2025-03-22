@@ -24,10 +24,6 @@ pub async fn init() -> Font {
         .await
         .unwrap();
 
-    // let font = load_ttf_font("resources/editundo.ttf")
-    //     .await
-    //     .unwrap();
-
     let skin2 = {
         let label_style = root_ui()
             .style_builder()
@@ -44,13 +40,6 @@ pub async fn init() -> Font {
 
         let window_style = root_ui()
             .style_builder()
-            // .background(
-            //     Image::from_file_with_format(
-            //         include_bytes!("../../resources/window_background.png"),
-            //         None,
-            //     )
-            //     .unwrap(),
-            // )
             .color_inactive(window_color)
             .color_hovered(window_color)
             .color_selected(window_color)

@@ -5,7 +5,6 @@ use macroquad::{
     color,
     input::{self, mouse_position},
     ui::root_ui,
-    window::{screen_height, screen_width},
 };
 
 use life_io::{

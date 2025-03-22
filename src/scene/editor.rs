@@ -1,4 +1,4 @@
-use life_io::{life::{from_plaintext, Life, LifeRule}, viewer::LifeViewer};
+use life_io::{life::{Life, LifeRule}, viewer::LifeViewer};
 use macroquad::{
     color,
     input::{self, mouse_position},
@@ -8,7 +8,7 @@ use macroquad::{
         self, Skin, hash, root_ui,
         widgets::{self},
     },
-    window::{self, screen_height, screen_width},
+    window::{self},
 };
 
 use crate::{context::Context, pattern_view::PatternLibViewer};
@@ -41,13 +41,6 @@ impl Editor {
 
         let window_style = root_ui()
             .style_builder()
-            // .background(
-            //     Image::from_file_with_format(
-            //         include_bytes!("../../resources/window_background.png"),
-            //         None,
-            //     )
-            //     .unwrap(),
-            // )
             .color_inactive(window_color)
             .color_hovered(window_color)
             .color_selected(window_color)
@@ -152,10 +145,11 @@ impl Editor {
         }
     }
 
-    fn handle_input(&mut self, ctx: &mut Context) {
+    fn handle_input(&mut self, _ctx: &mut Context) {
+        if root_ui().is_mouse_over(input::mouse_position().into()) {
+            return;
+        }
         self.main_view.handle_input();
-        // return;
-        // }
 
         let mouse_pos = input::mouse_position();
         if let Some(pos) = self.main_view.screen_to_life_pos(mouse_pos) {
@@ -261,16 +255,6 @@ impl super::Scene for Editor {
         root_ui().push_skin(&self.skin);
 
         self.handle_input(ctx);
-
-        // let size = self.main_view.life.size();
-        // self.main_view.resize_to_fit(
-        //     size,
-        //     (
-        //         (macroquad::window::screen_width() - BORDER_SIZE * 2.),
-        //         (macroquad::window::screen_height() - BORDER_SIZE * 2.),
-        //     ),
-        // );
-        // self.main_view.set_pos((BORDER_SIZE, BORDER_SIZE));
 
         self.main_view.draw();
 

@@ -110,6 +110,8 @@ impl LifeViewer {
         distance as f32 * self.zoom
     }
 
+    // pub fn 
+
     pub fn update(&mut self) -> bool {
         if self.update_speed != GAME_SPEED_1_PAUSED
             && time::get_time() - self.last_map_update > self.update_speed

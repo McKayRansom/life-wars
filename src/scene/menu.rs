@@ -9,12 +9,12 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-// use crate::ui::skin::{MENU_FONT_SIZE, MENU_MARGIN};
+// use crate::skin::{MENU_FONT_SIZE, MENU_MARGIN};
 
-// use super::skin::{BUTTON_MARGIN, MENU_OUTER_MARGIN};
+// use crate::skin::{BUTTON_MARGIN, MENU_OUTER_MARGIN};
 
 pub const MENU_FONT_SIZE: u16 = 48;
-pub const MENU_MARGIN: f32 = 16.;
+pub const MENU_MARGIN: f32 = 8.;
 pub const MENU_OUTER_MARGIN: f32 = 16.;
 
 pub const BUTTON_INNER_MARGIN: (f32, f32) = (16., 2.);
@@ -87,6 +87,8 @@ impl<V> Menu<V> {
                     selected = Some(&item.value);
                 }
             }
+
+            // ui.window(id, position, size, f)
         });
 
         selected

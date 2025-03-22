@@ -145,6 +145,8 @@ impl PatternLib {
     pub fn load_desktop() -> LoadResult {
         let save_path = Self::determine_save_path();
 
+        println!("loading from {:?}", save_path.as_os_str());
+
         let toml_str = std::fs::read_to_string(save_path)?;
         Ok(ron::from_str(toml_str.as_str())?)
     }

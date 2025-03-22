@@ -136,7 +136,7 @@ mod identify_tests {
 
     #[test]
     fn test_cell_group_tracker() {
-        let mut life = from_plaintext(
+        let life = from_plaintext(
             "\
 OO..OO
 OO..OO",
