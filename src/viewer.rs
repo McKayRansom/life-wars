@@ -44,6 +44,12 @@ impl LifeViewer {
         }
     }
 
+    pub fn new_fit_to_screen(life: Box<Life>) -> Self {
+        let mut viewer = Self::new(life);
+        viewer.fit_to_screen();
+        viewer
+    }
+
     pub fn set_pos(&mut self, pos: (f32, f32)) {
         self.camera = pos;
     }
@@ -52,6 +58,10 @@ impl LifeViewer {
         self.zoom = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
         self.camera.0 = (-(screen_size.0 - self.life_to_screen_scale(size.0)) / 2.) / self.zoom;
         self.camera.1 = (-(screen_size.1 - self.life_to_screen_scale(size.1)) / 2.) / self.zoom;
+    }
+
+    pub fn fit_to_screen(&mut self) {
+        self.resize_to_fit(self.life.size(), (screen_width(), screen_height()));
     }
 
     pub fn change_zoom(&mut self, amount: f32, center: (f32, f32)) {

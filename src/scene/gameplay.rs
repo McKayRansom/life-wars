@@ -1,8 +1,5 @@
 use super::Scene;
-use crate::{
-    context::Context,
-    pattern_view::PatternLibViewer,
-};
+use crate::{context::Context, pattern_view::PatternLibViewer};
 
 use macroquad::{
     color,
@@ -11,7 +8,10 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-use life_io::{life::{self, Life, LifeAlgoSelect, LifeRule, FACTION_MAX}, viewer::{self, LifeViewer}};
+use life_io::{
+    life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule},
+    viewer::{self, LifeViewer},
+};
 
 pub struct GameOptions {
     pub size: (u16, u16),
@@ -54,22 +54,14 @@ pub struct Gameplay {
 
 impl Gameplay {
     pub async fn new(_ctx: &mut Context, life: Box<Life>) -> Self {
-        // let unlocked = map.metadata.unlocks;
-        let mut gameplay = Gameplay {
+        Self {
             // ui: UiState::new(unlocked),
-            // popup: None,
-            viewer: LifeViewer::new(life),
+            // popup: None,Gameplay
+            viewer: LifeViewer::new_fit_to_screen(life),
             resources: [0; FACTION_MAX],
             pattern_view: PatternLibViewer::new(),
             ai_update_ticks: 0,
-        };
-
-        gameplay.viewer.resize_to_fit(
-            gameplay.viewer.life.size(),
-            (screen_width(), screen_height()),
-        );
-
-        gameplay
+        }
     }
 
     fn handle_input(&mut self, _ctx: &mut Context) {
@@ -209,14 +201,15 @@ impl Scene for Gameplay {
                 // Idea: Easy/Medium/Hard determins what the AI will spawn...
                 // let bomber_life = new_life_from_rle(BOMBER_RLE);
                 // MEAN: Steal our patterns!
-                let rand_pattern_i = macroquad::rand::rand() as usize % ctx.pattern_lib.patterns.len();
-                let rand_patter= &ctx.pattern_lib.patterns[rand_pattern_i];
+                let rand_pattern_i =
+                    macroquad::rand::rand() as usize % ctx.pattern_lib.patterns.len();
+                let rand_patter = &ctx.pattern_lib.patterns[rand_pattern_i];
                 if rand_patter.get_rule() != self.viewer.life.get_rule() {
                     return;
                 }
 
                 let bomber_life = rand_patter;
-                
+
                 // let rand_
 
                 if self.resources[1] > bomber_life.get_pop(0) {

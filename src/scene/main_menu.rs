@@ -172,10 +172,7 @@ impl Scene for MainMenu {
         // ctx.tileset.reset_camera(self.map.grid.size_px());
 
         // zoom in for a better look
-        self.background_life.resize_to_fit(
-            self.background_life.life.size(),
-            (screen_width(), screen_height()),
-        );
+        self.background_life.fit_to_screen();
         self.background_life
             .change_zoom(0.8, (screen_width() / 2., screen_height() / 2.));
         // view_ctx.set_pos((-screen_width() / 2., -screen_height() / 2.));

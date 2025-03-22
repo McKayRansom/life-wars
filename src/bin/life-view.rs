@@ -30,7 +30,7 @@ fn window_conf() -> window::Conf {
 async fn main() {
     set_default_filter_mode(window::miniquad::FilterMode::Nearest);
 
-    let mut viewer = LifeViewer::new(Box::new(from_plaintext(
+    let mut viewer = LifeViewer::new_fit_to_screen(Box::new(from_plaintext(
         "!Name: 
         .................................
         .................................
