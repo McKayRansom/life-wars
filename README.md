@@ -15,13 +15,13 @@ Discover and save interesting patterns and strategically deploy them to win batt
 - Strategic game mode or huge maps
 
 
-Thoughts after first playtest 3/20/24:
+## Thoughts after first playtest 3/20/24:
 - AI deploying REAL patterns is awesome! Really adds a ton
 - Need an easier way to switch patterns... Hotbar?
 - zooming is a bit clunky, minimap?
 - Maybe you can only place patterns so far from your side? Or based on if you are winning?
 
-Required features:
+## Required features:
 -[ ] Pattern hotbar
 -[ ] AI Pattern library easy/medium/hard
 -[ ] PatternQOL:
@@ -40,3 +40,25 @@ Required features:
 Maybe features:
 - Achevements or tracking of wins on easy/medium/hard
 - Achievements on Pattern finding?
+
+## Thoughts on population 3/22/24:
+
+Specifying a pattern cost seems exteremly difficult and easy to cheese by pattern collisions
+
+Alternatives:
+- Max pop count, use it wisely. Replicators are automatically a large commmitment of troops. Basic ship very little
+- Cost associated with birthing a cell that is returned upon death (similar to above?)
+- Max pop AND placement 'energy' cost?
+- Some hybrid approach: There should be a cost to lay down a pattern to avoid HIGH-APM requirement AND there should be a limited POP to avoid replicator abuse
+- Simplest possible approach: 
+ - You get 1 placement every X seconds (this stacks if you don't use it)
+ - This makes every placement very strategic
+ - Encourages large or replicator placements in safe locations
+ - Encourages wild patterns (maybe this is okay?)
+
+
+Avoid High-APM requirement:
+- Slow speed?
+- Small maps?
+- Limited pattern placement!?
+- But also placing individual ships to block attacks is fun
