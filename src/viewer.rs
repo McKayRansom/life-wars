@@ -110,7 +110,7 @@ impl LifeViewer {
         distance as f32 * self.zoom
     }
 
-    // pub fn 
+    // pub fn
 
     pub fn update(&mut self) -> bool {
         if self.update_speed != GAME_SPEED_1_PAUSED
@@ -147,18 +147,12 @@ impl LifeViewer {
         for (x, y, cell) in self.life.iter() {
             let state = cell.get_state();
             if state > 0 {
-                let mut color = faction_color(cell.get_faction());
-                if state == 2 {
-                    color.a = 0.75;
-                } else if state == 3 {
-                    color.a = 0.5;
-                }
                 macroquad::shapes::draw_rectangle(
                     (x as f32 - self.camera.0) * self.zoom,
                     (y as f32 - self.camera.1) * self.zoom,
                     self.zoom,
                     self.zoom,
-                    color,
+                    faction_color(cell.get_faction(), state),
                 );
             }
         }
@@ -224,15 +218,36 @@ impl LifeViewer {
     }
 }
 
-pub fn faction_color(faction: u8) -> color::Color {
-    match faction {
+pub fn faction_color(faction: u8, state: u8) -> color::Color {
+    let mut color = match faction {
         0 => color::GREEN,
         1 => color::RED,
         2 => color::YELLOW,
         3 => color::BLUE,
         _ => color::WHITE,
+    };
+    if state == 2 {
+        color.a = 0.75;
+    } else if state == 3 {
+        color.a = 0.5;
+    }
+    color
+}
+
+/*
+pub fn faction_color(faction: u8, state: u8) -> color::Color {
+    match (faction, state) {
+        (1, 1) => color::GREEN,
+        (1, 2) => // color::LIME, //color::Color { r: 0.0, g: 0.5, b: 0.5, a: 1.0 },
+     color::Color::new(0.00, 0.72, 0.5, 1.00),
+        (1, 3) => color::DARKBLUE,
+        (0, 1) => color::YELLOW,
+        (0, 2) => color::ORANGE,
+        (0, 3) => color::RED,
+        _ => color::WHITE,
     }
 }
+*/
 
 #[cfg(test)]
 mod viewer_tests {

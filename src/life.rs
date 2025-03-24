@@ -18,7 +18,7 @@ mod file_format;
 pub use file_format::plaintext::*;
 pub use file_format::rle::*;
 
-pub mod patterns;
+pub mod pattern_lib;
 
 pub const FACTION_MAX: usize = 16;
 

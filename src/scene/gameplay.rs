@@ -159,7 +159,7 @@ fn draw_score(life: &Life, ctx: &Context) {
             macroquad::text::TextParams {
                 font: Some(&ctx.font),
                 font_size: 40,
-                color: viewer::faction_color(*faction),
+                color: viewer::faction_color(*faction, 1 ),
                 ..Default::default()
             },
         );

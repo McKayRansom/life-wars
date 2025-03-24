@@ -11,6 +11,8 @@ pub struct PatternLibViewer {
     pub selected_pattern: Option<Life>,
 }
 
+const PATTEN_LIB_WIDTH: f32 = 250.;
+
 impl PatternLibViewer {
     pub fn new() -> Self {
         Self {
@@ -23,9 +25,9 @@ impl PatternLibViewer {
 
         widgets::Window::new(
             hash!(),
-            math::vec2(window::screen_width() * 3. / 4., 0.),
+            math::vec2(window::screen_width() - PATTEN_LIB_WIDTH, 0.),
             math::vec2(
-                window::screen_width() / 4.,
+                PATTEN_LIB_WIDTH,
                 window::screen_height() * 3. / 4.,
             ),
         )

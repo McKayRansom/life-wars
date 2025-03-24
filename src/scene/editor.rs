@@ -13,6 +13,8 @@ use macroquad::{
 
 use crate::{context::Context, pattern_view::PatternLibViewer};
 
+const SIDE_BAR_WIDTH: f32 = 250.;
+
 pub struct Editor {
     main_view: LifeViewer,
     clipboard: Option<Life>,
@@ -78,7 +80,7 @@ impl Editor {
             main_view: LifeViewer::new_fit_to_screen(Box::new(Life::new_rule(
                 life_io::life::LifeAlgoSelect::Cached,
                 (256, 256),
-                LifeRule::GOL,
+                LifeRule::STAR_WARS,
             ))),
             clipboard: None,
             edit_select: EditBar::Fill,
@@ -158,6 +160,7 @@ impl Editor {
             }
             if input::is_mouse_button_released(input::MouseButton::Left) {
                 if let Some(mouse_down_pos) = self.mouse_down_pos {
+                    let pos = (pos.0 + 1, pos.1 + 1);
                     self.do_edit_action(mouse_down_pos, pos);
                     self.mouse_down_pos = None;
                 }
@@ -193,8 +196,8 @@ impl Editor {
     fn draw_edit_bar(&mut self, _ctx: &crate::context::Context) {
         widgets::Window::new(
             hash!(),
-            math::vec2(100., window::screen_height() - BORDER_SIZE),
-            math::vec2(window::screen_width() / 2., BORDER_SIZE * 2.),
+            math::vec2(0., 0.),
+            math::vec2(SIDE_BAR_WIDTH, window::screen_height()),
         )
         .titlebar(false)
         .movable(false)
@@ -202,16 +205,16 @@ impl Editor {
             // Group::new(hash!(), math::vec2(500., 100.))
             // .layout(ui::Layout::Horizontal)
             // .ui(ui, |ui| {
-            if ui.button(math::vec2(0., 0.), "Fill") {
+            if ui.button(None, "Fill") {
                 self.edit_select = EditBar::Fill;
             }
-            if ui.button(math::vec2(100., 0.), "Clear") {
+            if ui.button(None, "Clear") {
                 self.edit_select = EditBar::Clear;
             }
-            if ui.button(math::vec2(200., 0.), "Copy") {
+            if ui.button(None, "Copy") {
                 self.edit_select = EditBar::Copy;
             }
-            if ui.button(math::vec2(300., 0.), "Paste") {
+            if ui.button(None, "Paste") {
                 self.edit_select = EditBar::Paste;
             }
             // if ui.button(math::vec2(600., 0.), "Save") {
@@ -224,14 +227,18 @@ impl Editor {
         if let Some(mouse_down_pos) = self.mouse_down_pos {
             let mouse_pos = mouse_position();
             if let Some(life_pos) = self.main_view.screen_to_life_pos(mouse_pos) {
-                let mouse_down_screen_pos = self.main_view.life_to_screen_pos(mouse_down_pos);
+                let life_pos = (life_pos.0 + 1, life_pos.1 + 1);
+                let min_pos = (life_pos.0.min(mouse_down_pos.0), life_pos.1.min(mouse_down_pos.1));
+                let max_pos = (life_pos.0.max(mouse_down_pos.0), life_pos.1.max(mouse_down_pos.1));
+
+                let mouse_down_screen_pos = self.main_view.life_to_screen_pos(min_pos);
                 draw_rectangle(
                     mouse_down_screen_pos.0,
                     mouse_down_screen_pos.1,
                     self.main_view
-                        .life_to_screen_scale(life_pos.0 - mouse_down_pos.0),
+                        .life_to_screen_scale(max_pos.0 - min_pos.0),
                     self.main_view
-                        .life_to_screen_scale(life_pos.1 - mouse_down_pos.1),
+                        .life_to_screen_scale(max_pos.1 - min_pos.1),
                     color::Color {
                         r: 1.,
                         g: 1.,
@@ -243,8 +250,6 @@ impl Editor {
         }
     }
 }
-
-const BORDER_SIZE: f32 = 40.;
 
 impl super::Scene for Editor {
     fn update(&mut self, _ctx: &mut crate::context::Context) {
@@ -262,7 +267,7 @@ impl super::Scene for Editor {
 
         macroquad::text::draw_text_ex(
             format!("Editor").as_str(),
-            10.,
+            10. + SIDE_BAR_WIDTH,
             20.,
             macroquad::text::TextParams {
                 font: Some(&ctx.font),
@@ -287,7 +292,7 @@ impl super::Scene for Editor {
         let measure = macroquad::text::measure_text(faction_text.as_str(), Some(&ctx.font), 40, 1.);
         macroquad::text::draw_text_ex(
             faction_text.as_str(),
-            macroquad::window::screen_width() - measure.width - 10.,
+            macroquad::window::screen_width() - measure.width - 10. - SIDE_BAR_WIDTH,
             macroquad::window::screen_height() - measure.height - 5.,
             macroquad::text::TextParams {
                 font: Some(&ctx.font),
