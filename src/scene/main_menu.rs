@@ -70,7 +70,7 @@ impl MainMenu {
             ))),
         };
 
-        // main_menu.background_life.life.randomize(1234, true);
+        main_menu.background_life.life.randomize(1234, true);
 
         for _ in 0..50 {
             main_menu.background_life.life.update();

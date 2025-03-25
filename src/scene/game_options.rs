@@ -32,6 +32,7 @@ impl GameOptions {
             life_io::life::LifeAlgoSelect::Basic,
             GAME_SIZES[self.selected_size],
             *GAME_RULES[self.selected_rule],
+            // LifeRule::from_str("B345/S4567"),
         ));
         // Should randomizing be part of the options?
         life.randomize(1234, true);

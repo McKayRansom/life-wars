@@ -80,7 +80,7 @@ impl Editor {
             main_view: LifeViewer::new_fit_to_screen(Box::new(Life::new_rule(
                 life_io::life::LifeAlgoSelect::Cached,
                 (256, 256),
-                LifeRule::STAR_WARS,
+                LifeRule::from_str("B345/S4567"),
             ))),
             clipboard: None,
             edit_select: EditBar::Fill,

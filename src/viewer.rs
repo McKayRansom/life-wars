@@ -1,16 +1,17 @@
 use macroquad::{
-    color,
-    input::{self, KeyCode, is_key_down, mouse_position, mouse_wheel},
-    time,
-    window::{screen_height, screen_width},
+    color, input::{self, is_key_down, mouse_position, mouse_wheel, KeyCode}, time, window::{screen_height, screen_width}
 };
 
 use crate::life::Life;
 
+/*
+ * Simple life viewer
+ */
 pub struct LifeViewer {
     // pixels per life cell
     zoom: f32,
     // camera position in Life space
+    // TODO: Use macroquad camera instead??
     camera: (f32, f32),
 
     last_map_update: f64,
@@ -39,7 +40,7 @@ impl LifeViewer {
             zoom: 1.,
             camera: (0., 0.),
             last_map_update: 0.,
-            update_speed: GAME_SPEED_2_NORMAL,
+            update_speed: GAME_SPEED_3_FAST,
             life,
         }
     }
@@ -130,6 +131,11 @@ impl LifeViewer {
         }
     }
 
+    /* 
+     * Draw to screen via rects
+     * TODO: draw to image first, see https://github.com/not-fl3/macroquad/blob/master/examples/life.rs
+     * Then we could only change pixels that we have to change
+     */
     pub fn draw(&self) {
         let size = self.life.size();
         // macroquad::shapes::draw_rectangle_lines(

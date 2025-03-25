@@ -11,6 +11,11 @@ use super::Cell;
  * Fails:
  * - simple life algo is faster than this version that can handle generations rules
  *   - It's not a lot tho
+ * 
+ * Resources for interesting rules:
+ * - https://mcell.ca/pages/rules.html
+ * - https://web.archive.org/web/20190218043733/http://fano.ics.uci.edu/ca/rules/list.html
+ * - 
  */
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct LifeRule {
@@ -90,7 +95,7 @@ impl LifeRule {
         let mut survives: u32 = 0;
         for i in 1..9 {
             if (self.lut[0] & (1 << i * 2)) != 0 {
-                births = births * 10 | i;
+                births = (births * 10) + i;
             }
             if (self.lut[1] & (1 << i * 2)) != 0 {
                 survives = (survives * 10) + i;
@@ -132,6 +137,9 @@ mod rule_tests {
     fn test_rule_to_str() {
         assert_eq!(LifeRule::GOL.to_str(), "B3/S23");
         assert_eq!(LifeRule::STAR_WARS.to_str(), "B2/S345/4");
+
+        let rule = LifeRule::from_str("B345/S4567");
+        assert_eq!(rule.to_str(), "B345/S4567", "{rule:?}");
     }
 
     #[test]
