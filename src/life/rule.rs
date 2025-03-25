@@ -1,4 +1,4 @@
-use std::str::Split;
+use std::str::{FromStr, Split};
 
 use super::Cell;
 
@@ -44,7 +44,7 @@ impl LifeRule {
     // BXX or X
     fn parse_rule_portion<F>(it: &mut Split<'_, char>, mut func: F)
     where
-        F: FnMut(u32) -> (),
+        F: FnMut(u32),
     {
         if let Some(portion) = it.next() {
             for chr in portion.chars() {
@@ -55,11 +55,42 @@ impl LifeRule {
         }
     }
 
+
+
+    pub fn to_str(&self) -> String {
+        let mut births: u32 = 0;
+        let mut survives: u32 = 0;
+        for i in 1..9 {
+            if (self.lut[0] & (1 << (i * 2))) != 0 {
+                births = (births * 10) + i;
+            }
+            if (self.lut[1] & (1 << (i * 2))) != 0 {
+                survives = (survives * 10) + i;
+            }
+        }
+        if self.is_generations() {
+            format!("B{births}/S{survives}/4")
+        } else {
+            format!("B{births}/S{survives}")
+        }
+    }
+
+    pub fn update(&self, state: u8, (neighbors, faction): (u8, u8)) -> Cell {
+        Cell::new(Self::state_update_f(self, state, neighbors), faction)
+    }
+
+    fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
+        ((self.lut[state as usize] & (3 << (neighbors as u32 * 2))) >> (neighbors as u32 * 2)) as u8
+    }
+}
+
+impl FromStr for LifeRule {
+    type Err = &'static str;
     // BXX/SXX or BXX/SXX/X
     // OR
     // SSS/BBB/GGG
     // https://conwaylife.com/wiki/Rulestring
-    pub fn from_str(str: &str) -> Self {
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
         let mut new_rule: Self = Self::new([0, 0, 0, 0]);
 
         let mut portion_it = str.split('/');
@@ -87,33 +118,7 @@ impl LifeRule {
             }
         });
 
-        new_rule
-    }
-
-    pub fn to_str(&self) -> String {
-        let mut births: u32 = 0;
-        let mut survives: u32 = 0;
-        for i in 1..9 {
-            if (self.lut[0] & (1 << i * 2)) != 0 {
-                births = (births * 10) + i;
-            }
-            if (self.lut[1] & (1 << i * 2)) != 0 {
-                survives = (survives * 10) + i;
-            }
-        }
-        if self.is_generations() {
-            format!("B{births}/S{survives}/4")
-        } else {
-            format!("B{births}/S{survives}")
-        }
-    }
-
-    pub fn update(&self, state: u8, (neighbors, faction): (u8, u8)) -> Cell {
-        Cell::new(Self::state_update_f(self, state, neighbors), faction)
-    }
-
-    fn state_update_f(&self, state: u8, neighbors: u8) -> u8 {
-        ((self.lut[state as usize] & (3 << (neighbors as u32 * 2))) >> (neighbors as u32 * 2)) as u8
+        Ok(new_rule)
     }
 }
 
@@ -129,8 +134,8 @@ mod rule_tests {
 
     #[test]
     fn test_rule_from_str() {
-        assert_eq!(LifeRule::from_str("B3/S23"), LifeRule::GOL);
-        assert_eq!(LifeRule::from_str("B2/S345/4"), LifeRule::STAR_WARS);
+        assert_eq!(LifeRule::from_str("B3/S23").unwrap(), LifeRule::GOL);
+        assert_eq!(LifeRule::from_str("B2/S345/4").unwrap(), LifeRule::STAR_WARS);
     }
 
     #[test]
@@ -138,14 +143,14 @@ mod rule_tests {
         assert_eq!(LifeRule::GOL.to_str(), "B3/S23");
         assert_eq!(LifeRule::STAR_WARS.to_str(), "B2/S345/4");
 
-        let rule = LifeRule::from_str("B345/S4567");
+        let rule = LifeRule::from_str("B345/S4567").unwrap();
         assert_eq!(rule.to_str(), "B345/S4567", "{rule:?}");
     }
 
     #[test]
     fn test_rule_alt_fmt() {
-        assert_eq!(LifeRule::from_str("23/3"), LifeRule::GOL);
-        assert_eq!(LifeRule::from_str("345/2/4"), LifeRule::STAR_WARS);
+        assert_eq!(LifeRule::from_str("23/3").unwrap(), LifeRule::GOL);
+        assert_eq!(LifeRule::from_str("345/2/4").unwrap(), LifeRule::STAR_WARS);
     }
 
     #[test]

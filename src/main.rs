@@ -6,7 +6,6 @@ use macroquad::{
 
 pub mod context;
 pub mod scene;
-// pub mod viewer;
 pub mod skin;
 pub mod pattern_view;
 
@@ -41,19 +40,9 @@ async fn main() {
         ..Context::new().await
     };
 
-    let mut current_scene: Box<dyn scene::Scene> = // match map::levels::TEST_LEVEL {
-        // Some(level) => 
-        // Box::new(
-        //     scene::gameplay::Gameplay::new(
-        //         &mut ctx,
-        //         Box::new(scene::GameOptions::Continue.create()),
-        //     )
-        //     .await
-        // );
-    // None => 
-                    // Box::new(scene::editor::Editor::new(&ctx));
-    Box::new(scene::main_menu::MainMenu::new(&mut ctx).await);
-    // };
+    let mut current_scene: Box<dyn scene::Scene> = 
+        // Box::new(scene::editor::Editor::new(&ctx));
+        Box::new(scene::main_menu::MainMenu::new(&mut ctx).await);
 
     loop {
         current_scene.update(&mut ctx);

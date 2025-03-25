@@ -1,4 +1,7 @@
-use life_io::{life::{Life, LifeRule}, viewer::LifeViewer};
+use life_io::{
+    life::{Life, LifeRule},
+    viewer::LifeViewer,
+};
 use macroquad::{
     math,
     ui::{self, hash, widgets},
@@ -40,13 +43,19 @@ impl GameOptions {
     }
 }
 
+impl Default for GameOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 const GAME_RULES: &[&LifeRule] = &[&LifeRule::GOL, &LifeRule::STAR_WARS];
 const GAME_RULES_NAMES: &[&str] = &["Game of Life", "Star Wars"];
 
 const GAME_SIZES: &[(u16, u16)] = &[(64, 64), (128, 128), (256, 256), (512, 512)];
 const GAME_SIZES_NAMES: &[&str] = &["small", "medium", "large", "huge"];
 
-const GAME_DIFFICULTY_NAMES: &[&str]= &["easy", "normal", "hard"];
+const GAME_DIFFICULTY_NAMES: &[&str] = &["easy", "normal", "hard"];
 
 impl super::Scene for GameOptions {
     fn update(&mut self, _ctx: &mut crate::context::Context) {
@@ -76,9 +85,24 @@ impl super::Scene for GameOptions {
         .ui(&mut ui::root_ui(), |ui| {
             ui.label(None, "Game Options");
 
-            ui.combo_box(hash!(), "Rule", GAME_RULES_NAMES, Some(&mut self.selected_rule));
-            ui.combo_box(hash!(), "Size", GAME_SIZES_NAMES, Some(&mut self.selected_size));
-            ui.combo_box(hash!(), "Difficulty", GAME_DIFFICULTY_NAMES, Some(&mut self.selected_difficulty));
+            ui.combo_box(
+                hash!(),
+                "Rule",
+                GAME_RULES_NAMES,
+                Some(&mut self.selected_rule),
+            );
+            ui.combo_box(
+                hash!(),
+                "Size",
+                GAME_SIZES_NAMES,
+                Some(&mut self.selected_size),
+            );
+            ui.combo_box(
+                hash!(),
+                "Difficulty",
+                GAME_DIFFICULTY_NAMES,
+                Some(&mut self.selected_difficulty),
+            );
 
             if ui.button(None, "Start") {
                 ctx.switch_scene_to = Some(super::EScene::Gameplay(self.create_life()));

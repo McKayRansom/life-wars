@@ -50,7 +50,7 @@ impl LifeCached {
     }
 
     fn update_neighbors(
-        grid: &mut Vec<Vec<(Cell, i8)>>,
+        grid: &mut [Vec<(Cell, i8)>],
         faction: u8,
         amount: i8,
         pos: (u16, u16),
@@ -89,8 +89,8 @@ impl LifeCached {
 
     fn check_cell_and_neighbors(
         size: (u16, u16),
-        old_grid: &Vec<Vec<(Cell, i8)>>,
-        new_grid: &mut Vec<Vec<(Cell, i8)>>,
+        old_grid: &[Vec<(Cell, i8)>],
+        new_grid: &mut [Vec<(Cell, i8)>],
         updates: &mut Vec<(u16, u16)>,
         pos: (u16, u16),
         rule: &LifeRule,
@@ -183,7 +183,7 @@ impl LifeAlgo for LifeCached {
         for pos in &this.old_updates {
             LifeCached::check_cell_and_neighbors(
                 this.size(),
-                &mut this.old_grid,
+                &this.old_grid,
                 &mut this.grid,
                 &mut this.recent_updates,
                 *pos,

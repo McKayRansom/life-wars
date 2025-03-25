@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, hash_map::Entry},
     hash::{BuildHasherDefault, Hash},
 };
 
@@ -52,7 +52,6 @@ impl LifeSparse {
     }
 
     pub fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
-
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for dy in -1..2 {
@@ -83,7 +82,13 @@ impl LifeSparse {
         (sum, faction)
     }
 
-    fn check_cell_and_neighbors(&self, new_self: &mut Self, pos: (u16, u16), rule: &LifeRule, pops: &mut LifePops) {
+    fn check_cell_and_neighbors(
+        &self,
+        new_self: &mut Self,
+        pos: (u16, u16),
+        rule: &LifeRule,
+        pops: &mut LifePops,
+    ) {
         for dy in -1..2 {
             let py = pos.1 as i32 + dy;
             if py < 0 || py as u16 >= self.size.1 {
@@ -128,26 +133,22 @@ impl LifeAlgo for LifeSparse {
     }
 
     fn insert(&mut self, pos: (u16, u16), cell: Cell) -> Option<Cell> {
-        if self.living.contains_key(&pos) {
-            if cell.is_alive() {
-                // Already alive
-                // self.living.insert(pos, cell)
-                None
-            } else {
-                // Kill
-                self.living.remove(&pos);
+        match (cell.is_alive(), self.living.entry(pos)) {
+            // Already alive
+            (true, Entry::Occupied(_)) => None,
+            // Kill
+            (false, Entry::Occupied(entry)) => {
                 self.recent_updates.push(pos);
+                Some(entry.remove_entry().1)
+            }
+            // Birth
+            (true, Entry::Vacant(entry)) => {
+                self.recent_updates.push(pos);
+                entry.insert(cell);
                 None
             }
-        } else {
-            if cell.is_alive() {
-                // Birth
-                self.recent_updates.push(pos);
-                self.living.insert(pos, cell)
-            } else {
-                // Already Dead
-                None
-            }
+            // Already Dead
+            (false, Entry::Vacant(_)) => None,
         }
     }
 

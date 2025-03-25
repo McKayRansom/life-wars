@@ -37,7 +37,7 @@ impl PatternLib {
                 println!("Pattern lib NOT FOUND!");
                 BUILT_IN_PATTERNS
                     .iter()
-                    .map(|rle| super::new_life_from_rle(*rle))
+                    .map(|rle| super::new_life_from_rle(rle))
                     .collect()
             },
         }
@@ -49,6 +49,12 @@ impl PatternLib {
         if self.save().is_err() {
             println!("ERROR SAVING!");
         }
+    }
+}
+
+impl Default for PatternLib {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -191,7 +197,7 @@ impl PatternLib {
         let pattern_strings: Vec<String> = self
             .patterns
             .iter()
-            .map(|pattern| life_to_rle(pattern))
+            .map(life_to_rle)
             .collect();
         Ok(ron::ser::to_string_pretty(
             &pattern_strings,

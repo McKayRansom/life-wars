@@ -29,7 +29,7 @@ fn main() {
     println!("Life performance comparison: 5000 gens of 'Acorn'");
 
     let acorn_life = from_plaintext(ACORN, None, None);
-    println!("\n{:<16} {}", "Algorithm", "time(ms)");
+    println!("\n{:<16}  time(ms)", "Algorithm");
     println!("-------------------------");
 
     for algo in WORKING_ALGOS {

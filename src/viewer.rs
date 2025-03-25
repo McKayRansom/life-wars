@@ -220,7 +220,7 @@ impl LifeViewer {
             return false;
         }
 
-        return true;
+        true
     }
 }
 
@@ -262,7 +262,7 @@ mod viewer_tests {
 
     #[test]
     fn test_viewer_camera() {
-        let mut viewer = LifeViewer::new(Box::new(Life::default()));
+        let mut viewer = LifeViewer::new(Box::default());
 
         viewer.zoom = 16.;
 
@@ -282,7 +282,7 @@ mod viewer_tests {
 
     #[test]
     fn test_viewer_camera_offset() {
-        let mut viewer = LifeViewer::new(Box::new(Life::default()));
+        let mut viewer = LifeViewer::new(Box::default());
 
         viewer.zoom = 16.;
         viewer.camera = (8., 8.);

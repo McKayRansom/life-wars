@@ -22,7 +22,7 @@ pub mod pattern_lib;
 
 pub const FACTION_MAX: usize = 16;
 
-#[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone, Copy, Default)]
 pub struct Cell {
     value: u8,
 }
@@ -70,12 +70,8 @@ impl From<u8> for Cell {
     }
 }
 
-impl Default for Cell {
-    fn default() -> Self {
-        Self { value: 0 }
-    }
-}
 
+#[derive(Default)]
 pub struct LifePops {
     pops: [i16; FACTION_MAX],
 }
@@ -95,6 +91,7 @@ impl LifePops {
         self.pops[faction as usize] = self.pops[faction as usize].saturating_add(amount)
     }
 }
+
 
 pub struct Life {
     algo: Box<dyn LifeAlgo>,
@@ -147,19 +144,6 @@ impl Life {
         self.algo.get(pos)
     }
 
-    pub fn clone(&self) -> Self {
-        // this is stupid AF LOLOL
-        let str = life_to_rle(self);
-        println!("cloneing: {str}");
-        new_life_from_rle(str.as_str())
-        // Self {
-        //     algo: self.algo.clone(),
-        //     rule: self.rule,
-        //     pops: self.pops,
-        //     generation: self.generation,
-        //     name: self.name.clone(),
-        // }
-    }
 
     // fn iter_mut(&mut self) -> impl Iterator<Item = (u16, u16, &mut u8)>;
     pub fn randomize(&mut self, seed: u64, use_factions: bool) {
@@ -239,6 +223,22 @@ impl Life {
 
     pub fn set_name(&mut self, as_str: &str) {
         self.name = as_str.into();
+    }
+}
+
+impl Clone for Life {
+    fn clone(&self) -> Self {
+        // this is stupid AF LOLOL
+        let str = life_to_rle(self);
+        println!("cloneing: {str}");
+        new_life_from_rle(str.as_str())
+        // Self {
+        //     algo: self.algo.clone(),
+        //     rule: self.rule,
+        //     pops: self.pops,
+        //     generation: self.generation,
+        //     name: self.name.clone(),
+        // }
     }
 }
 

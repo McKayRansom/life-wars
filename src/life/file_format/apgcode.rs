@@ -11,16 +11,15 @@ use crate::{
  * Pros:
  * - Classification and period
  * - Attempt at connonical form to avoid duplicates
- * 
+ *
  * Cons:
  * - No size complicates implementation
  * - No name or description (on purpose I suppose)
  * - Seems complicated
- * 
+ *
  */
 
-
-const CLASSIFICATION_LOOKUP: &[(Classification, &'static str)] = &[
+const CLASSIFICATION_LOOKUP: &[(Classification, &str)] = &[
     (Classification::StilLife, "xs"),
     (Classification::Oscillator, "xp"),
     (Classification::Spaceship, "xq"),
@@ -35,15 +34,11 @@ const CLASSIFICATION_LOOKUP: &[(Classification, &'static str)] = &[
     (Classification::Pathological, "PATHOLOGICAL"),
 ];
 
+// preix looks like xs12
 fn classification_from_prefix(prefix: &str) -> (Option<Classification>, Option<u32>) {
     for lookup in CLASSIFICATION_LOOKUP {
-        if prefix.starts_with(lookup.1) {
-            let period: Option<u32> = if prefix.len() > lookup.1.len() {
-                Some(prefix[lookup.1.len()..].parse().unwrap_or_default())
-            } else {
-                None
-            };
-            return (Some(lookup.0), period);
+        if let Some(period) = prefix.strip_prefix(lookup.1) {
+            return (Some(lookup.0), period.parse().ok());
         }
     }
     (None, None)
@@ -72,7 +67,6 @@ fn zero_count_read(chr: char, iter: &mut Chars<'_>) -> Option<usize> {
         _ => None,
     }
 }
-
 
 fn zero_count_write(string: &mut String, count: usize) {
     match count {
@@ -127,13 +121,10 @@ pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Patter
                 continue;
             }
 
-            let mut col_vals = if chr >= '0' && chr <= '9' {
-                chr as u16 - '0' as u16
-            } else if chr >= 'a' && chr <= 'v' {
-                (chr as u16 - 'a' as u16) + 10
-            } else {
-                panic!("Unexpected char: '{chr}' in apgcode")
-            };
+            let mut col_vals = chr
+                .to_digit(32)
+                .expect("Unexpected char in apgcode");
+
             for y in 0..6 {
                 if col_vals & 1 != 0 {
                     life.insert((x as u16, (row_of_5_count * 5) as u16 + y), Cell::new(1, 0));
@@ -151,7 +142,6 @@ pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Patter
         ..Default::default()
     }
 }
-
 
 #[allow(unused)]
 pub fn apgcode_from_pattern(pattern: &Pattern) -> String {

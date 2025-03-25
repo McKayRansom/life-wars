@@ -1,4 +1,4 @@
-use std::str::Split;
+use std::str::{FromStr, Split};
 
 /*
  *        let rle_glider = "
@@ -12,10 +12,10 @@ use crate::life::{Cell, Life, LifeAlgoSelect, LifeRule};
 
 fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
     let mut name = String::new();
-    while let Some(line) = it.next() {
+    for line in it.by_ref() {
         // parse headers
-        if line.starts_with("#N ") {
-            name = line[3..].into()
+        if let Some(line_name) = line.strip_prefix("#N ") {
+            name = line_name.into();
         } else if line.starts_with("#") {
             // ignore tags for now
         } else if line.starts_with("x") {
@@ -27,7 +27,7 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
                 match name {
                     "x" => size.0 = value.parse().expect("Failed to parse field"),
                     "y" => size.1 = value.parse().expect("Failed to parse field"),
-                    "rule" => rule = LifeRule::from_str(value),
+                    "rule" => rule = LifeRule::from_str(value).unwrap(),
                     _ => panic!("Unkown header field: {}", name),
                 }
             }
@@ -48,7 +48,7 @@ pub fn new_life_from_rle(rle: &str) -> Life {
     let mut life: Life = rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
 
     let mut pos: (u16, u16) = (0, 0);
-    while let Some(line) = line_it.next() {
+    for line in line_it {
         let mut run_count = 0;
         for chr in line.chars() {
             if let Some(count) = chr.to_digit(10) {

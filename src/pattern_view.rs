@@ -7,6 +7,8 @@ use macroquad::{
     },
     window,
 };
+
+#[derive(Default)]
 pub struct PatternLibViewer {
     pub selected_pattern: Option<Life>,
 }
@@ -15,9 +17,7 @@ const PATTEN_LIB_WIDTH: f32 = 250.;
 
 impl PatternLibViewer {
     pub fn new() -> Self {
-        Self {
-            selected_pattern: None,
-        }
+        Self::default()
     }
 
     pub fn draw(&mut self, ctx: &mut crate::context::Context, rule: &LifeRule) -> bool {

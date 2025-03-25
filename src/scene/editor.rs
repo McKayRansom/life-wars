@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use life_io::{life::{Life, LifeRule}, viewer::LifeViewer};
 use macroquad::{
     color,
@@ -80,7 +82,7 @@ impl Editor {
             main_view: LifeViewer::new_fit_to_screen(Box::new(Life::new_rule(
                 life_io::life::LifeAlgoSelect::Cached,
                 (256, 256),
-                LifeRule::from_str("B345/S4567"),
+                LifeRule::from_str("B345/S4567").unwrap(),
             ))),
             clipboard: None,
             edit_select: EditBar::Fill,
@@ -266,7 +268,7 @@ impl super::Scene for Editor {
         self.draw_selected();
 
         macroquad::text::draw_text_ex(
-            format!("Editor").as_str(),
+            "Editor",
             10. + SIDE_BAR_WIDTH,
             20.,
             macroquad::text::TextParams {
