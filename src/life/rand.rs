@@ -91,8 +91,6 @@ pub fn rand_life(
 
 #[cfg(test)]
 mod rand_life_tests {
-    use crate::life::life_to_plaintext;
-
     use super::*;
 
     #[test]
@@ -101,7 +99,7 @@ mod rand_life_tests {
         rand_life(&mut life, (2, 2), (4, 4), 1234, None);
 
         assert_eq!(
-            life_to_plaintext(&life),
+            life.to_plaintext(),
             "\
 ........
 ........
@@ -121,7 +119,7 @@ mod rand_life_tests {
         rand_life(&mut life, (2, 2), (5, 5), 1234, Some(RandSymmetry::D2_1));
 
         assert_eq!(
-            life_to_plaintext(&life),
+            life.to_plaintext(),
             "\
 ........
 ........
@@ -141,7 +139,7 @@ mod rand_life_tests {
         rand_life(&mut life, (2, 2), (4, 4), 1234, Some(RandSymmetry::D2_2));
 
         assert_eq!(
-            life_to_plaintext(&life),
+            life.to_plaintext(),
             "\
 ........
 ........
@@ -161,7 +159,7 @@ mod rand_life_tests {
         rand_life(&mut life, (2, 2), (5, 5), 1234, Some(RandSymmetry::C2_1));
 
         assert_eq!(
-            life_to_plaintext(&life),
+            life.to_plaintext(),
             "\
 ........
 ........
@@ -181,7 +179,7 @@ mod rand_life_tests {
         rand_life(&mut life, (2, 2), (5, 5), 1234, Some(RandSymmetry::C4_1));
 
         assert_eq!(
-            life_to_plaintext(&life),
+            life.to_plaintext(),
             "\
 ........
 ........

@@ -8,7 +8,10 @@ use std::str::{FromStr, Split};
  * https://conwaylife.com/wiki/Run_Length_Encoded
  */
 
-use crate::{life::{Cell, Life, LifeRule}, pattern::{Pattern, PatternMetadata}};
+use crate::{
+    life::{Cell, Life, LifeRule},
+    pattern::{Pattern, PatternMetadata},
+};
 
 fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Pattern> {
     let mut metadata = PatternMetadata::default();
@@ -47,7 +50,6 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Pattern> {
 }
 
 fn rle_parse_body(it: &mut Split<'_, char>, life: &mut Life) {
-
     let mut pos: (u16, u16) = (0, 0);
     for line in it {
         let mut run_count = 0;
@@ -100,13 +102,6 @@ fn rle_parse_body(it: &mut Split<'_, char>, life: &mut Life) {
             }
         }
     }
-}
-
-pub fn new_pattern_from_rle(rle: &str) -> Pattern {
-    let mut line_it = rle.split('\n');
-    let mut pattern: Pattern = rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
-    rle_parse_body(&mut line_it, &mut pattern.life);
-    pattern
 }
 
 fn rle_tag(state: u8) -> char {
@@ -197,73 +192,100 @@ impl RleWriter {
     }
 }
 
-pub fn life_to_rle(pattern: &Pattern) -> String {
-    let size = pattern.life.size();
-    let mut string = String::with_capacity(64);
-    if let Some(name) = &pattern.metadata.name {
-        string.push_str("#N ");
-        string.push_str(name.as_str());
-        string.push('\n');
+impl Pattern {
+    pub fn from_rle(rle: &str) -> Self {
+        let mut line_it = rle.split('\n');
+        let mut pattern =
+            rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
+        rle_parse_body(&mut line_it, &mut pattern.life);
+        pattern
     }
-    if let Some(desc) = &pattern.metadata.description {
-        string.push_str("#C ");
-        string.push_str(desc.as_str());
-        string.push('\n');
-    }
-    string.push_str(
-        format!(
-            "x = {}, y = {}, rule = {}\n",
-            size.0,
-            size.1,
-            pattern.life.rule.to_str().as_str()
-        )
-        .as_str(),
-    );
 
-    let tag_func: fn(u8) -> char = if pattern.life.rule.is_generations() {
-        rle_tag_generations
-    } else {
-        rle_tag
-    };
-
-    let mut writer = RleWriter {
-        item: None,
-        line_count: 0,
-        string,
-        dead: RleItem {
-            tag: tag_func(0),
-            count: 0,
-        },
-    };
-
-    for (x, y, cell) in pattern.life.iter() {
-        if x == 0 && y != 0 {
-            writer.push('$');
+    pub fn to_rle(&self) -> String {
+        let size = self.life.size();
+        let mut string = String::with_capacity(64);
+        if let Some(name) = &self.metadata.name {
+            string.push_str("#N ");
+            string.push_str(name.as_str());
+            string.push('\n');
         }
-        writer.push(tag_func(cell.get_state()));
-    }
-    writer.flush();
-    writer.string.push('!');
+        if let Some(desc) = &self.metadata.description {
+            string.push_str("#C ");
+            string.push_str(desc.as_str());
+            string.push('\n');
+        }
+        string.push_str(
+            format!(
+                "x = {}, y = {}, rule = {}\n",
+                size.0,
+                size.1,
+                self.life.rule.to_str().as_str()
+            )
+            .as_str(),
+        );
 
-    writer.string
+        let tag_func: fn(u8) -> char = if self.life.rule.is_generations() {
+            rle_tag_generations
+        } else {
+            rle_tag
+        };
+
+        let mut writer = RleWriter {
+            item: None,
+            line_count: 0,
+            string,
+            dead: RleItem {
+                tag: tag_func(0),
+                count: 0,
+            },
+        };
+
+        for (x, y, cell) in self.life.iter() {
+            if x == 0 && y != 0 {
+                writer.push('$');
+            }
+            writer.push(tag_func(cell.get_state()));
+        }
+        writer.flush();
+        writer.string.push('!');
+
+        writer.string
+    }
 }
 
 #[cfg(test)]
 mod rle_tests {
     use super::*;
 
-    pub const GLIDER_RLE: &str = "\
+    const GLIDER_RLE: &str = "\
 #C This is a glider.
 x = 3, y = 3, rule = B3/S23
 bo$2bo$3o!";
 
-    pub const GOSPER_RLE: &str = "\
+    #[test]
+    fn test_rle_glider() {
+        let pattern = Pattern::from_rle(GLIDER_RLE);
+
+        assert_eq!(pattern.life.size(), (3, 3));
+        assert_eq!(pattern.to_rle(), GLIDER_RLE);
+    }
+
+    const GOSPER_RLE: &str = "\
 #N Gosper glider gun
 x = 36, y = 9, rule = B3/S23
 24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o
 4bobo$10bo5bo7bo$11bo3bo$12b2o!";
 
-    pub const STAR_WARS_RLE: &str = "\
+    #[test]
+    fn test_rle_gosper() {
+        let pattern = Pattern::from_rle(GOSPER_RLE);
+        assert_eq!(pattern.life.rule, LifeRule::GOL);
+        assert_eq!(pattern.life.size(), (36, 9));
+        assert_eq!(pattern.life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
+        assert_eq!(pattern.to_rle(), GOSPER_RLE);
+    }
+
+    const STAR_WARS_RLE: &str = "\
 x = 43, y = 48, rule = B2/S345/4
 2.ABC$2.A2.A$.6A.A$2.A3.2A.B$A.A4.2A.C$B2A5.2A$C.A5.A$2.A5.A4.CBA$.
 10A3.A25.CB$2.A2.A2.A.B2.3A23.2A.A$.ABC3.ABC4.A25.3A$13.ABC23.BA.B$
@@ -274,36 +296,9 @@ A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B21.B
 15A$6.A2.A2.A2.A2.A!";
 
     #[test]
-    fn test_rle_glider() {
-        let pattern = new_pattern_from_rle(GLIDER_RLE);
-
-        assert_eq!(pattern.life.size(), (3, 3));
-        assert_eq!(life_to_rle(&pattern), GLIDER_RLE);
-    }
-
-    #[test]
-    fn test_rle_gosper() {
-        let pattern = new_pattern_from_rle(GOSPER_RLE);
-        assert_eq!(pattern.life.rule, LifeRule::GOL);
-        assert_eq!(pattern.life.size(), (36, 9));
-        assert_eq!(pattern.life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
-        assert_eq!(life_to_rle(&pattern), GOSPER_RLE);
-    }
-
-    #[test]
     fn test_rle_star_wars() {
-        let pattern = new_pattern_from_rle(STAR_WARS_RLE);
+        let pattern = Pattern::from_rle(STAR_WARS_RLE);
         assert_eq!(pattern.life.rule, LifeRule::STAR_WARS);
-        let new_rle = life_to_rle(&pattern);
-
-        for line in new_rle.lines() {
-            println!("{line}")
-        }
-
-        for line in STAR_WARS_RLE.lines() {
-            println!("{line}")
-        }
-
-        assert_eq!(new_rle, STAR_WARS_RLE);
+        assert_eq!(pattern.to_rle(), STAR_WARS_RLE);
     }
 }

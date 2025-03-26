@@ -4,7 +4,7 @@
 
 use crate::{pattern::Pattern, storage::{SaveError, Storage}};
 
-use super::life_to_rle;
+// use super::pattern_to_rle;
 
 pub const GLIDER_RLE: &str = "\
 #N Glider
@@ -37,13 +37,13 @@ impl PatternLib {
                 println!("Pattern lib loaded {} patterns", patterns_strings.len());
                 patterns_strings
                     .iter()
-                    .map(|rle| super::new_pattern_from_rle(rle.as_str()))
+                    .map(|rle| Pattern::from_rle(rle.as_str()))
                     .collect()
             } else {
                 println!("Pattern lib NOT FOUND!");
                 BUILT_IN_PATTERNS
                     .iter()
-                    .map(|rle| super::new_pattern_from_rle(rle))
+                    .map(|rle| Pattern::from_rle(rle))
                     .collect()
             },
             storage,
@@ -67,7 +67,7 @@ impl PatternLib {
         let pattern_strings: Vec<String> = self
             .patterns
             .iter()
-            .map(life_to_rle)
+            .map(Pattern::to_rle)
             .collect();
         self.storage.save_as_ron(&pattern_strings)
     }

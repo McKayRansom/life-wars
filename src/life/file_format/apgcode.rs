@@ -1,7 +1,7 @@
 use std::str::Chars;
 
 use crate::{
-    life::{Cell, Life, LifeOptions, LifeRule},
+    life::{Cell, Life, LifeOptions},
     pattern::{Classification, Pattern, PatternMetadata},
 };
 
@@ -82,117 +82,109 @@ fn zero_count_write(string: &mut String, count: usize) {
     }
 }
 
-#[allow(unused)]
-pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Pattern {
-    let rule = rule.unwrap_or_default();
+impl Pattern {
+    #[allow(unused)]
+    pub fn from_apgcode(apgcode: &str, options: LifeOptions) -> Pattern {
+        let (prefix, suffix) = apgcode.split_once('_').unwrap();
 
-    let (prefix, suffix) = apgcode.split_once('_').unwrap();
+        let (classification, period) = classification_from_prefix(prefix);
 
-    let (classification, period) = classification_from_prefix(prefix);
+        let mut row_of_5_count: usize = 0;
+        let row_size = suffix
+            .split('z')
+            .map(|section| {
+                let mut iter = section.chars();
 
-    let mut row_of_5_count: usize = 0;
-    let row_size = suffix
-        .split('z')
-        .map(|section| {
-            let mut iter = section.chars();
-
-            let mut row_len = 0;
-            while let Some(chr) = iter.next() {
-                row_len += zero_count_read(chr, &mut iter).unwrap_or(1);
-            }
-            row_of_5_count += 1;
-            row_len
-        })
-        .max()
-        .unwrap();
-
-    let mut life: Life = Life::new_ex(
-        (row_size as u16, (row_of_5_count * 5) as u16),
-        LifeOptions {
-            algo: crate::life::LifeAlgoSelect::Basic,
-            rule,
-        },
-    );
-
-    for (row_of_5_count, row) in suffix.split('z').enumerate() {
-        let mut x = 0;
-        let mut iter = row.chars();
-        while let Some(chr) = iter.next() {
-            if let Some(zero_count) = zero_count_read(chr, &mut iter) {
-                x += zero_count;
-                continue;
-            }
-
-            let mut col_vals = chr.to_digit(32).expect("Unexpected char in apgcode");
-
-            for y in 0..6 {
-                if col_vals & 1 != 0 {
-                    life.insert((x as u16, (row_of_5_count * 5) as u16 + y), Cell::new(1, 0));
+                let mut row_len = 0;
+                while let Some(chr) = iter.next() {
+                    row_len += zero_count_read(chr, &mut iter).unwrap_or(1);
                 }
-                col_vals >>= 1;
+                row_of_5_count += 1;
+                row_len
+            })
+            .max()
+            .unwrap();
+
+        let mut life: Life = Life::new_ex((row_size as u16, (row_of_5_count * 5) as u16), options);
+
+        for (row_of_5_count, row) in suffix.split('z').enumerate() {
+            let mut x = 0;
+            let mut iter = row.chars();
+            while let Some(chr) = iter.next() {
+                if let Some(zero_count) = zero_count_read(chr, &mut iter) {
+                    x += zero_count;
+                    continue;
+                }
+
+                let mut col_vals = chr.to_digit(32).expect("Unexpected char in apgcode");
+
+                for y in 0..6 {
+                    if col_vals & 1 != 0 {
+                        life.insert((x as u16, (row_of_5_count * 5) as u16 + y), Cell::new(1, 0));
+                    }
+                    col_vals >>= 1;
+                }
+                x += 1;
             }
-            x += 1;
+            // break;
         }
-        // break;
-    }
-    Pattern {
-        life,
-        metadata: PatternMetadata {
-            classification,
-            period_or_pop_or_lifespan: period,
-            ..Default::default()
-        },
-    }
-}
-
-#[allow(unused)]
-pub fn apgcode_from_pattern(pattern: &Pattern) -> String {
-    let mut string = String::with_capacity(64);
-
-    string.push_str(prefix_from_classification(pattern.metadata.classification));
-
-    if let Some(period) = pattern.metadata.period_or_pop_or_lifespan {
-        string.push_str(format!("{period}").as_str());
+        Pattern {
+            life,
+            metadata: PatternMetadata {
+                classification,
+                period_or_pop_or_lifespan: period,
+                ..Default::default()
+            },
+        }
     }
 
-    string.push('_');
+    #[allow(unused)]
+    pub fn to_apgcode(&self) -> String {
+        let mut string = String::with_capacity(64);
 
-    // iterate by cols instead of by rows
-    let size = pattern.life.size();
-    for row_of_5 in 0..(size.1 / 5 + if size.1 % 5 == 0 { 0 } else { 1 }) {
-        let mut zero_count: usize = 0;
-        for x in 0..size.0 {
-            let mut col_vals = 0;
-            for dy in 0..5 {
-                col_vals >>= 1;
-                if let Some(cell) = pattern.life.get_cell((x, (row_of_5 * 5) + dy)) {
-                    if cell.is_alive() {
-                        col_vals |= 1 << 4;
+        string.push_str(prefix_from_classification(self.metadata.classification));
+
+        if let Some(period) = self.metadata.period_or_pop_or_lifespan {
+            string.push_str(format!("{period}").as_str());
+        }
+
+        string.push('_');
+
+        // iterate by cols instead of by rows
+        let size = self.life.size();
+        for row_of_5 in 0..(size.1 / 5 + if size.1 % 5 == 0 { 0 } else { 1 }) {
+            let mut zero_count: usize = 0;
+            for x in 0..size.0 {
+                let mut col_vals = 0;
+                for dy in 0..5 {
+                    col_vals >>= 1;
+                    if let Some(cell) = self.life.get_cell((x, (row_of_5 * 5) + dy)) {
+                        if cell.is_alive() {
+                            col_vals |= 1 << 4;
+                        }
                     }
                 }
+                let col_char = char::from_digit(col_vals as u32, 32).unwrap();
+                if col_char != '0' {
+                    zero_count_write(&mut string, zero_count);
+                    zero_count = 0;
+                    string.push(col_char);
+                } else {
+                    zero_count += 1;
+                }
             }
-            let col_char = char::from_digit(col_vals as u32, 32).unwrap();
-            if col_char != '0' {
-                zero_count_write(&mut string, zero_count);
-                zero_count = 0;
-                string.push(col_char);
-            } else {
-                zero_count += 1;
-            }
+            string.push('z');
         }
-        string.push('z');
+
+        // Remove last 'z'
+        string.pop();
+
+        string
     }
-
-    // Remove last 'z'
-    string.pop();
-
-    string
 }
 
 #[cfg(test)]
 mod apgcode_tests {
-    use crate::{life::life_to_plaintext, pattern::Pattern};
-
     use super::*;
 
     /*
@@ -225,16 +217,16 @@ OO.OOOO
     fn test_apgcode_spaceship() {
         const HEAVYWEIGHT_SPACESHIP_APG: &str = "xq4_27deee6";
 
-        let pattern: Pattern = new_pattern_from_apgcode(HEAVYWEIGHT_SPACESHIP_APG, None);
+        let pattern = Pattern::from_apgcode(HEAVYWEIGHT_SPACESHIP_APG, LifeOptions::default());
         assert_eq!(
-            life_to_plaintext(&pattern.life),
+            pattern.life.to_plaintext(),
             HEAVYWEIGHT_SPACESHIP_TXT,
             "{}",
             pattern.life
         );
 
         assert_eq!(
-            apgcode_from_pattern(&pattern).as_str(),
+            pattern.to_apgcode(),
             HEAVYWEIGHT_SPACESHIP_APG
         );
     }
@@ -242,9 +234,9 @@ OO.OOOO
     #[test]
     fn test_apgcode_still_life() {
         const STIL_LIFE_APG: &str = "xs31_0ca178b96z69d1d96";
-        let pattern: Pattern = new_pattern_from_apgcode(STIL_LIFE_APG, None);
+        let pattern = Pattern::from_apgcode(STIL_LIFE_APG, LifeOptions::default());
         assert_eq!(
-            apgcode_from_pattern(&pattern).as_str(),
+            pattern.to_apgcode(),
             STIL_LIFE_APG,
             "{}",
             pattern.life
@@ -255,9 +247,9 @@ OO.OOOO
     fn test_apgcode_queen_bee_shuttle() {
         const QUEEN_BEE_SHUTTLE: &str = "xp30_w33z8kqrqk8zzzx33";
 
-        let pattern: Pattern = new_pattern_from_apgcode(QUEEN_BEE_SHUTTLE, None);
+        let pattern: Pattern = Pattern::from_apgcode(QUEEN_BEE_SHUTTLE, LifeOptions::default());
         assert_eq!(
-            apgcode_from_pattern(&pattern).as_str(),
+            pattern.to_apgcode(),
             QUEEN_BEE_SHUTTLE,
             "{}",
             pattern.life
@@ -268,9 +260,9 @@ OO.OOOO
     fn test_apgcode_quadpole_tie_ship() {
         const QUADPOLE_TIE_SHIP: &str = "xp2_31a08zy0123cko";
 
-        let pattern: Pattern = new_pattern_from_apgcode(QUADPOLE_TIE_SHIP, None);
+        let pattern: Pattern = Pattern::from_apgcode(QUADPOLE_TIE_SHIP, LifeOptions::default());
         assert_eq!(
-            apgcode_from_pattern(&pattern).as_str(),
+            pattern.to_apgcode(),
             QUADPOLE_TIE_SHIP,
             "{}",
             pattern.life

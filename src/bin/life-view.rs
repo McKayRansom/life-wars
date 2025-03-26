@@ -1,4 +1,4 @@
-use life_io::{life::{life_from_plaintext, LifeOptions}, viewer::LifeViewer};
+use life_io::{life::{Life, LifeOptions}, viewer::LifeViewer};
 use macroquad::{
     texture::set_default_filter_mode,
     window::{self, next_frame},
@@ -30,7 +30,7 @@ fn window_conf() -> window::Conf {
 async fn main() {
     set_default_filter_mode(window::miniquad::FilterMode::Nearest);
 
-    let mut viewer = LifeViewer::new_fit_to_screen(Box::new(life_from_plaintext(
+    let mut viewer = LifeViewer::new_fit_to_screen(Box::new(Life::from_plaintext(
         "!Name: 
         .................................
         .................................

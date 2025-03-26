@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use life_io::life::{life_to_plaintext, rand::rand_life, Life, LifeOptions, LifeRule};
+use life_io::life::{rand::rand_life, Life, LifeOptions, LifeRule};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -85,7 +85,7 @@ fn main() {
                     "Found oscilator {} seed: {seed} iter: {} str: {}",
                     res.period,
                     res.age,
-                    life_to_plaintext(&res.life)
+                    res.life.to_plaintext(),
                 );
             }
         }

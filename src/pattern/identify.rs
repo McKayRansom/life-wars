@@ -151,13 +151,13 @@ pub fn identify(life: &mut Life) -> Vec<Pattern> {
 
 #[cfg(test)]
 mod identify_tests {
-    use crate::life::{LifeOptions, life_from_plaintext};
+    use crate::life::LifeOptions;
 
     use super::*;
 
     #[test]
     fn test_cell_group_tracker() {
-        let life = life_from_plaintext(
+        let life = Life::from_plaintext(
             "\
 OO..OO
 OO..OO",
@@ -171,7 +171,7 @@ OO..OO",
 
     #[test]
     fn test_cell_group_tracker_blinker() {
-        let mut life = life_from_plaintext(
+        let mut life = Life::from_plaintext(
             "\
 .O.
 .O.
@@ -190,7 +190,7 @@ OO..OO",
 
     #[test]
     fn test_identify_block() {
-        let mut life = life_from_plaintext(
+        let mut life = Life::from_plaintext(
             "\
 OO..OO
 OO..OO",

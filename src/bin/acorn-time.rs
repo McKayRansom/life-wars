@@ -14,7 +14,7 @@ Gosper, sp 13 * 1     820    60      ?
 
 use std::time::Instant;
 
-use life_io::life::{life_from_plaintext, Life, LifeOptions, WORKING_ALGOS};
+use life_io::life::{Life, LifeOptions, WORKING_ALGOS};
 
 const ACORN: &str = "\
 !Name: Acorn
@@ -28,7 +28,7 @@ OO..OOO";
 fn main() {
     println!("Life performance comparison: 5000 gens of 'Acorn'");
 
-    let acorn_life = life_from_plaintext(ACORN, LifeOptions::default());
+    let acorn_life = Life::from_plaintext(ACORN, LifeOptions::default());
     println!("\n{:<16}  time(ms)", "Algorithm");
     println!("-------------------------");
 

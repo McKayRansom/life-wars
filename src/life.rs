@@ -15,8 +15,6 @@ mod pos;
 pub use pos::Pos;
 
 mod file_format;
-pub use file_format::plaintext::*;
-pub use file_format::rle::*;
 
 pub mod pattern_lib;
 
@@ -250,13 +248,13 @@ impl Clone for Life {
 // TODO: TryFrom instead...
 impl From<&str> for Life {
     fn from(value: &str) -> Self {
-        life_from_plaintext(value, LifeOptions::default())
+        Life::from_plaintext(value, LifeOptions::default())
     }
 }
 
 // Should this be Display or Debug?
 impl std::fmt::Display for Life {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(life_to_plaintext(self).as_str())
+        f.write_str(self.to_plaintext().as_str())
     }
 }

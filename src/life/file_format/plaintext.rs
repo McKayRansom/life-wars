@@ -3,108 +3,111 @@ use crate::{
     pattern::{Pattern, PatternMetadata},
 };
 
-// Based on Plaintext format https://conwaylife.com/wiki/Plaintext
-// TODO: TryFrom instead...
-pub fn life_from_plaintext(value: &str, options: LifeOptions) -> Life {
-    let mut size: (u16, u16) = (0, 0);
-    for line in value.lines() {
-        if !line.starts_with("!") {
-            size.1 += 1;
-            size.0 = size.0.max(line.len() as u16);
-        }
-    }
-    let mut life = Life::new_ex(size, options);
-
-    let mut pos: (u16, u16) = (0, 0);
-    for line in value.lines() {
-        if line.starts_with("!") {
-            continue;
-        }
-
-        for chr in line.chars() {
-            if let Some(cell) = match chr {
-                '.' => None, // ignore, dead
-                'O' => Some(Cell::new(1, 0)),
-                'B' => Some(Cell::new(2, 0)),
-                'C' => Some(Cell::new(3, 0)),
-                '1' => Some(Cell::new(1, 1)),
-                '2' => Some(Cell::new(1, 2)),
-                ' ' => continue,
-                _ => unimplemented!("No parse rule in PlainText format for: '{chr}'"),
-            } {
-                life.insert(pos, cell);
+impl Life {
+    // Based on Plaintext format https://conwaylife.com/wiki/Plaintext
+    // TODO: TryFrom instead...
+    pub fn from_plaintext(value: &str, options: LifeOptions) -> Life {
+        let mut size: (u16, u16) = (0, 0);
+        for line in value.lines() {
+            if !line.starts_with("!") {
+                size.1 += 1;
+                size.0 = size.0.max(line.len() as u16);
             }
-            pos.0 += 1;
         }
+        let mut life = Life::new_ex(size, options);
 
-        pos.0 = 0;
-        pos.1 += 1;
+        let mut pos: (u16, u16) = (0, 0);
+        for line in value.lines() {
+            if line.starts_with("!") {
+                continue;
+            }
+
+            for chr in line.chars() {
+                if let Some(cell) = match chr {
+                    '.' => None, // ignore, dead
+                    'O' => Some(Cell::new(1, 0)),
+                    'B' => Some(Cell::new(2, 0)),
+                    'C' => Some(Cell::new(3, 0)),
+                    '1' => Some(Cell::new(1, 1)),
+                    '2' => Some(Cell::new(1, 2)),
+                    ' ' => continue,
+                    _ => unimplemented!("No parse rule in PlainText format for: '{chr}'"),
+                } {
+                    life.insert(pos, cell);
+                }
+                pos.0 += 1;
+            }
+
+            pos.0 = 0;
+            pos.1 += 1;
+        }
+        life
     }
-    life
+
+    pub fn to_plaintext(&self) -> String {
+        let mut string = String::with_capacity(16);
+
+        for (x, y, cell) in self.iter() {
+            if x == 0 && y != 0 {
+                string.push('\n');
+            }
+            string.push(match (cell.get_state(), cell.get_faction()) {
+                (0, _) => '.',
+                (1, 0) => 'O',
+                (2, 0) => 'B',
+                (3, 0) => 'C',
+                (1, 1) => '1',
+                (1, 2) => '2',
+                _ => unimplemented!("No serialize rule for cell {cell:?}"),
+            })
+        }
+        string
+    }
 }
 
-pub fn pattern_from_plaintext(value: &str, options: LifeOptions) -> Pattern {
-    let mut metadata = PatternMetadata::default();
-    for line in value.lines() {
-        if line.starts_with("!") {
-            if let Some(pat_name) = line.strip_prefix("!Name: ") {
-                metadata.name = Some(pat_name.into())
+impl Pattern {
+    pub fn from_plaintext(value: &str, options: LifeOptions) -> Pattern {
+        let mut metadata = PatternMetadata::default();
+        for line in value.lines() {
+            if line.starts_with("!") {
+                if let Some(pat_name) = line.strip_prefix("!Name: ") {
+                    metadata.name = Some(pat_name.into())
+                } else {
+                    metadata.description = Some(line[1..].into())
+                }
             } else {
-                metadata.description = Some(line[1..].into())
+                break;
             }
-        } else {
-            break;
+        }
+        Pattern {
+            life: Life::from_plaintext(value, options),
+            metadata,
         }
     }
-    Pattern {
-        life: life_from_plaintext(value, options),
-        metadata,
-    }
-}
 
-pub fn life_to_plaintext(life: &Life) -> String {
-    let mut string = String::with_capacity(16);
-
-    for (x, y, cell) in life.iter() {
-        if x == 0 && y != 0 {
+    pub fn to_plaintext(&self) -> String {
+        let mut string = String::with_capacity(32);
+        if let Some(name) = &self.metadata.name {
+            string.push_str("!Name: ");
+            string.push_str(name.as_str());
             string.push('\n');
         }
-        string.push(match (cell.get_state(), cell.get_faction()) {
-            (0, _) => '.',
-            (1, 0) => 'O',
-            (2, 0) => 'B',
-            (3, 0) => 'C',
-            (1, 1) => '1',
-            (1, 2) => '2',
-            _ => unimplemented!("No serialize rule for cell {cell:?}"),
-        })
+
+        if let Some(description) = &self.metadata.description {
+            string.push('!');
+            string.push_str(&description.as_str());
+            string.push('\n');
+        }
+
+        string.push_str(self.life.to_plaintext().as_str());
+
+        string
     }
-    string
-}
-
-pub fn pattern_to_plaintext(pattern: &Pattern) -> String {
-    let mut string = String::with_capacity(32);
-    if let Some(name) = &pattern.metadata.name {
-        string.push_str("!Name: ");
-        string.push_str(name.as_str());
-        string.push('\n');
-    }
-
-    if let Some(description) = &pattern.metadata.description {
-        string.push('!');
-        string.push_str(&description.as_str());
-        string.push('\n');
-    }
-
-    string.push_str(life_to_plaintext(&pattern.life).as_str());
-
-    string
 }
 
 #[cfg(test)]
 mod life_tests {
     use super::*;
-
 
     pub const GLIDER_TXT: &str = "\
 .O.
@@ -146,8 +149,8 @@ O12";
 
     #[test]
     fn comments() {
-        let pattern = pattern_from_plaintext(COMMENTS_TXT, LifeOptions::default());
+        let pattern = Pattern::from_plaintext(COMMENTS_TXT, LifeOptions::default());
 
-        assert_eq!(pattern_to_plaintext(&pattern), COMMENTS_TXT);
+        assert_eq!(pattern.to_plaintext(), COMMENTS_TXT);
     }
 }
