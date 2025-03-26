@@ -20,6 +20,9 @@ fn test_blinker() {
 
         life.update();
         assert_eq!(life_to_plaintext(&life), BLINKER_2, "algo: {algo:?}");
+
+        life.update();
+        assert_eq!(life_to_plaintext(&life), BLINKER_1, "algo: {algo:?}");
     }
 }
 
