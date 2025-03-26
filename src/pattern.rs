@@ -1,18 +1,17 @@
 use crate::life::Life;
 
-// pub mod classify;
+pub mod classify;
 pub mod identify;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Classification {
-    StilLife, // population
-    Oscillator,
-    Spaceship, // Period
+    StilLife,     // population
+    Oscillator,   // Period
+    Spaceship,    // Period
     LinearGrowth, // Period
-    Methuselah, // lifespan
-    Messless, // lifespan (A.K.A. diehard)
-    Megasized, // ??? (Large final population)
+    Methuselah,   // lifespan
+    Messless,     // lifespan (A.K.A. diehard)
+    Megasized,    // ??? (Large final population)
 
     Explosive,
     Linear,
@@ -21,7 +20,7 @@ pub enum Classification {
     Pathological,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct PatternMetadata {
     pub name: Option<String>,
     pub description: Option<String>,

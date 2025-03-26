@@ -82,12 +82,8 @@ fn zero_count_write(string: &mut String, count: usize) {
     }
 }
 
-impl Pattern {
-    #[allow(unused)]
-    pub fn from_apgcode(apgcode: &str, options: LifeOptions) -> Pattern {
-        let (prefix, suffix) = apgcode.split_once('_').unwrap();
-
-        let (classification, period) = classification_from_prefix(prefix);
+impl Life {
+    pub fn from_apgcode(suffix: &str, options: LifeOptions) -> Self {
 
         let mut row_of_5_count: usize = 0;
         let row_size = suffix
@@ -128,8 +124,52 @@ impl Pattern {
             }
             // break;
         }
+
+        life
+    }
+    pub fn to_apgcode(&self) -> String {
+        let mut string = String::with_capacity(16);
+        // iterate by cols instead of by rows
+        let size = self.size();
+        for row_of_5 in 0..(size.1 / 5 + if size.1 % 5 == 0 { 0 } else { 1 }) {
+            let mut zero_count: usize = 0;
+            for x in 0..size.0 {
+                let mut col_vals = 0;
+                for dy in 0..5 {
+                    col_vals >>= 1;
+                    if let Some(cell) = self.get_cell((x, (row_of_5 * 5) + dy)) {
+                        if cell.is_alive() {
+                            col_vals |= 1 << 4;
+                        }
+                    }
+                }
+                let col_char = char::from_digit(col_vals as u32, 32).unwrap();
+                if col_char != '0' {
+                    zero_count_write(&mut string, zero_count);
+                    zero_count = 0;
+                    string.push(col_char);
+                } else {
+                    zero_count += 1;
+                }
+            }
+            string.push('z');
+        }
+
+        // Remove last 'z'
+        string.pop();
+        string
+    }
+}
+
+impl Pattern {
+    #[allow(unused)]
+    pub fn from_apgcode(apgcode: &str, options: LifeOptions) -> Pattern {
+        let (prefix, suffix) = apgcode.split_once('_').unwrap();
+
+        let (classification, period) = classification_from_prefix(prefix);
+
         Pattern {
-            life,
+            life: Life::from_apgcode(suffix, options),
             metadata: PatternMetadata {
                 classification,
                 period_or_pop_or_lifespan: period,
@@ -150,34 +190,7 @@ impl Pattern {
 
         string.push('_');
 
-        // iterate by cols instead of by rows
-        let size = self.life.size();
-        for row_of_5 in 0..(size.1 / 5 + if size.1 % 5 == 0 { 0 } else { 1 }) {
-            let mut zero_count: usize = 0;
-            for x in 0..size.0 {
-                let mut col_vals = 0;
-                for dy in 0..5 {
-                    col_vals >>= 1;
-                    if let Some(cell) = self.life.get_cell((x, (row_of_5 * 5) + dy)) {
-                        if cell.is_alive() {
-                            col_vals |= 1 << 4;
-                        }
-                    }
-                }
-                let col_char = char::from_digit(col_vals as u32, 32).unwrap();
-                if col_char != '0' {
-                    zero_count_write(&mut string, zero_count);
-                    zero_count = 0;
-                    string.push(col_char);
-                } else {
-                    zero_count += 1;
-                }
-            }
-            string.push('z');
-        }
-
-        // Remove last 'z'
-        string.pop();
+        string.push_str(self.life.to_apgcode().as_str());
 
         string
     }
