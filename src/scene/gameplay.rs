@@ -8,7 +8,7 @@ use macroquad::{
 };
 
 use life_io::{
-    life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeRule},
+    life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeOptions, LifeRule},
     viewer::{self, LifeViewer},
 };
 
@@ -31,7 +31,10 @@ impl Default for GameOptions {
 impl GameOptions {
     pub fn create(&self) -> Life {
         let seed = 23317;
-        let mut life = Life::new_rule(self.algo, self.size, self.rule);
+        let mut life = Life::new_ex(self.size, LifeOptions {
+            rule: self.rule,
+            algo: self.algo,
+        });
         life.randomize(seed, true);
         life
         // match &self {
@@ -159,7 +162,7 @@ fn draw_score(life: &Life, ctx: &Context) {
             macroquad::text::TextParams {
                 font: Some(&ctx.font),
                 font_size: 40,
-                color: viewer::faction_color(*faction, 1 ),
+                color: viewer::faction_color(*faction, 1),
                 ..Default::default()
             },
         );
@@ -202,23 +205,19 @@ impl Scene for Gameplay {
                 // MEAN: Steal our patterns!
                 let rand_pattern_i =
                     macroquad::rand::rand() as usize % ctx.pattern_lib.patterns.len();
-                let rand_patter = &ctx.pattern_lib.patterns[rand_pattern_i];
-                if rand_patter.get_rule() != self.viewer.life.get_rule() {
+                let rand_pattern = &ctx.pattern_lib.patterns[rand_pattern_i];
+                if rand_pattern.life.get_rule() != self.viewer.life.get_rule() {
                     return;
                 }
 
-                let bomber_life = rand_patter;
-
-                // let rand_
-
-                if self.resources[1] > bomber_life.get_pop(0) {
-                    self.resources[1] -= bomber_life.get_pop(0);
+                if self.resources[1] > rand_pattern.life.get_pop(0) {
+                    self.resources[1] -= rand_pattern.life.get_pop(0);
                     let size = self.viewer.life.size();
                     let rand_x = macroquad::rand::rand() % (size.0 as u32);
                     let rand_y = macroquad::rand::rand() % (size.1 as u32) / 4;
                     self.viewer
                         .life
-                        .paste(bomber_life, (rand_x as u16, rand_y as u16), Some(1));
+                        .paste(&rand_pattern.life, (rand_x as u16, rand_y as u16), Some(1));
                 }
             }
         }

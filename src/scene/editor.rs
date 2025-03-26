@@ -1,6 +1,8 @@
 use std::str::FromStr;
 
-use life_io::{life::{Life, LifeRule}, viewer::LifeViewer};
+use life_io::{
+    life::{Life, LifeOptions, LifeRule}, pattern::Pattern, viewer::LifeViewer
+};
 use macroquad::{
     color,
     input::{self, mouse_position},
@@ -79,10 +81,12 @@ impl Editor {
         skin.window_style = window_style;
 
         Self {
-            main_view: LifeViewer::new_fit_to_screen(Box::new(Life::new_rule(
-                life_io::life::LifeAlgoSelect::Cached,
+            main_view: LifeViewer::new_fit_to_screen(Box::new(Life::new_ex(
                 (256, 256),
-                LifeRule::from_str("B345/S4567").unwrap(),
+                LifeOptions {
+                    algo: life_io::life::LifeAlgoSelect::Cached,
+                    rule: LifeRule::from_str("B345/S4567").unwrap(),
+                },
             ))),
             clipboard: None,
             edit_select: EditBar::Fill,
@@ -121,10 +125,12 @@ impl Editor {
                     return;
                 }
                 self.clipboard = Some({
-                    let mut life = Life::new_rule(
-                        life_io::life::LifeAlgoSelect::Basic,
+                    let mut life = Life::new_ex(
                         (max_pos.0 - min_pos.0, max_pos.1 - min_pos.1),
-                        *self.main_view.life.get_rule(),
+                        LifeOptions {
+                            algo: life_io::life::LifeAlgoSelect::Basic,
+                            rule: *self.main_view.life.get_rule(),
+                        },
                     );
 
                     for pos in Self::iter_area(min_pos, max_pos) {
@@ -187,8 +193,9 @@ impl Editor {
         .ui(&mut ui::root_ui(), |ui| {
             if ui.button(None, "Save") {
                 if let Some(clipboard) = &mut self.clipboard {
-                    clipboard.set_name(self.pattern_name.as_str());
-                    ctx.pattern_lib.add_pattern(clipboard);
+                    let mut pattern = Pattern::new_unclassified(clipboard.clone());
+                    pattern.metadata.name = Some(self.pattern_name.clone());
+                    ctx.pattern_lib.add_pattern(pattern);
                 }
             }
             ui.input_text(hash!(), "Name", &mut self.pattern_name);
@@ -230,17 +237,21 @@ impl Editor {
             let mouse_pos = mouse_position();
             if let Some(life_pos) = self.main_view.screen_to_life_pos(mouse_pos) {
                 let life_pos = (life_pos.0 + 1, life_pos.1 + 1);
-                let min_pos = (life_pos.0.min(mouse_down_pos.0), life_pos.1.min(mouse_down_pos.1));
-                let max_pos = (life_pos.0.max(mouse_down_pos.0), life_pos.1.max(mouse_down_pos.1));
+                let min_pos = (
+                    life_pos.0.min(mouse_down_pos.0),
+                    life_pos.1.min(mouse_down_pos.1),
+                );
+                let max_pos = (
+                    life_pos.0.max(mouse_down_pos.0),
+                    life_pos.1.max(mouse_down_pos.1),
+                );
 
                 let mouse_down_screen_pos = self.main_view.life_to_screen_pos(min_pos);
                 draw_rectangle(
                     mouse_down_screen_pos.0,
                     mouse_down_screen_pos.1,
-                    self.main_view
-                        .life_to_screen_scale(max_pos.0 - min_pos.0),
-                    self.main_view
-                        .life_to_screen_scale(max_pos.1 - min_pos.1),
+                    self.main_view.life_to_screen_scale(max_pos.0 - min_pos.0),
+                    self.main_view.life_to_screen_scale(max_pos.1 - min_pos.1),
                     color::Color {
                         r: 1.,
                         g: 1.,

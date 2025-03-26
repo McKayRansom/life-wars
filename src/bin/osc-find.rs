@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use life_io::life::{life_to_plaintext, rand::rand_life, Life};
+use life_io::life::{life_to_plaintext, rand::rand_life, Life, LifeOptions, LifeRule};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -16,7 +16,10 @@ pub struct LifeResult {
 }
 
 fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
-    let mut life = Life::new(life_io::life::LifeAlgoSelect::Basic, (33, 33));
+    let mut life = Life::new_ex((33, 33), LifeOptions {
+        rule: LifeRule::GOL,
+        algo: life_io::life::LifeAlgoSelect::Basic,
+    });
     rand_life(&mut life, (8, 8), (17, 17), seed, Some(life_io::life::rand::RandSymmetry::C4_1));
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;

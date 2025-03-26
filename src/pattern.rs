@@ -1,7 +1,7 @@
 use crate::life::Life;
 
 // pub mod classify;
-// pub mod identify;
+pub mod identify;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,13 +21,18 @@ pub enum Classification {
     Pathological,
 }
 
-#[derive(Default)]
-pub struct Pattern {
-    pub life: Life,
+#[derive(Default, Clone)]
+pub struct PatternMetadata {
     pub name: Option<String>,
     pub description: Option<String>,
     pub classification: Option<Classification>,
     pub period_or_pop_or_lifespan: Option<u32>,
+}
+
+#[derive(Default, Clone)]
+pub struct Pattern {
+    pub life: Life,
+    pub metadata: PatternMetadata,
 }
 
 impl Pattern {

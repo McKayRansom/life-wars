@@ -1,8 +1,8 @@
 use std::str::Chars;
 
 use crate::{
-    life::{Cell, Life, LifeRule},
-    pattern::{Classification, Pattern},
+    life::{Cell, Life, LifeOptions, LifeRule},
+    pattern::{Classification, Pattern, PatternMetadata},
 };
 
 /*
@@ -106,10 +106,12 @@ pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Patter
         .max()
         .unwrap();
 
-    let mut life: Life = Life::new_rule(
-        crate::life::LifeAlgoSelect::Basic,
+    let mut life: Life = Life::new_ex(
         (row_size as u16, (row_of_5_count * 5) as u16),
-        rule,
+        LifeOptions {
+            algo: crate::life::LifeAlgoSelect::Basic,
+            rule,
+        },
     );
 
     for (row_of_5_count, row) in suffix.split('z').enumerate() {
@@ -121,9 +123,7 @@ pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Patter
                 continue;
             }
 
-            let mut col_vals = chr
-                .to_digit(32)
-                .expect("Unexpected char in apgcode");
+            let mut col_vals = chr.to_digit(32).expect("Unexpected char in apgcode");
 
             for y in 0..6 {
                 if col_vals & 1 != 0 {
@@ -137,9 +137,11 @@ pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Patter
     }
     Pattern {
         life,
-        classification,
-        period_or_pop_or_lifespan: period,
-        ..Default::default()
+        metadata: PatternMetadata {
+            classification,
+            period_or_pop_or_lifespan: period,
+            ..Default::default()
+        },
     }
 }
 
@@ -147,9 +149,9 @@ pub fn new_pattern_from_apgcode(apgcode: &str, rule: Option<LifeRule>) -> Patter
 pub fn apgcode_from_pattern(pattern: &Pattern) -> String {
     let mut string = String::with_capacity(64);
 
-    string.push_str(prefix_from_classification(pattern.classification));
+    string.push_str(prefix_from_classification(pattern.metadata.classification));
 
-    if let Some(period) = pattern.period_or_pop_or_lifespan {
+    if let Some(period) = pattern.metadata.period_or_pop_or_lifespan {
         string.push_str(format!("{period}").as_str());
     }
 
@@ -212,7 +214,7 @@ mod apgcode_tests {
     O.....O
     OOOOOO */
 
-    const HEAVYWEIGHT_SPACESHIP_TXT: &str = "!Name: 
+    const HEAVYWEIGHT_SPACESHIP_TXT: &str = "\
 .OO....
 OO.OOOO
 .OOOOOO

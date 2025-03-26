@@ -1,13 +1,11 @@
 use life_io::life::*;
 
 const BLINKER_1: &str = "\
-!Name: Blinker
 .O.
 .O.
 .O.";
 
 const BLINKER_2: &str = "\
-!Name: Blinker
 ...
 OOO
 ...";
@@ -15,7 +13,10 @@ OOO
 #[test]
 fn test_blinker() {
     for algo in WORKING_ALGOS {
-        let mut life = from_plaintext(BLINKER_1, Some(*algo), None);
+        let mut life = life_from_plaintext(BLINKER_1, LifeOptions {
+            algo: *algo,
+            rule: LifeRule::GOL,
+        });
         assert_eq!(life_to_plaintext(&life), BLINKER_1, "algo: {algo:?}");
 
         life.update();
@@ -28,14 +29,19 @@ fn test_blinker() {
 
 #[test]
 fn test_compare() {
-    let mut life_basic = Life::new(LifeAlgoSelect::Basic, (64, 64));
-    let mut life_cached = Life::new(LifeAlgoSelect::Cached, (64, 64));
+    let mut life_basic = Life::new_ex((64, 64), LifeOptions {
+        algo: LifeAlgoSelect::Basic,
+        rule: LifeRule::default(),
+    });
+    let mut life_cached = Life::new_ex((64, 64), LifeOptions {
+        algo: LifeAlgoSelect::Cached,
+        rule: LifeRule::default(),
+    });
 
     rand::rand_life(&mut life_basic, (0, 0), (64, 64), 1234, None);
     rand::rand_life(&mut life_cached, (0, 0), (64, 64), 1234, None);
 
     for i in 0..50 {
-
         life_basic.update();
         life_cached.update();
 
@@ -48,13 +54,11 @@ fn test_compare() {
 }
 
 const FACTION_1: &str = "\
-!Name: Faction
 .O..1.
 .O..1.
 .O..1.";
 
 const FACTION_2: &str = "\
-!Name: Faction
 ......
 OOO111
 ......";
@@ -62,23 +66,36 @@ OOO111
 // Coexistence... Interesting
 // without factions this makes a solid 4x4 block
 const FACTION_3: &str = "\
-!Name: Faction
 .O..1.
 .O..1.
 .O..1.";
 
-
 #[test]
 fn test_faction() {
     for algo in FACTION_ALGOS {
-        let mut life = from_plaintext(FACTION_1, Some(*algo), None);
-        assert_eq!(life_to_plaintext(&life), FACTION_1, "algo: {algo:?} life: {life}");
+        let mut life = life_from_plaintext(FACTION_1, LifeOptions {
+            algo: *algo,
+            rule: LifeRule::GOL,
+        });
+        assert_eq!(
+            life_to_plaintext(&life),
+            FACTION_1,
+            "algo: {algo:?} life: {life}"
+        );
 
         life.update();
-        assert_eq!(life_to_plaintext(&life), FACTION_2, "algo: {algo:?} life: {life}");
+        assert_eq!(
+            life_to_plaintext(&life),
+            FACTION_2,
+            "algo: {algo:?} life: {life}"
+        );
 
         life.update();
-        assert_eq!(life_to_plaintext(&life), FACTION_3, "algo: {algo:?} life: {life}");
+        assert_eq!(
+            life_to_plaintext(&life),
+            FACTION_3,
+            "algo: {algo:?} life: {life}"
+        );
 
         // life.update();
         // assert_eq!(life_to_plaintext(&life), FACTION_3, "algo: {algo:?} life: {life}");
@@ -107,42 +124,61 @@ fn test_faction() {
 // }
 
 const STAR_WARS_SHIP_STATES: &[&str] = &[
-"!Name: SW_SHIP
+    "\
 .O....
 ..O...
 ..O...
 .O....",
-"!Name: SW_SHIP
+    "\
 .BO...
 ..BO..
 ..BO..
 .BO...",
-"!Name: SW_SHIP
+    "\
 .CBO..
 ..CBO.
 ..CBO.
 .CBO..",
-"!Name: SW_SHIP
+    "\
 ..CBO.
 ...CBO
 ...CBO
-..CBO."
+..CBO.",
 ];
 
 #[test]
 fn test_star_wars() {
     for algo in WORKING_ALGOS {
-        let mut life = from_plaintext(STAR_WARS_SHIP_STATES[0], Some(*algo), Some(LifeRule::STAR_WARS));
-        assert_eq!(life_to_plaintext(&life), STAR_WARS_SHIP_STATES[0], "algo: {algo:?}");
+        let mut life = life_from_plaintext(STAR_WARS_SHIP_STATES[0], LifeOptions {
+            algo: *algo,
+            rule: LifeRule::STAR_WARS,
+        });
+        assert_eq!(
+            life_to_plaintext(&life),
+            STAR_WARS_SHIP_STATES[0],
+            "algo: {algo:?}"
+        );
 
         life.update();
-        assert_eq!(life_to_plaintext(&life), STAR_WARS_SHIP_STATES[1], "algo: {algo:?}");
+        assert_eq!(
+            life_to_plaintext(&life),
+            STAR_WARS_SHIP_STATES[1],
+            "algo: {algo:?}"
+        );
 
         life.update();
-        assert_eq!(life_to_plaintext(&life), STAR_WARS_SHIP_STATES[2], "algo: {algo:?}");
+        assert_eq!(
+            life_to_plaintext(&life),
+            STAR_WARS_SHIP_STATES[2],
+            "algo: {algo:?}"
+        );
 
         life.update();
-        assert_eq!(life_to_plaintext(&life), STAR_WARS_SHIP_STATES[3], "algo: {algo:?}");
+        assert_eq!(
+            life_to_plaintext(&life),
+            STAR_WARS_SHIP_STATES[3],
+            "algo: {algo:?}"
+        );
 
         // life.update();
         // assert_eq!(life_to_plaintext(&life), STAR_WARS_SHIP_STATES[4], "algo: {algo:?}");

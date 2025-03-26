@@ -20,6 +20,7 @@ impl CellGroup {
         }
     }
 
+    #[allow(unused)]
     fn within(&self, pos: Pos) -> bool {
         pos.x >= self.top_left_pos.x
             && pos.x <= self.bot_right_pos.x
@@ -120,28 +121,47 @@ impl CellGroupTracker {
         }
     }
 
+    fn to_patterns(&self, life: &Life) -> Vec<Pattern> {
+        self.group_extents
+            .iter()
+            .enumerate()
+            .map(|(_group_id, group_extents)| {
+                let size = group_extents.bot_right_pos - group_extents.top_left_pos + (1, 1).into();
+                let mut new_life = Life::new(size.into());
+                for pos in group_extents.top_left_pos.iter(size) {
+                    new_life.insert(
+                        (pos - group_extents.top_left_pos).into(),
+                        *life.get_cell(pos.into()).unwrap(),
+                    );
+                }
+                Pattern::new_unclassified(new_life)
+            })
+            .collect()
+    }
 }
 
-// pub fn identify(life: &Life) -> Vec<Pattern> {
-//     // we need to identify which cells interact
+pub fn identify(life: &mut Life) -> Vec<Pattern> {
+    let mut tracker = CellGroupTracker::new(life);
 
-//     Vec::new()
-// }
+    life.update();
+    tracker.update(life);
+
+    tracker.to_patterns(life)
+}
 
 #[cfg(test)]
 mod identify_tests {
-    use crate::life::from_plaintext;
+    use crate::life::{LifeOptions, life_from_plaintext};
 
     use super::*;
 
     #[test]
     fn test_cell_group_tracker() {
-        let life = from_plaintext(
+        let life = life_from_plaintext(
             "\
 OO..OO
 OO..OO",
-            None,
-            None,
+            LifeOptions::default(),
         );
         let tracker = CellGroupTracker::new(&life);
 
@@ -151,13 +171,12 @@ OO..OO",
 
     #[test]
     fn test_cell_group_tracker_blinker() {
-        let mut life = from_plaintext(
+        let mut life = life_from_plaintext(
             "\
 .O.
 .O.
 .O.",
-            None,
-            None,
+            LifeOptions::default(),
         );
         let mut tracker = CellGroupTracker::new(&life);
 
@@ -167,5 +186,20 @@ OO..OO",
         tracker.update(&life);
 
         assert_eq!(tracker.groups[1][0], 1);
+    }
+
+    #[test]
+    fn test_identify_block() {
+        let mut life = life_from_plaintext(
+            "\
+OO..OO
+OO..OO",
+            LifeOptions::default(),
+        );
+
+        let patterns = identify(&mut life);
+
+        assert_eq!(patterns[0].life.to_string(), "OO\nOO");
+        assert_eq!(patterns[1].life.to_string(), "OO\nOO");
     }
 }

@@ -93,12 +93,17 @@ impl LifePops {
 }
 
 
+#[derive(Default)]
+pub struct LifeOptions {
+    pub algo: LifeAlgoSelect,
+    pub rule: LifeRule,
+}
+
 pub struct Life {
     algo: Box<dyn LifeAlgo>,
     rule: LifeRule,
     pops: LifePops,
     generation: u64,
-    name: String,
 }
 
 impl Default for Life {
@@ -108,23 +113,31 @@ impl Default for Life {
             rule: LifeRule::GOL,
             pops: LifePops::new(),
             generation: 0,
-            name: String::new(),
         }
     }
 }
 
 impl Life {
-    pub fn new(algo: LifeAlgoSelect, size: (u16, u16)) -> Self {
+    pub fn new(size: (u16, u16)) -> Self {
         Self {
-            algo: algo::new(algo, size),
+            algo: algo::new(LifeAlgoSelect::Basic, size),
             ..Default::default()
         }
     }
 
-    pub fn new_rule(algo: LifeAlgoSelect, size: (u16, u16), rule: LifeRule) -> Self {
+    pub fn new_rule(size: (u16, u16), rule: LifeRule) -> Self {
         Self {
+            algo: algo::new(LifeAlgoSelect::Basic, size),
             rule,
-            ..Self::new(algo, size)
+            ..Default::default()
+        }
+    }
+
+    pub fn new_ex(size: (u16, u16), options: LifeOptions) -> Self {
+        Self {
+            rule: options.rule,
+            algo: algo::new(options.algo, size),
+            ..Default::default()
         }
     }
 
@@ -134,10 +147,6 @@ impl Life {
 
     pub fn get_generation(&self) -> u64 {
         self.generation
-    }
-
-    pub fn get_name(&self) -> &str {
-        self.name.as_str()
     }
 
     pub fn get_cell(&self, pos: (u16, u16)) -> Option<&Cell> {
@@ -220,18 +229,14 @@ impl Life {
     pub fn get_pop(&self, faction: u8) -> i16 {
         self.pops.get(faction)
     }
-
-    pub fn set_name(&mut self, as_str: &str) {
-        self.name = as_str.into();
-    }
 }
 
 impl Clone for Life {
     fn clone(&self) -> Self {
         // this is stupid AF LOLOL
-        let str = life_to_rle(self);
+        let str = self.to_string();
         println!("cloneing: {str}");
-        new_life_from_rle(str.as_str())
+        str.as_str().into()
         // Self {
         //     algo: self.algo.clone(),
         //     rule: self.rule,
@@ -245,7 +250,7 @@ impl Clone for Life {
 // TODO: TryFrom instead...
 impl From<&str> for Life {
     fn from(value: &str) -> Self {
-        from_plaintext(value, None, None)
+        life_from_plaintext(value, LifeOptions::default())
     }
 }
 

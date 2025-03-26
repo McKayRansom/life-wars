@@ -8,16 +8,20 @@ use std::str::{FromStr, Split};
  * https://conwaylife.com/wiki/Run_Length_Encoded
  */
 
-use crate::life::{Cell, Life, LifeAlgoSelect, LifeRule};
+use crate::{life::{Cell, Life, LifeRule}, pattern::{Pattern, PatternMetadata}};
 
-fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
-    let mut name = String::new();
+fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Pattern> {
+    let mut metadata = PatternMetadata::default();
     for line in it.by_ref() {
         // parse headers
-        if let Some(line_name) = line.strip_prefix("#N ") {
-            name = line_name.into();
-        } else if line.starts_with("#") {
-            // ignore tags for now
+        if line.starts_with("#") {
+            if let Some(name) = line.strip_prefix("#N ") {
+                metadata.name = Some(name.into());
+            } else if let Some(comment) = line.strip_prefix("#C ") {
+                metadata.description = Some(comment.into())
+            } else {
+                panic!("Unkown header comment: {line}")
+            }
         } else if line.starts_with("x") {
             // header
             let mut size: (u16, u16) = (16, 16);
@@ -31,10 +35,9 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
                     _ => panic!("Unkown header field: {}", name),
                 }
             }
-            return Some(Life {
-                rule,
-                name,
-                ..Life::new(LifeAlgoSelect::Basic, size)
+            return Some(Pattern {
+                life: Life::new_rule(size, rule),
+                metadata,
             });
         } else {
             panic!("Unkown line: {}", line);
@@ -43,12 +46,10 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Life> {
     None
 }
 
-pub fn new_life_from_rle(rle: &str) -> Life {
-    let mut line_it = rle.split('\n');
-    let mut life: Life = rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
+fn rle_parse_body(it: &mut Split<'_, char>, life: &mut Life) {
 
     let mut pos: (u16, u16) = (0, 0);
-    for line in line_it {
+    for line in it {
         let mut run_count = 0;
         for chr in line.chars() {
             if let Some(count) = chr.to_digit(10) {
@@ -99,7 +100,13 @@ pub fn new_life_from_rle(rle: &str) -> Life {
             }
         }
     }
-    life
+}
+
+pub fn new_pattern_from_rle(rle: &str) -> Pattern {
+    let mut line_it = rle.split('\n');
+    let mut pattern: Pattern = rle_parse_header(&mut line_it).expect("Failed to parse header from .rle!");
+    rle_parse_body(&mut line_it, &mut pattern.life);
+    pattern
 }
 
 fn rle_tag(state: u8) -> char {
@@ -190,12 +197,17 @@ impl RleWriter {
     }
 }
 
-pub fn life_to_rle(life: &Life) -> String {
-    let size = life.size();
+pub fn life_to_rle(pattern: &Pattern) -> String {
+    let size = pattern.life.size();
     let mut string = String::with_capacity(64);
-    if !life.name.is_empty() {
+    if let Some(name) = &pattern.metadata.name {
         string.push_str("#N ");
-        string.push_str(life.name.as_str());
+        string.push_str(name.as_str());
+        string.push('\n');
+    }
+    if let Some(desc) = &pattern.metadata.description {
+        string.push_str("#C ");
+        string.push_str(desc.as_str());
         string.push('\n');
     }
     string.push_str(
@@ -203,12 +215,12 @@ pub fn life_to_rle(life: &Life) -> String {
             "x = {}, y = {}, rule = {}\n",
             size.0,
             size.1,
-            life.rule.to_str().as_str()
+            pattern.life.rule.to_str().as_str()
         )
         .as_str(),
     );
 
-    let tag_func: fn(u8) -> char = if life.rule.is_generations() {
+    let tag_func: fn(u8) -> char = if pattern.life.rule.is_generations() {
         rle_tag_generations
     } else {
         rle_tag
@@ -224,7 +236,7 @@ pub fn life_to_rle(life: &Life) -> String {
         },
     };
 
-    for (x, y, cell) in life.iter() {
+    for (x, y, cell) in pattern.life.iter() {
         if x == 0 && y != 0 {
             writer.push('$');
         }
@@ -242,7 +254,7 @@ mod rle_tests {
 
     pub const GLIDER_RLE: &str = "\
 #C This is a glider.
-x = 3, y = 3
+x = 3, y = 3, rule = B3/S23
 bo$2bo$3o!";
 
     pub const GOSPER_RLE: &str = "\
@@ -263,27 +275,26 @@ A4.2A3.C.A24.CBA$.2A5.3A3.A25.A$A.A5.A.B2.3AC22.3A$B.A5.A.C3.A.B21.B
 
     #[test]
     fn test_rle_glider() {
-        let life = new_life_from_rle(GLIDER_RLE);
+        let pattern = new_pattern_from_rle(GLIDER_RLE);
 
-        assert_eq!(life.algo.size(), (3, 3));
-        // don't compare glider rules
-        assert_eq!(life_to_rle(&life)[28..], GLIDER_RLE[34..]);
+        assert_eq!(pattern.life.size(), (3, 3));
+        assert_eq!(life_to_rle(&pattern), GLIDER_RLE);
     }
 
     #[test]
     fn test_rle_gosper() {
-        let life = new_life_from_rle(GOSPER_RLE);
-        assert_eq!(life.rule, LifeRule::GOL);
-        assert_eq!(life.size(), (36, 9));
-        assert_eq!(life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
-        assert_eq!(life_to_rle(&life), GOSPER_RLE);
+        let pattern = new_pattern_from_rle(GOSPER_RLE);
+        assert_eq!(pattern.life.rule, LifeRule::GOL);
+        assert_eq!(pattern.life.size(), (36, 9));
+        assert_eq!(pattern.life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
+        assert_eq!(life_to_rle(&pattern), GOSPER_RLE);
     }
 
     #[test]
     fn test_rle_star_wars() {
-        let life = new_life_from_rle(STAR_WARS_RLE);
-        assert_eq!(life.rule, LifeRule::STAR_WARS);
-        let new_rle = life_to_rle(&life);
+        let pattern = new_pattern_from_rle(STAR_WARS_RLE);
+        assert_eq!(pattern.life.rule, LifeRule::STAR_WARS);
+        let new_rle = life_to_rle(&pattern);
 
         for line in new_rle.lines() {
             println!("{line}")

@@ -2,7 +2,7 @@
  * built-in patterns
  */
 
-use crate::storage::{SaveError, Storage};
+use crate::{pattern::Pattern, storage::{SaveError, Storage}};
 
 use super::life_to_rle;
 
@@ -25,7 +25,7 @@ obo$10bo5bo7bo$11bo3bo$12b2o!";
 pub const BUILT_IN_PATTERNS: &[&str] = &[GLIDER_RLE, GOSPER_RLE];
 
 pub struct PatternLib {
-    pub patterns: Vec<super::Life>,
+    pub patterns: Vec<Pattern>,
     storage: Storage,
 }
 
@@ -37,21 +37,21 @@ impl PatternLib {
                 println!("Pattern lib loaded {} patterns", patterns_strings.len());
                 patterns_strings
                     .iter()
-                    .map(|rle| super::new_life_from_rle(rle.as_str()))
+                    .map(|rle| super::new_pattern_from_rle(rle.as_str()))
                     .collect()
             } else {
                 println!("Pattern lib NOT FOUND!");
                 BUILT_IN_PATTERNS
                     .iter()
-                    .map(|rle| super::new_life_from_rle(rle))
+                    .map(|rle| super::new_pattern_from_rle(rle))
                     .collect()
             },
             storage,
         }
     }
 
-    pub fn add_pattern(&mut self, life: &super::Life) {
-        self.patterns.push(life.clone());
+    pub fn add_pattern(&mut self, pattern: Pattern) {
+        self.patterns.push(pattern);
 
         if self.save().is_err() {
             println!("ERROR SAVING!");

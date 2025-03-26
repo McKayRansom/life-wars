@@ -10,6 +10,7 @@ use crate::scene::{
     menu::{Menu, MenuItem},
     // popup::Popup,
 };
+use life_io::life::LifeOptions;
 use life_io::{life::Life, viewer::LifeViewer};
 // use crate::ui::skin::{MENU_FONT_SIZE, MENU_MARGIN};
 // use crate::input::{action_pressed, Action};
@@ -63,11 +64,10 @@ impl MainMenu {
             // popup: None,
             // settings_subscene: Settings::new(ctx, false),
             // credits_subscene: Credits::new(ctx),
-            background_life: LifeViewer::new(Box::new(Life::new_rule(
-                life_io::life::LifeAlgoSelect::Basic,
-                (256, 150),
-                life_io::life::LifeRule::STAR_WARS,
-            ))),
+            background_life: LifeViewer::new(Box::new(Life::new_ex((256, 150), LifeOptions {
+                algo: life_io::life::LifeAlgoSelect::Basic,
+                rule: life_io::life::LifeRule::STAR_WARS,
+            }))),
         };
 
         main_menu.background_life.life.randomize(1234, true);

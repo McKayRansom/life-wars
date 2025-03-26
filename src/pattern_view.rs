@@ -37,12 +37,12 @@ impl PatternLibViewer {
             ui.label(None, "Patterns");
 
             for pattern in ctx.pattern_lib.patterns.iter() {
-                if rule != pattern.get_rule() {
+                if rule != pattern.life.get_rule() && pattern.metadata.name.is_some() {
                     continue;
                 }
-                if ui.button(None, pattern.get_name()) {
+                if ui.button(None, pattern.metadata.name.as_ref().unwrap().as_str()) {
                     selected_pattern = true;
-                    self.selected_pattern = Some(pattern.clone());
+                    self.selected_pattern = Some(pattern.life.clone());
                 }
             }
         });

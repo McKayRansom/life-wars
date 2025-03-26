@@ -1,5 +1,5 @@
 use life_io::{
-    life::{Life, LifeRule},
+    life::{Life, LifeOptions, LifeRule},
     viewer::LifeViewer,
 };
 use macroquad::{
@@ -19,10 +19,7 @@ pub struct GameOptions {
 impl GameOptions {
     pub fn new() -> Self {
         Self {
-            preview_life: LifeViewer::new(Box::new(Life::new(
-                life_io::life::LifeAlgoSelect::Cached,
-                (256, 256),
-            ))),
+            preview_life: LifeViewer::new(Box::new(Life::new((256, 256)))),
 
             selected_rule: 1,
             selected_size: 1,
@@ -31,11 +28,12 @@ impl GameOptions {
     }
 
     pub fn create_life(&self) -> Box<Life> {
-        let mut life = Box::new(Life::new_rule(
-            life_io::life::LifeAlgoSelect::Basic,
+        let mut life = Box::new(Life::new_ex(
             GAME_SIZES[self.selected_size],
-            *GAME_RULES[self.selected_rule],
-            // LifeRule::from_str("B345/S4567"),
+            LifeOptions {
+                algo: life_io::life::LifeAlgoSelect::Basic,
+                rule: *GAME_RULES[self.selected_rule],
+            }, 
         ));
         // Should randomizing be part of the options?
         life.randomize(1234, true);

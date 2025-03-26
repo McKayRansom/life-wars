@@ -1,26 +1,20 @@
-use crate::life::{algo, Cell, Life, LifeAlgoSelect, LifeRule};
+use crate::{
+    life::{Cell, Life, LifeOptions},
+    pattern::{Pattern, PatternMetadata},
+};
 
 // Based on Plaintext format https://conwaylife.com/wiki/Plaintext
 // TODO: TryFrom instead...
-pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>, rule: Option<LifeRule>) -> Life {
+pub fn life_from_plaintext(value: &str, options: LifeOptions) -> Life {
     let mut size: (u16, u16) = (0, 0);
-    let mut name = String::new();
     for line in value.lines() {
-        if line.starts_with("!") {
-            if let Some(pat_name) = line.strip_prefix("!Name: ") {
-                name.push_str(pat_name);
-            }
-        } else {
+        if !line.starts_with("!") {
             size.1 += 1;
             size.0 = size.0.max(line.len() as u16);
         }
     }
-    let mut life = Life {
-        algo: algo::new(algo.unwrap_or_default(), size),
-        name,
-        rule: rule.unwrap_or_default(),
-        ..Default::default()
-    };
+    let mut life = Life::new_ex(size, options);
+
     let mut pos: (u16, u16) = (0, 0);
     for line in value.lines() {
         if line.starts_with("!") {
@@ -49,12 +43,30 @@ pub fn from_plaintext(value: &str, algo: Option<LifeAlgoSelect>, rule: Option<Li
     life
 }
 
+pub fn pattern_from_plaintext(value: &str, options: LifeOptions) -> Pattern {
+    let mut metadata = PatternMetadata::default();
+    for line in value.lines() {
+        if line.starts_with("!") {
+            if let Some(pat_name) = line.strip_prefix("!Name: ") {
+                metadata.name = Some(pat_name.into())
+            } else {
+                metadata.description = Some(line[1..].into())
+            }
+        } else {
+            break;
+        }
+    }
+    Pattern {
+        life: life_from_plaintext(value, options),
+        metadata,
+    }
+}
+
 pub fn life_to_plaintext(life: &Life) -> String {
     let mut string = String::with_capacity(16);
-    string.push_str("!Name: ");
-    string.push_str(life.name.as_str());
-    for (x, _y, cell) in life.iter() {
-        if x == 0 {
+
+    for (x, y, cell) in life.iter() {
+        if x == 0 && y != 0 {
             string.push('\n');
         }
         string.push(match (cell.get_state(), cell.get_faction()) {
@@ -70,18 +82,31 @@ pub fn life_to_plaintext(life: &Life) -> String {
     string
 }
 
+pub fn pattern_to_plaintext(pattern: &Pattern) -> String {
+    let mut string = String::with_capacity(32);
+    if let Some(name) = &pattern.metadata.name {
+        string.push_str("!Name: ");
+        string.push_str(name.as_str());
+        string.push('\n');
+    }
+
+    if let Some(description) = &pattern.metadata.description {
+        string.push('!');
+        string.push_str(&description.as_str());
+        string.push('\n');
+    }
+
+    string.push_str(life_to_plaintext(&pattern.life).as_str());
+
+    string
+}
+
 #[cfg(test)]
 mod life_tests {
     use super::*;
 
-    // TODO: Descriptions??
-    /*
-    !Author: Richard K. Guy
-    !The smallest, most common, and first discovered spaceship.
-    !www.conwaylife.com/wiki/index.php?title=Glider
-    */
+
     pub const GLIDER_TXT: &str = "\
-!Name: Glider
 .O.
 ..O
 OOO";
@@ -93,7 +118,6 @@ OOO";
     }
 
     pub const STAR_WARS_TXT: &str = "\
-!Name: Photon
 CBO";
     #[test]
     fn test_txt_star_wars() {
@@ -102,12 +126,28 @@ CBO";
     }
 
     pub const FACTION_TXT: &str = "\
-!Name: Faction
 O12";
 
     #[test]
     fn test_txt_faction() {
         let life: Life = FACTION_TXT.into();
         assert_eq!(format!("{life}"), FACTION_TXT);
+    }
+
+    /*
+    !Author: Richard K. Guy
+    !The smallest, most common, and first discovered spaceship.
+    !www.conwaylife.com/wiki/index.php?title=Glider
+    */
+    const COMMENTS_TXT: &str = "\
+!Name: TestName
+!Some info about it
+O12";
+
+    #[test]
+    fn comments() {
+        let pattern = pattern_from_plaintext(COMMENTS_TXT, LifeOptions::default());
+
+        assert_eq!(pattern_to_plaintext(&pattern), COMMENTS_TXT);
     }
 }
