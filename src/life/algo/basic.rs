@@ -16,6 +16,8 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  *
  * Wins:
  * - NEIGHBOR_OFFSETS array is slightly faster than loop
+ * - Make grid size + 2 in all dirs to avoid bounds checking (1800 ms -> 1110 ms acorn-time)
+ * - 1d vec instead of 2d vec (??? was this faster?)
  *
  */
 #[derive(PartialEq, Eq, Debug, Hash)]
@@ -202,6 +204,7 @@ pub mod life_basic_test {
         assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
         assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
 
+        // these are virtual x/y not real x/y
         assert_eq!(life.neighbors(0, (1, 1)), (2, 0));
         assert_eq!(life.neighbors(0, (2, 1)), (1, 0));
         assert_eq!(life.neighbors(0, (1, 2)), (3, 0));
