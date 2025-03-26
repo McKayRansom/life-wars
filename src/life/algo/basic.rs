@@ -33,12 +33,15 @@ impl LifeAlgo for LifeBasic {
         if pos.1 >= self.size.1 || pos.0 >= self.size.0 {
             None
         } else {
-            self.grid.get((pos.1 * self.size.0 + pos.0) as usize)
+            self.grid
+                .get(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)
         }
     }
 
     fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
-        let cell = self.grid.get_mut((pos.1 * self.size.0 + pos.0) as usize)?;
+        let cell = self
+            .grid
+            .get_mut(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)?;
         // let row = self.grid.get_mut(pos.1 as usize)?;
         // let cell = row.get_mut(pos.0 as usize)?;
         Some(replace(cell, new_cell))
@@ -57,7 +60,7 @@ impl LifeBasic {
     pub fn new(dim: (u16, u16)) -> Self {
         Self {
             size: dim,
-            grid: vec![Cell::new(0, 0); dim.0 as usize * dim.1 as usize],
+            grid: vec![Cell::new(0, 0); (dim.0 + 2) as usize * (dim.1 + 2) as usize],
         }
     }
 
@@ -86,10 +89,12 @@ impl LifeBasic {
             // if let Some(cell) = self.grid.get((pos.1 * self.size.1), (pos.0 as i32 + dx) as usize) {
             let x = pos.0 as i32 + dx;
             let y = pos.1 as i32 + dy;
-            if x < 0 || y < 0 {
-                continue;
-            }
-            if let Some(cell) = self.get((x as u16, y as u16)) {
+            // if x < 0 || y < 0 {
+            //     continue;
+            // }
+            let cell = self.grid[((y as usize) * (self.size.0 as usize + 2) + (x as usize)) as usize];
+            {
+                // self.get((x as u16, y as u16)) {
                 if cell.is_alive() {
                     // sum += 1;
                     if cell.get_faction() == faction {
@@ -110,36 +115,56 @@ impl LifeBasic {
 
     fn update(&self, rule: &LifeRule, pops: &mut LifePops) -> Self {
         *pops = LifePops::new(); // clear 
-        Self {
+        let mut new_self = Self {
             size: self.size,
-            grid: self
-                .grid
-                .iter()
-                .enumerate()
-                .map(|(i, cell)| {
-                    // row.iter()
-                    // .enumerate()
-                    // .map(|(x, cell)| {
-                    let new_cell = rule.update(
-                        cell.get_state(),
-                        self.neighbors(
-                            cell.get_faction(),
-                            (
-                                (i as u16 % self.size.0) as u16,
-                                (i as u16 / self.size.0) as u16,
-                            ),
-                        ),
-                    );
+            grid: self.grid.clone(),
+        };
 
-                    if new_cell.is_alive() {
-                        pops.add(new_cell.get_faction(), 1);
-                    }
-                    new_cell
-                    // })
-                    // .collect()
-                })
-                .collect(),
+        for y in 1..self.size.1 + 1 {
+            for x in 1..self.size.0 + 1 {
+                let pos = (x, y);
+                let cell = self.grid[((pos.1) as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize]; //self.get(pos).unwrap();
+                let new_cell =
+                    rule.update(cell.get_state(), self.neighbors(cell.get_faction(), pos));
+
+                if new_cell.is_alive() {
+                    pops.add(new_cell.get_faction(), 1);
+                }
+                // new_self.insert(pos, new_cell); //new_cell
+                new_self.grid[(pos.1 as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize] = new_cell;
+            }
         }
+        new_self
+        // Self {
+        //     size: self.size,
+        //     grid: self
+        //         .grid[self.si]
+        //         .iter()
+        //         .enumerate()
+        //         .map(|(i, cell)| {
+        //             // row.iter()
+        //             // .enumerate()
+        //             // .map(|(x, cell)| {
+        //             let new_cell = rule.update(
+        //                 cell.get_state(),
+        //                 self.neighbors(
+        //                     cell.get_faction(),
+        //                     (
+        //                         (i as u16 % self.size.0) as u16,
+        //                         (i as u16 / self.size.0) as u16,
+        //                     ),
+        //                 ),
+        //             );
+
+        //             if new_cell.is_alive() {
+        //                 pops.add(new_cell.get_faction(), 1);
+        //             }
+        //             // })
+        //             // .collect()
+        //         })
+        //         .collect(),
+        // }
+        // new_self
     }
 }
 
@@ -177,9 +202,9 @@ pub mod life_basic_test {
         assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
         assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
 
-        assert_eq!(life.neighbors(0, (0, 0)), (2, 0));
-        assert_eq!(life.neighbors(0, (1, 0)), (1, 0));
-        assert_eq!(life.neighbors(0, (0, 1)), (3, 0));
+        assert_eq!(life.neighbors(0, (1, 1)), (2, 0));
+        assert_eq!(life.neighbors(0, (2, 1)), (1, 0));
+        assert_eq!(life.neighbors(0, (1, 2)), (3, 0));
 
         // assert_eq!(life.update(&LifeRule::GOL, &mut life_pops), "   \n***\n   ".into());
         // assert_eq!(life_pops.get(0), 3);
