@@ -16,7 +16,7 @@ pub struct LifeResult {
 }
 
 fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
-    let mut life = Life::new(life_io::life::LifeAlgoSelect::Cached, (33, 33));
+    let mut life = Life::new(life_io::life::LifeAlgoSelect::Basic, (33, 33));
     rand_life(&mut life, (8, 8), (17, 17), seed, Some(life_io::life::rand::RandSymmetry::C4_1));
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;

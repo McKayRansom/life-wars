@@ -13,6 +13,7 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * Fails:
  * - manually unroll neighbors double-loop
  *   - (about even perf)
+ * - get_unchecked is WAAAAY slower?? 
  *
  * Wins:
  * - NEIGHBOR_OFFSETS array is slightly faster than loop
@@ -44,8 +45,6 @@ impl LifeAlgo for LifeBasic {
         let cell = self
             .grid
             .get_mut(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)?;
-        // let row = self.grid.get_mut(pos.1 as usize)?;
-        // let cell = row.get_mut(pos.0 as usize)?;
         Some(replace(cell, new_cell))
     }
 
@@ -82,35 +81,23 @@ impl LifeBasic {
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for (dx, dy) in NEIGHBOR_OFFSETS {
-            // for dy in -1..2 {
-            // if let Some(row) = self.grid.get((pos.1 as i32 + dy) as usize) {
-            // for dx in -1..2 {
-            // if dx == 0 && dy == 0 {
-            // continue;
-            // }
-            // if let Some(cell) = self.grid.get((pos.1 * self.size.1), (pos.0 as i32 + dx) as usize) {
+
             let x = pos.0 as i32 + dx;
             let y = pos.1 as i32 + dy;
-            // if x < 0 || y < 0 {
-            //     continue;
-            // }
-            let cell = self.grid[((y as usize) * (self.size.0 as usize + 2) + (x as usize)) as usize];
-            {
-                // self.get((x as u16, y as u16)) {
-                if cell.is_alive() {
-                    // sum += 1;
-                    if cell.get_faction() == faction {
-                        sum += 1;
-                    } else if sum > 0 {
-                        sum -= 1;
-                    } else {
-                        faction = cell.get_faction();
-                        sum += 1;
-                    }
+
+            let cell =
+                self.grid[(y as usize) * (self.size.0 as usize + 2) + (x as usize)];
+
+            if cell.is_alive() {
+                if cell.get_faction() == faction {
+                    sum += 1;
+                } else if sum > 0 {
+                    sum -= 1;
+                } else {
+                    faction = cell.get_faction();
+                    sum += 1;
                 }
             }
-            // }
-            // }
         }
         (sum, faction)
     }
@@ -125,67 +112,22 @@ impl LifeBasic {
         for y in 1..self.size.1 + 1 {
             for x in 1..self.size.0 + 1 {
                 let pos = (x, y);
-                let cell = self.grid[((pos.1) as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize]; //self.get(pos).unwrap();
+                let cell = self.grid
+                    [((pos.1) as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize]; 
                 let new_cell =
                     rule.update(cell.get_state(), self.neighbors(cell.get_faction(), pos));
 
                 if new_cell.is_alive() {
                     pops.add(new_cell.get_faction(), 1);
                 }
-                // new_self.insert(pos, new_cell); //new_cell
-                new_self.grid[(pos.1 as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize] = new_cell;
+                new_self.grid
+                    [(pos.1 as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize] =
+                    new_cell;
             }
         }
         new_self
-        // Self {
-        //     size: self.size,
-        //     grid: self
-        //         .grid[self.si]
-        //         .iter()
-        //         .enumerate()
-        //         .map(|(i, cell)| {
-        //             // row.iter()
-        //             // .enumerate()
-        //             // .map(|(x, cell)| {
-        //             let new_cell = rule.update(
-        //                 cell.get_state(),
-        //                 self.neighbors(
-        //                     cell.get_faction(),
-        //                     (
-        //                         (i as u16 % self.size.0) as u16,
-        //                         (i as u16 / self.size.0) as u16,
-        //                     ),
-        //                 ),
-        //             );
-
-        //             if new_cell.is_alive() {
-        //                 pops.add(new_cell.get_faction(), 1);
-        //             }
-        //             // })
-        //             // .collect()
-        //         })
-        //         .collect(),
-        // }
-        // new_self
     }
 }
-
-// impl From<&str> for LifeBasic {
-//     fn from(value: &str) -> Self {
-//         let grid: Vec<Cell>
-//         Self {
-//             size,
-//             grid: value
-//                 .split('\n')
-//                 .map(|line| {
-//                     line.chars()
-//                         .map(|ch| Cell::new(if ch == ' ' { 0 } else { 1 }, 0))
-//                         .collect()
-//                 })
-//                 .collect(),
-//         }
-//     }
-// }
 
 #[cfg(test)]
 pub mod life_basic_test {
@@ -208,13 +150,5 @@ pub mod life_basic_test {
         assert_eq!(life.neighbors(0, (1, 1)), (2, 0));
         assert_eq!(life.neighbors(0, (2, 1)), (1, 0));
         assert_eq!(life.neighbors(0, (1, 2)), (3, 0));
-
-        // assert_eq!(life.update(&LifeRule::GOL, &mut life_pops), "   \n***\n   ".into());
-        // assert_eq!(life_pops.get(0), 3);
     }
-
-    // #[test]
-    // fn life_basic() {
-    //     let mut life
-    // }
 }
