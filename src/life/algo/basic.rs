@@ -27,36 +27,6 @@ pub struct LifeBasic {
     grid: Vec<Cell>,
 }
 
-impl LifeAlgo for LifeBasic {
-    fn size(&self) -> (u16, u16) {
-        self.size
-    }
-
-    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
-        if pos.1 >= self.size.1 || pos.0 >= self.size.0 {
-            None
-        } else {
-            self.grid
-                .get(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)
-        }
-    }
-
-    fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
-        let cell = self
-            .grid
-            .get_mut(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)?;
-        Some(replace(cell, new_cell))
-    }
-
-    fn update(&mut self, rule: &LifeRule, pops: &mut LifePops) {
-        *self = Self::update(self, rule, pops);
-    }
-
-    fn hash(&self, state: &mut std::hash::DefaultHasher) {
-        self.grid.hash(state);
-    }
-}
-
 impl LifeBasic {
     pub fn new(dim: (u16, u16)) -> Self {
         Self {
@@ -65,7 +35,6 @@ impl LifeBasic {
         }
     }
 
-    // This seemingly stupid iterator version is somehow faster?
     fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
         const NEIGHBOR_OFFSETS: &[(i32, i32)] = &[
             (-1, -1),
@@ -101,12 +70,35 @@ impl LifeBasic {
         }
         (sum, faction)
     }
+}
 
-    fn update(&self, rule: &LifeRule, pops: &mut LifePops) -> Self {
+
+impl LifeAlgo for LifeBasic {
+    fn size(&self) -> (u16, u16) {
+        self.size
+    }
+
+    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
+        if pos.1 >= self.size.1 || pos.0 >= self.size.0 {
+            None
+        } else {
+            self.grid
+                .get(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)
+        }
+    }
+
+    fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
+        let cell = self
+            .grid
+            .get_mut(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)?;
+        Some(replace(cell, new_cell))
+    }
+
+    fn update(&mut self, rule: &LifeRule, pops: &mut LifePops) {
         *pops = LifePops::new(); // clear 
         let mut new_self = Self {
             size: self.size,
-            grid: self.grid.clone(),
+            grid: self.grid.clone(), // This clone doesn't even show up on the flamegraph
         };
 
         for y in 1..self.size.1 + 1 {
@@ -125,7 +117,11 @@ impl LifeBasic {
                     new_cell;
             }
         }
-        new_self
+        *self = new_self;
+    }
+
+    fn hash(&self, state: &mut std::hash::DefaultHasher) {
+        self.grid.hash(state);
     }
 }
 
