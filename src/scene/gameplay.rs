@@ -8,7 +8,7 @@ use macroquad::{
 };
 
 use life_io::{
-    life::{self, FACTION_MAX, Life, LifeAlgoSelect, LifeOptions, LifeRule},
+    life::{self, Cell, FACTION_MAX, Life, LifeAlgoSelect, LifeOptions, LifeRule},
     viewer::{self, LifeViewer},
 };
 
@@ -162,7 +162,7 @@ fn draw_score(life: &Life, ctx: &Context) {
             macroquad::text::TextParams {
                 font: Some(&ctx.font),
                 font_size: 40,
-                color: viewer::faction_color(*faction, 1),
+                color: viewer::faction_color(&Cell::new(1, *faction)),
                 ..Default::default()
             },
         );
@@ -215,9 +215,11 @@ impl Scene for Gameplay {
                     let size = self.viewer.life.size();
                     let rand_x = macroquad::rand::rand() % (size.0 as u32);
                     let rand_y = macroquad::rand::rand() % (size.1 as u32) / 4;
-                    self.viewer
-                        .life
-                        .paste(&rand_pattern.life, (rand_x as u16, rand_y as u16), Some(1));
+                    self.viewer.life.paste(
+                        &rand_pattern.life,
+                        (rand_x as u16, rand_y as u16),
+                        Some(1),
+                    );
                 }
             }
         }

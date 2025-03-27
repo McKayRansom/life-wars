@@ -173,8 +173,8 @@ impl Scene for MainMenu {
 
         // zoom in for a better look
         self.background_life.fit_to_screen();
-        self.background_life
-            .change_zoom(0.8, (screen_width() / 2., screen_height() / 2.));
+        // self.background_life
+        //     .change_zoom(0.8, (screen_width() / 2., screen_height() / 2.));
         // view_ctx.set_pos((-screen_width() / 2., -screen_height() / 2.));
 
         self.background_life.draw();

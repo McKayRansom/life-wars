@@ -10,6 +10,9 @@ impl Pattern {
      * - The pattern is of minimum required bounding box
      *   - Top left will contain a live cell, etc..
      *   - The life is right-sized to hold the pattern for it's entire life (for Messless)
+     * 
+     * Issues:
+     *   - need more space for Messless/Spaceships
      */
     pub fn classify(&mut self) {
         let hash = self.life.hash();

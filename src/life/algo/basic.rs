@@ -83,14 +83,14 @@ impl LifeAlgo for LifeBasic {
             None
         } else {
             self.grid
-                .get(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)
+                .get((pos.1 as usize + 1) * (self.size.0 as usize + 2) + (pos.0 as usize + 1))
         }
     }
 
     fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
         let cell = self
             .grid
-            .get_mut(((pos.1 + 1) * (self.size.0 + 2) + (pos.0 + 1)) as usize)?;
+            .get_mut((pos.1 as usize + 1) * (self.size.0 as usize + 2) + (pos.0 as usize + 1))?;
         Some(replace(cell, new_cell))
     }
 
