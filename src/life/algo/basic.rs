@@ -13,7 +13,7 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  * Fails:
  * - manually unroll neighbors double-loop
  *   - (about even perf)
- * - get_unchecked is WAAAAY slower?? 
+ * - get_unchecked is WAAAAY slower??
  *
  * Wins:
  * - NEIGHBOR_OFFSETS array is slightly faster than loop
@@ -50,12 +50,10 @@ impl LifeBasic {
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for (dx, dy) in NEIGHBOR_OFFSETS {
-
             let x = pos.0 as i32 + dx;
             let y = pos.1 as i32 + dy;
 
-            let cell =
-                self.grid[(y as usize) * (self.size.0 as usize + 2) + (x as usize)];
+            let cell = self.grid[(y as usize) * (self.size.0 as usize + 2) + (x as usize)];
 
             if cell.is_alive() {
                 if cell.get_faction() == faction {
@@ -71,7 +69,6 @@ impl LifeBasic {
         (sum, faction)
     }
 }
-
 
 impl LifeAlgo for LifeBasic {
     fn size(&self) -> (u16, u16) {
@@ -98,22 +95,21 @@ impl LifeAlgo for LifeBasic {
         *pops = LifePops::new(); // clear 
         let mut new_self = Self {
             size: self.size,
-            grid: self.grid.clone(), // This clone doesn't even show up on the flamegraph
+            grid: self.grid.clone(), // This clone doesn't even show up on the flamegraph (just 1 alocation probably)
         };
 
         for y in 1..self.size.1 + 1 {
             for x in 1..self.size.0 + 1 {
                 let pos = (x, y);
-                let cell = self.grid
-                    [((pos.1) as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize]; 
+                let cell = self.grid[pos.1 as usize * (self.size.0 as usize + 2) + pos.0 as usize];
                 let new_cell =
                     rule.update(cell.get_state(), self.neighbors(cell.get_faction(), pos));
 
+                // Note inlining this check to amount is somehow slightly slower?
                 if new_cell.is_alive() {
                     pops.add(new_cell.get_faction(), 1);
                 }
-                new_self.grid
-                    [(pos.1 as usize * (self.size.0 as usize + 2) + (pos.0 as usize)) as usize] =
+                new_self.grid[pos.1 as usize * (self.size.0 as usize + 2) + pos.0 as usize] =
                     new_cell;
             }
         }

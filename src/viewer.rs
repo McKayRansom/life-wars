@@ -1,5 +1,5 @@
 use macroquad::{
-    camera::{set_camera, set_default_camera, Camera2D}, color, input::{self, is_key_down, mouse_position, mouse_wheel, KeyCode}, math::{vec2, Rect}, texture::{draw_texture, DrawTextureParams, Image, Texture2D}, time, window::{screen_height, screen_width}
+    camera::{set_camera, set_default_camera, Camera2D}, color, input::{self, is_key_down, mouse_position, mouse_wheel, KeyCode}, math::{vec2, Rect}, texture::{draw_texture, Image, Texture2D}, time, window::{screen_height, screen_width}
 };
 
 use crate::life::{Cell, Life};
@@ -61,7 +61,7 @@ impl LifeViewer {
         self.camera.target = pos.into();
     }
 
-    pub fn resize_to_fit(&mut self, size: (u16, u16), screen_size: (f32, f32)) {
+    pub fn resize_to_fit(&mut self, _size: (u16, u16), screen_size: (f32, f32)) {
         // let zoom = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
         // self.camera.zoom = (zoom, zoom).into();
         self.camera = {

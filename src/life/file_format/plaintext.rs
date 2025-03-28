@@ -72,8 +72,8 @@ impl Pattern {
             if line.starts_with("!") {
                 if let Some(pat_name) = line.strip_prefix("!Name: ") {
                     metadata.name = Some(pat_name.into())
-                } else {
-                    metadata.description = Some(line[1..].into())
+                } else if let Some(description) = line.strip_prefix("!") {
+                    metadata.description = Some(description.to_string())
                 }
             } else {
                 break;
@@ -95,7 +95,7 @@ impl Pattern {
 
         if let Some(description) = &self.metadata.description {
             string.push('!');
-            string.push_str(&description.as_str());
+            string.push_str(description.as_str());
             string.push('\n');
         }
 
