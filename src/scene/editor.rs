@@ -87,7 +87,7 @@ impl Editor {
                 (256, 256),
                 LifeOptions {
                     algo: life_io::life::LifeAlgoSelect::Cached,
-                    rule: LifeRule::from_str("B345/S4567").unwrap(),
+                    rule: LifeRule::STAR_WARS, //from_str("B345/S4567").unwrap(),
                 },
             ))),
             clipboard: None,
@@ -139,7 +139,7 @@ impl Editor {
             }
             EditBar::Pattern => {
                 if let Some(pattern) = &self.pattern_view.selected_pattern {
-                    self.main_view.life.paste(pattern, start_pos, None);
+                    self.main_view.life.paste(&pattern.life, start_pos, None);
                 }
             }
         }

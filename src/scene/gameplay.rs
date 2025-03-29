@@ -2,7 +2,7 @@ use super::Scene;
 use crate::{context::Context, pattern_view::PatternLibViewer};
 
 use macroquad::{
-    color,
+    color::{self, Color},
     input::{self, mouse_position},
     ui::root_ui,
 };
@@ -80,10 +80,15 @@ impl Gameplay {
             if input::is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
                 if let Some(pattern) = &self.pattern_view.selected_pattern {
                     // TODO: calc better cost...
-                    let cost = pattern.get_pop(0);
+                    let cost = pattern.life.get_pop(0);
                     if self.resources[0] >= cost {
                         self.resources[0] -= cost;
-                        self.viewer.life.paste(pattern, pos, None);
+                        self.viewer.life.paste(
+                            &pattern.life,
+                            (pos.0 - pattern.life.size().0 / 2, pos.1 - pattern.life.size().1 / 2),
+                            None,
+                        );
+                        self.viewer.redraw();
                         println!("Subing {cost} from");
                     } else {
                         // TODO: UI somewhere??
@@ -113,25 +118,37 @@ impl Gameplay {
         // }
     }
 
-    fn draw_selected_pattern(&self) {
-        if let Some(pattern) = &self.pattern_view.selected_pattern {
+    fn draw_selected_pattern(&mut self) {
+        if let Some(pattern_view) = &mut self.pattern_view.selected_pattern {
             let mouse_pos = input::mouse_position();
             if let Some(mouse_grid_pos) = self.viewer.screen_to_life_pos(mouse_pos) {
                 // TODO: one could argue this should be centered instead of starting from the top left...
                 let start_pos = self.viewer.life_to_screen_pos(mouse_grid_pos);
-                let pattern_size = pattern.size();
-                macroquad::shapes::draw_rectangle(
-                    start_pos.0,
-                    start_pos.1,
-                    self.viewer.life_to_screen_scale(pattern_size.0),
-                    self.viewer.life_to_screen_scale(pattern_size.1),
-                    color::Color {
-                        r: 1.,
-                        g: 1.,
-                        b: 1.,
-                        a: 0.6,
-                    },
+                // let pattern_size = pattern_view.size();
+
+                pattern_view.zoom = self.viewer.zoom;
+                pattern_view.color = Color::new(1., 1., 1., 0.5);
+                pattern_view.screen_offset = (
+                    start_pos.0
+                        - pattern_view.life_to_screen_scale(pattern_view.life.size().0) / 2.,
+                    start_pos.1
+                        - pattern_view.life_to_screen_scale(pattern_view.life.size().1) / 2.,
                 );
+
+                pattern_view.draw();
+
+                //     macroquad::shapes::draw_rectangle(
+                //         start_pos.0,
+                //         start_pos.1,
+                //         self.viewer.life_to_screen_scale(pattern_size.0),
+                //         self.viewer.life_to_screen_scale(pattern_size.1),
+                //         color::Color {
+                //             r: 1.,
+                //             g: 1.,
+                //             b: 1.,
+                //             a: 0.6,
+                //         },
+                //     );
             }
         }
     }
@@ -196,6 +213,14 @@ impl Scene for Gameplay {
                     };
                     self.resources[i] = self.resources[i]
                         .saturating_add(self.viewer.life.get_pop(i as u8) / cell_per_resource)
+
+                    // TODO: If player resources are below X and pop is below CELL_PER_RESOURCE, just eliminate them!
+                    // if self.map.update() && self.map.metadata.is_level {
+                    //     self.popup = Some(Popup::new(format!(
+                    //         "Level {} completed!",
+                    //         self.map.metadata.level_number
+                    //     )));
+                    // }
                 }
 
                 self.ai_update_ticks = 0;

@@ -1,5 +1,9 @@
 use macroquad::{
-    camera::{set_camera, set_default_camera, Camera2D}, color, input::{self, is_key_down, mouse_position, mouse_wheel, KeyCode}, math::{vec2, Rect}, texture::{draw_texture, Image, Texture2D}, time, window::{screen_height, screen_width}
+    color::{self, Color, WHITE},
+    input::{self, is_key_down, mouse_position, mouse_wheel, KeyCode},
+    texture::{draw_texture_ex, DrawTextureParams, FilterMode, Image, Texture2D},
+    time,
+    window::{screen_height, screen_width},
 };
 
 use crate::life::{Cell, Life};
@@ -8,7 +12,9 @@ use crate::life::{Cell, Life};
  * Simple life viewer
  */
 pub struct LifeViewer {
-    camera: Camera2D,
+    life_offset: (f32, f32),
+    pub screen_offset: (f32, f32),
+    pub zoom: f32,
 
     last_map_update: f64,
     pub update_speed: f64,
@@ -16,6 +22,7 @@ pub struct LifeViewer {
     pub life: Box<Life>,
     image: Image,
     texture: Option<Texture2D>,
+    pub color: Color,
 }
 
 const MIN_ZOOM: f32 = 1.; // don't zoom in to more than 1 cell per pixel
@@ -39,15 +46,18 @@ impl LifeViewer {
 
         // texture is boinked
         Self {
-            camera: Camera2D {
-                zoom: vec2(0.002, 0.002),
-                ..Default::default()
-            },
+            life_offset: (0., 0.),
+            screen_offset: (0., 0.),
+            zoom: 1.,
+            //     zoom: (1., 1.), //vec2(0.002, 0.002),
+            //     ..Default::default()
+            // },
             last_map_update: 0.,
             update_speed: GAME_SPEED_3_FAST,
             life,
             image,
             texture: None, // cannot create textures in unit tests...
+            color: WHITE,
         }
     }
 
@@ -58,28 +68,28 @@ impl LifeViewer {
     }
 
     pub fn set_pos(&mut self, pos: (f32, f32)) {
-        self.camera.target = pos.into();
+        self.life_offset = pos
     }
 
-    pub fn resize_to_fit(&mut self, _size: (u16, u16), screen_size: (f32, f32)) {
-        // let zoom = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
+    pub fn resize_to_fit(&mut self, size: (u16, u16), screen_size: (f32, f32)) {
+        self.zoom = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
         // self.camera.zoom = (zoom, zoom).into();
-        self.camera = {
-            let rect = Rect { x: 0., y: 0., w: screen_size.0, h: screen_size.1 };
-            let target = vec2(rect.x + rect.w / 2., rect.y + rect.h / 2.);
+        // self.camera = {
+        //     let rect = Rect { x: 0., y: 0., w: screen_size.0, h: screen_size.1 };
+        //     let target = vec2(rect.x + rect.w / 2., rect.y + rect.h / 2.);
 
-            Camera2D {
-                target,
-                zoom: vec2(1. / rect.w * 2., 1. / rect.h * 2.),
-                offset: vec2(0., 0.),
-                rotation: 0.,
+        //     Camera2D {
+        //         target,
+        //         zoom: vec2(1. / rect.w * 2., 1. / rect.h * 2.),
+        //         offset: vec2(0., 0.),
+        //         rotation: 0.,
 
-                render_target: None,
-                viewport: None,
-            }
-        }
-        // self.camera.target.x = (-(screen_size.0 - self.life_to_screen_scale(size.0)) / 2.) / self.zoom;
-        // self.camera.target.y = (-(screen_size.1 - self.life_to_screen_scale(size.1)) / 2.) / self.zoom;
+        //         render_target: None,
+        //         viewport: None,
+        //     }
+        // }
+        self.life_offset.0 = (-(screen_size.0 - self.life_to_screen_scale(size.0)) / 2.) / self.zoom;
+        self.life_offset.1 = (-(screen_size.1 - self.life_to_screen_scale(size.1)) / 2.) / self.zoom;
     }
 
     pub fn fit_to_screen(&mut self) {
@@ -87,41 +97,41 @@ impl LifeViewer {
     }
 
     pub fn change_zoom(&mut self, amount: f32, center: (f32, f32)) {
-        let new_zoom = self.camera.zoom.x + amount;
+        let new_zoom = self.zoom + amount;
 
         if new_zoom <= MIN_ZOOM || new_zoom >= MAX_ZOOM {
             return;
         }
 
-        let old_screen_zoom = 1. / self.camera.zoom.x;
+        let old_screen_zoom = 1. / self.zoom;
         let new_screen_zoom = 1. / new_zoom;
-        self.camera.target.x += center.0 * (old_screen_zoom - new_screen_zoom);
-        self.camera.target.y += center.1 * (old_screen_zoom - new_screen_zoom);
+        self.life_offset.0 += center.0 * (old_screen_zoom - new_screen_zoom);
+        self.life_offset.1 += center.1 * (old_screen_zoom - new_screen_zoom);
 
-        self.camera.zoom += amount;
+        self.zoom += amount;
     }
 
     pub fn screen_to_life_pos(&self, screen_pos: (f32, f32)) -> Option<(u16, u16)> {
-        // let pos: (u16, u16) = (
-        //     (self.camera.0 + (screen_pos.0 / self.zoom)) as u16,
-        //     (self.camera.1 + (screen_pos.1 / self.zoom)) as u16,
-        // );
+        let pos: (u16, u16) = (
+            (self.life_offset.0 + (screen_pos.0 / self.zoom)) as u16,
+            (self.life_offset.1 + (screen_pos.1 / self.zoom)) as u16,
+        );
 
-        let life_vec = self.camera.screen_to_world(screen_pos.into());
+        // let life_vec = self.camera.screen_to_world(screen_pos.into());
 
-        Some((life_vec.x as u16, life_vec.y as u16))
+        Some(pos)
     }
 
     pub fn life_to_screen_pos(&self, (x, y): (u16, u16)) -> (f32, f32) {
-        // (
-            // (x as f32 - self.camera.0) * self.zoom,
-            // (y as f32 - self.camera.1) * self.zoom,
-        // )
-        self.camera.world_to_screen((x as f32, y as f32).into()).into()
+        (
+            (x as f32 - self.life_offset.0) * self.zoom,
+            (y as f32 - self.life_offset.1) * self.zoom,
+        )
+        // self.camera.world_to_screen((x as f32, y as f32).into()).into()
     }
 
     pub fn life_to_screen_scale(&self, distance: u16) -> f32 {
-        distance as f32 * self.camera.zoom.x
+        distance as f32 * self.zoom
     }
 
     pub fn update_image(life: &Life, image: &mut Image) {
@@ -130,22 +140,24 @@ impl LifeViewer {
         }
     }
 
+    pub fn redraw(&mut self) {
+        Self::update_image(&self.life, &mut self.image);
+        if let Some(texture) = &self.texture {
+            texture.update(&self.image);
+        }
+    }
+
+    pub fn step(&mut self) {
+        self.last_map_update = macroquad::time::get_time();
+        self.life.update();
+        self.redraw();
+   }
+
     pub fn update(&mut self) -> bool {
         if self.update_speed != GAME_SPEED_1_PAUSED
             && time::get_time() - self.last_map_update > self.update_speed
         {
-            // if self.map.update() && self.map.metadata.is_level {
-            //     self.popup = Some(Popup::new(format!(
-            //         "Level {} completed!",
-            //         self.map.metadata.level_number
-            //     )));
-            // }
-            self.last_map_update = macroquad::time::get_time();
-            self.life.update();
-            Self::update_image(&self.life, &mut self.image);
-            if let Some(texture) = &self.texture {
-                texture.update(&self.image);
-            }
+            self.step();
             true
         } else {
             false
@@ -159,19 +171,32 @@ impl LifeViewer {
      */
     pub fn draw(&mut self) {
         // draw_im
-        // let size = self.life.size();
+        let size = self.life.size();
         // set_camera(&dbg!(Camera2D::from_display_rect(Rect::new(0., screen_height(), screen_width(), -screen_height()))));
-        set_camera(&self.camera);
+        // set_camera(&self.camera);
         if self.texture.is_none() {
-            self.texture = Some(Texture2D::from_image(&self.image));
+            let texture = Texture2D::from_image(&self.image);
+            texture.set_filter(FilterMode::Nearest);
+            self.texture = Some(texture);
         }
-        draw_texture(
+        draw_texture_ex(
             self.texture.as_ref().unwrap(),
-            0., // -self.camera.0 * self.zoom,
-            0., // -self.camera.1 * self.zoom,
-            color::WHITE,
+            self.screen_offset.0 + -self.life_offset.0 * self.zoom,
+            self.screen_offset.1 + -self.life_offset.1 * self.zoom,
+            self.color,
+            DrawTextureParams {
+                dest_size: Some(
+                    (
+                        self.life_to_screen_scale(size.0),
+                        self.life_to_screen_scale(size.1),
+                    )
+                        .into(),
+                ),
+                ..Default::default()
+            },
         );
-        set_default_camera();
+        // draw_texture_ex(texture, x, y, color, params);
+        // set_default_camera();
         // macroquad::shapes::draw_rectangle_lines(
         // macroquad::shapes::draw_rectangle(
         //     -self.camera.0 * self.zoom,
@@ -200,16 +225,16 @@ impl LifeViewer {
 
     pub fn handle_input(&mut self) -> bool {
         if is_key_down(KeyCode::W) {
-            self.camera.target.y -= WASD_MOVE_SENSITIVITY; // / self.zoom;
+            self.life_offset.1 -= WASD_MOVE_SENSITIVITY / self.zoom;
         }
         if is_key_down(KeyCode::A) {
-            self.camera.target.x -= WASD_MOVE_SENSITIVITY; // / self.zoom;
+            self.life_offset.0 -= WASD_MOVE_SENSITIVITY / self.zoom;
         }
         if is_key_down(KeyCode::S) {
-            self.camera.target.y += WASD_MOVE_SENSITIVITY; // / self.zoom;
+            self.life_offset.1 += WASD_MOVE_SENSITIVITY / self.zoom;
         }
         if is_key_down(KeyCode::D) {
-            self.camera.target.x += WASD_MOVE_SENSITIVITY; // / self.zoom;
+            self.life_offset.0 += WASD_MOVE_SENSITIVITY / self.zoom;
         }
 
         let new_mouse_wheel = mouse_wheel();
@@ -229,7 +254,7 @@ impl LifeViewer {
                 }
                 '\t' => {
                     self.update_speed = GAME_SPEED_1_PAUSED;
-                    self.life.update();
+                    self.step();
                 }
                 // self.viewer.update_speed = !view_self.viewer.update_speed,
                 '1' => self.update_speed = GAME_SPEED_1_PAUSED,
@@ -271,10 +296,20 @@ pub fn faction_color(cell: &Cell) -> color::Color {
         3 => color::BLUE,
         _ => color::WHITE,
     };
+
+    // Now that we buffer the life in an Image before drawing, we have to do the color math manually
+    // I'm not totally sure this is right, but it looks much better than before
+    // for sure we can't set the Alpha to anything, changing the grey adjustment looks okay
     if state == 2 {
-        color.a = 0.75;
+        // color.a = 0.75;
+        color.r = color.r * 0.75; // + 0.078125 * 0.25;
+        color.g = color.g * 0.75; // + 0.078125 * 0.25;
+        color.b = color.b * 0.75; // + 0.078125 * 0.25;
     } else if state == 3 {
-        color.a = 0.5;
+        // color.a = 0.5;
+        color.r = color.r * 0.5; // + 0.078125 * 0.5;
+        color.g = color.g * 0.5; // + 0.078125 * 0.5;
+        color.b = color.b * 0.5; // + 0.078125 * 0.5;
     }
     color
 }
@@ -300,11 +335,11 @@ mod viewer_tests {
     use super::*;
 
     #[test]
-    #[ignore = "Camera2D can't be used for Unit Tests"]
+    // #[ignore = "Camera2D can't be used for Unit Tests"]
     fn test_viewer_camera() {
         let mut viewer = LifeViewer::new(Box::default());
 
-        viewer.camera.zoom = (16., 16.).into();
+        viewer.zoom = 16.;
 
         assert_eq!(viewer.life_to_screen_scale(1), 16.);
         assert_eq!(viewer.life_to_screen_scale(2), 32.);
@@ -321,12 +356,12 @@ mod viewer_tests {
     }
 
     #[test]
-    #[ignore = "Camera2D can't be used for Unit Tests"]
+    // #[ignore = "Camera2D can't be used for Unit Tests"]
     fn test_viewer_camera_offset() {
         let mut viewer = LifeViewer::new(Box::default());
 
-        viewer.camera.zoom = (16., 16.).into();
-        viewer.camera.target = (8., 8.).into();
+        viewer.zoom = 16.;
+        viewer.life_offset = (8., 8.);
 
         assert_eq!(viewer.life_to_screen_scale(1), 16.);
         assert_eq!(viewer.life_to_screen_scale(2), 32.);

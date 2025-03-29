@@ -10,8 +10,8 @@ use algo::LifeAlgo;
 pub use algo::LifeAlgoSelect;
 pub use algo::WORKING_ALGOS;
 
-pub mod rand;
 mod pos;
+pub mod rand;
 pub use pos::Pos;
 
 mod file_format;
@@ -68,7 +68,6 @@ impl From<u8> for Cell {
     }
 }
 
-
 #[derive(Default)]
 pub struct LifePops {
     pops: [i16; FACTION_MAX],
@@ -89,7 +88,6 @@ impl LifePops {
         self.pops[faction as usize] = self.pops[faction as usize].saturating_add(amount)
     }
 }
-
 
 #[derive(Default)]
 pub struct LifeOptions {
@@ -151,7 +149,6 @@ impl Life {
         self.algo.get(pos)
     }
 
-
     // fn iter_mut(&mut self) -> impl Iterator<Item = (u16, u16, &mut u8)>;
     pub fn randomize(&mut self, seed: u64, use_factions: bool) {
         macroquad::rand::srand(seed);
@@ -187,10 +184,10 @@ impl Life {
     }
 
     pub fn copy(&self, pos: (u16, u16), area: (u16, u16)) -> Self {
-        let mut life = Life::new_ex(
-            area,
-            LifeOptions { algo: LifeAlgoSelect::Basic, rule: self.rule }
-        );
+        let mut life = Life::new_ex(area, LifeOptions {
+            algo: LifeAlgoSelect::Basic,
+            rule: self.rule,
+        });
 
         let start_pos: Pos = pos.into();
 
@@ -198,6 +195,20 @@ impl Life {
             if let Some(cell) = self.get_cell(pos.into()) {
                 life.insert((pos - start_pos).into(), *cell);
             }
+        }
+
+        life
+    }
+
+    pub fn rotate(&self) -> Self {
+        let size = self.size();
+        let mut life = Life::new_ex((size.1, size.0), LifeOptions {
+            algo: LifeAlgoSelect::Basic,
+            rule: self.rule,
+        });
+
+        for (x, y, cell) in self.iter() {
+            life.insert((y, x), *cell);
         }
 
         life
@@ -274,4 +285,20 @@ impl std::fmt::Display for Life {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.to_plaintext().as_str())
     }
+}
+
+#[cfg(test)]
+mod life_tests {
+    use super::*;
+
+    #[test]
+    fn test_rotate() {
+        let mut life = Life::new((2, 1));
+        life.insert((1, 0), Cell::new(1, 1));
+
+        let rotated = life.rotate();
+
+        assert_eq!(life.get_cell((2, 1)), rotated.get_cell((1, 2)));
+    }
+
 }

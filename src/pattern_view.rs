@@ -1,4 +1,7 @@
-use life_io::life::{Life, LifeRule};
+use life_io::{
+    life::{Life, LifeRule},
+    viewer::LifeViewer,
+};
 use macroquad::{
     math::{self},
     ui::{
@@ -10,7 +13,7 @@ use macroquad::{
 
 #[derive(Default)]
 pub struct PatternLibViewer {
-    pub selected_pattern: Option<Life>,
+    pub selected_pattern: Option<LifeViewer>,
 }
 
 const PATTEN_LIB_WIDTH: f32 = 250.;
@@ -26,10 +29,7 @@ impl PatternLibViewer {
         widgets::Window::new(
             hash!(),
             math::vec2(window::screen_width() - PATTEN_LIB_WIDTH, 0.),
-            math::vec2(
-                PATTEN_LIB_WIDTH,
-                window::screen_height() * 3. / 4.,
-            ),
+            math::vec2(PATTEN_LIB_WIDTH, window::screen_height() * 3. / 4.),
         )
         .titlebar(false)
         .movable(false)
@@ -42,7 +42,7 @@ impl PatternLibViewer {
                 }
                 if ui.button(None, pattern.metadata.name.as_ref().unwrap().as_str()) {
                     selected_pattern = true;
-                    self.selected_pattern = Some(pattern.life.clone());
+                    self.selected_pattern = Some(LifeViewer::new(Box::new(pattern.life.clone())));
                 }
             }
         });
