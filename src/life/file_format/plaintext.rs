@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     life::{Cell, Life, LifeOptions},
     pattern::{Pattern, PatternMetadata},
@@ -102,6 +104,12 @@ impl Pattern {
         string.push_str(self.life.to_plaintext().as_str());
 
         string
+    }
+}
+
+impl Display for Pattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_plaintext().as_str())
     }
 }
 

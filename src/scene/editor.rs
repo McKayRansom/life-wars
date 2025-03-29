@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
 use life_io::{
-    life::{Life, LifeOptions, LifeRule}, pattern::Pattern, viewer::LifeViewer
+    life::{Life, LifeOptions, LifeRule},
+    pattern::Pattern,
+    viewer::LifeViewer,
 };
 use macroquad::{
     color,
@@ -124,23 +126,11 @@ impl Editor {
                 if max_pos.0 == min_pos.0 || max_pos.1 == min_pos.1 {
                     return;
                 }
-                self.clipboard = Some({
-                    let mut life = Life::new_ex(
-                        (max_pos.0 - min_pos.0, max_pos.1 - min_pos.1),
-                        LifeOptions {
-                            algo: life_io::life::LifeAlgoSelect::Basic,
-                            rule: *self.main_view.life.get_rule(),
-                        },
-                    );
-
-                    for pos in Self::iter_area(min_pos, max_pos) {
-                        if let Some(cell) = self.main_view.life.get_cell(pos) {
-                            life.insert((pos.0 - min_pos.0, pos.1 - min_pos.1), *cell);
-                        }
-                    }
-
-                    life
-                })
+                self.clipboard = Some(
+                    self.main_view
+                        .life
+                        .copy(min_pos, (max_pos.0 - min_pos.0, max_pos.1 - min_pos.1)),
+                );
             }
             EditBar::Paste => {
                 if let Some(clipboard) = &self.clipboard {

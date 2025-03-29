@@ -52,7 +52,7 @@ fn prefix_from_classification(classification: Option<Classification>) -> &'stati
             }
         }
     }
-    ""
+    "none"
 }
 
 fn zero_count_read(chr: char, iter: &mut Chars<'_>) -> Option<usize> {
@@ -76,7 +76,7 @@ fn zero_count_write(string: &mut String, count: usize) {
         3 => string.push('x'),
         _ if count <= 39 => {
             string.push('y');
-            string.push(char::from_digit(count as u32 - 4, 26).expect("Exceeded max zero count!"));
+            string.push(char::from_digit(count as u32 - 4, 36).expect("Exceeded max zero count!"));
         }
         _ => panic!("No supported way to write {count} zeros!"),
     }
@@ -84,7 +84,6 @@ fn zero_count_write(string: &mut String, count: usize) {
 
 impl Life {
     pub fn from_apgcode(suffix: &str, options: LifeOptions) -> Self {
-
         let mut row_of_5_count: usize = 0;
         let row_size = suffix
             .split('z')
@@ -112,7 +111,9 @@ impl Life {
                     continue;
                 }
 
-                let mut col_vals = chr.to_digit(32).expect("Unexpected char in apgcode");
+                let mut col_vals = chr
+                    .to_digit(32)
+                    .expect(format!("Unexpected char '{chr}' in apgcode").as_str());
 
                 for y in 0..6 {
                     if col_vals & 1 != 0 {
@@ -155,8 +156,10 @@ impl Life {
             string.push('z');
         }
 
-        // Remove last 'z'
-        string.pop();
+        // Remove trailing 'z'
+        while string.ends_with('z') {
+            string.pop();
+        }
         string
     }
 }
@@ -164,7 +167,9 @@ impl Life {
 impl Pattern {
     #[allow(unused)]
     pub fn from_apgcode(apgcode: &str, options: LifeOptions) -> Pattern {
-        let (prefix, suffix) = apgcode.split_once('_').unwrap();
+        let (prefix, suffix) = apgcode
+            .split_once('_')
+            .expect(format!("expected '_' in {apgcode}").as_str());
 
         let (classification, period) = classification_from_prefix(prefix);
 
@@ -238,22 +243,14 @@ OO.OOOO
             pattern.life
         );
 
-        assert_eq!(
-            pattern.to_apgcode(),
-            HEAVYWEIGHT_SPACESHIP_APG
-        );
+        assert_eq!(pattern.to_apgcode(), HEAVYWEIGHT_SPACESHIP_APG);
     }
 
     #[test]
     fn test_apgcode_still_life() {
         const STIL_LIFE_APG: &str = "xs31_0ca178b96z69d1d96";
         let pattern = Pattern::from_apgcode(STIL_LIFE_APG, LifeOptions::default());
-        assert_eq!(
-            pattern.to_apgcode(),
-            STIL_LIFE_APG,
-            "{}",
-            pattern.life
-        );
+        assert_eq!(pattern.to_apgcode(), STIL_LIFE_APG, "{}", pattern.life);
     }
 
     #[test]
@@ -261,12 +258,7 @@ OO.OOOO
         const QUEEN_BEE_SHUTTLE: &str = "xp30_w33z8kqrqk8zzzx33";
 
         let pattern: Pattern = Pattern::from_apgcode(QUEEN_BEE_SHUTTLE, LifeOptions::default());
-        assert_eq!(
-            pattern.to_apgcode(),
-            QUEEN_BEE_SHUTTLE,
-            "{}",
-            pattern.life
-        );
+        assert_eq!(pattern.to_apgcode(), QUEEN_BEE_SHUTTLE, "{}", pattern.life);
     }
 
     #[test]
@@ -274,11 +266,6 @@ OO.OOOO
         const QUADPOLE_TIE_SHIP: &str = "xp2_31a08zy0123cko";
 
         let pattern: Pattern = Pattern::from_apgcode(QUADPOLE_TIE_SHIP, LifeOptions::default());
-        assert_eq!(
-            pattern.to_apgcode(),
-            QUADPOLE_TIE_SHIP,
-            "{}",
-            pattern.life
-        );
+        assert_eq!(pattern.to_apgcode(), QUADPOLE_TIE_SHIP, "{}", pattern.life);
     }
 }

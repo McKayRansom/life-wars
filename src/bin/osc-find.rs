@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use life_io::life::{rand::rand_life, Life, LifeOptions, LifeRule};
+use life_io::{life::{rand::rand_life, Life, LifeOptions, LifeRule}, pattern::{classify, identify::identify}};
 
 const HISTORY_SIZE: usize = 512;
 const MAX_ITERS: usize = 2000;
@@ -16,16 +16,18 @@ pub struct LifeResult {
 }
 
 fn run_to_stabilization(seed: u64) -> Option<LifeResult> {
-    let mut life = Life::new_ex((33, 33), LifeOptions {
+    let mut life = Life::new_ex((129, 129), LifeOptions {
         rule: LifeRule::GOL,
-        algo: life_io::life::LifeAlgoSelect::Basic,
+        algo: life_io::life::LifeAlgoSelect::Cached,
     });
-    rand_life(&mut life, (8, 8), (17, 17), seed, Some(life_io::life::rand::RandSymmetry::C4_1));
+    rand_life(&mut life, (64 - 8, 64 - 8), (17, 17), seed, None); //Some(life_io::life::rand::RandSymmetry::C4_1));
     let mut life_history: VecDeque<u64> = VecDeque::new();
     let mut i: usize = 0;
 
     // println!("{life}");
     // assert!(false);
+    
+    // let _ = identify(&life);
 
     // pre-update to reduce hashing
     for _ in 0..50 {
@@ -77,9 +79,9 @@ fn main() {
     let mut found_oscilators: Vec<usize> = Vec::new();
 
     for seed in 0..100000 {
-        if let Some(res) = run_to_stabilization(seed) {
+        if let Some(mut res) = run_to_stabilization(seed) {
             // if !found_oscilators.contains(&res.period) {
-            if res.period > 6 {
+            if res.period > 3 {
                 found_oscilators.push(res.period);
                 println!(
                     "Found oscilator {} seed: {seed} iter: {} str: {}",
@@ -87,6 +89,10 @@ fn main() {
                     res.age,
                     res.life.to_plaintext(),
                 );
+
+                for pattern in identify(&mut res.life) {
+                    println!("{}", pattern.to_apgcode());
+                }
             }
         }
     }

@@ -186,6 +186,23 @@ impl Life {
         }
     }
 
+    pub fn copy(&self, pos: (u16, u16), area: (u16, u16)) -> Self {
+        let mut life = Life::new_ex(
+            area,
+            LifeOptions { algo: LifeAlgoSelect::Basic, rule: self.rule }
+        );
+
+        let start_pos: Pos = pos.into();
+
+        for pos in start_pos.iter(area.into()) {
+            if let Some(cell) = self.get_cell(pos.into()) {
+                life.insert((pos - start_pos).into(), *cell);
+            }
+        }
+
+        life
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (u16, u16, &Cell)> {
         let size = self.algo.size();
         (0..size.1).flat_map(move |y: u16| {
