@@ -5,7 +5,7 @@ use life_io::{
 use macroquad::{
     math,
     ui::{self, hash, widgets},
-    window::{self, screen_height, screen_width},
+    window::{self},
 };
 
 pub struct GameOptions {
@@ -56,15 +56,12 @@ const GAME_SIZES_NAMES: &[&str] = &["small", "medium", "large", "huge"];
 const GAME_DIFFICULTY_NAMES: &[&str] = &["easy", "normal", "hard"];
 
 impl super::Scene for GameOptions {
-    fn update(&mut self, _ctx: &mut crate::context::Context) {
-        self.preview_life.update();
+    fn update(&mut self, ctx: &mut crate::context::Context) {
+        self.preview_life.update(&mut ctx.view_context);
     }
 
     fn draw(&mut self, ctx: &mut crate::context::Context) {
-        self.preview_life.resize_to_fit(
-            self.preview_life.life.size(),
-            (screen_width(), screen_height()).into(),
-        );
+        self.preview_life.fit_to_screen();
         self.preview_life.draw();
 
         let menu_width = window::screen_width() / 2.;
@@ -107,10 +104,10 @@ impl super::Scene for GameOptions {
             }
         });
 
-        if GAME_RULES[self.selected_rule] != self.preview_life.life.get_rule()
-            || GAME_SIZES[self.selected_size] != self.preview_life.life.size()
+        if GAME_RULES[self.selected_rule] != self.preview_life.get_life().get_rule()
+            || GAME_SIZES[self.selected_size] != self.preview_life.get_life().size()
         {
-            self.preview_life.life = self.create_life();
+            self.preview_life.replace_life(self.create_life());
         }
     }
 }

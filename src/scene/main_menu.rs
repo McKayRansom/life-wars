@@ -64,20 +64,21 @@ impl MainMenu {
             // popup: None,
             // settings_subscene: Settings::new(ctx, false),
             // credits_subscene: Credits::new(ctx),
-            background_life: LifeViewer::new(Box::new(Life::new_ex((256, 150).into(), LifeOptions {
-                algo: life_io::life::LifeAlgoSelect::Basic,
-                rule: life_io::life::LifeRule::STAR_WARS,
-            }))),
+            background_life: LifeViewer::new(Box::new(Life::new_ex(
+                (256, 150).into(),
+                LifeOptions {
+                    algo: life_io::life::LifeAlgoSelect::Basic,
+                    rule: life_io::life::LifeRule::STAR_WARS,
+                },
+            ))),
         };
 
-        main_menu.background_life.life.randomize(1234, true);
-
-        for _ in 0..50 {
-            main_menu.background_life.life.update();
-        }
-        //     .paste(&Life::new_rule(life_io::life::LifeAlgoSelect::Basic, (1)), (64 - 8, 64 - 8));
-
-        // main_menu.map.get_city_mut(DEFAULT_CITY_ID).unwrap().name = "Alpha 0.1X - Roads".into();
+        main_menu.background_life.edit_life(|life| {
+            life.randomize(1234, true);
+            for _ in 0..50 {
+                life.update();
+            }
+        });
 
         main_menu
     }
@@ -118,8 +119,36 @@ impl MainMenu {
     }
 }
 
+fn randomize_edges(life: &mut Life) {
+    let size = life.size();
+    for x in 0..size.x {
+        life.insert(
+            (x, 0).into(),
+            life_io::life::Cell::new(
+                if macroquad::rand::rand() < u32::MAX / 10 {
+                    1
+                } else {
+                    0
+                },
+                1,
+            ),
+        );
+        life.insert(
+            (x, size.y - 1).into(),
+            life_io::life::Cell::new(
+                if macroquad::rand::rand() < u32::MAX / 10 {
+                    1
+                } else {
+                    0
+                },
+                0,
+            ),
+        );
+    }
+}
+
 impl Scene for MainMenu {
-    fn update(&mut self, _ctx: &mut Context) {
+    fn update(&mut self, ctx: &mut Context) {
         // if self.settings_subscene.active {
         //     self.settings_subscene.update(ctx);
         //     return;
@@ -130,32 +159,10 @@ impl Scene for MainMenu {
         //     return;
         // }
 
-        if self.background_life.update() {
-            let size = self.background_life.life.size();
-            for x in 0..size.x {
-                self.background_life.life.insert(
-                    (x, 0).into(),
-                    life_io::life::Cell::new(
-                        if macroquad::rand::rand() < u32::MAX / 10 {
-                            1
-                        } else {
-                            0
-                        },
-                        1,
-                    ),
-                );
-                self.background_life.life.insert(
-                    (x, size.y - 1).into(),
-                    life_io::life::Cell::new(
-                        if macroquad::rand::rand() < u32::MAX / 10 {
-                            1
-                        } else {
-                            0
-                        },
-                        0,
-                    ),
-                );
-            }
+        if self.background_life.update(&mut ctx.view_context) {
+            // fill with random
+            self.background_life.edit_life(randomize_edges);
+
         }
     }
     fn draw(&mut self, ctx: &mut Context) {

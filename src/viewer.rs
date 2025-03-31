@@ -4,10 +4,31 @@ use macroquad::{
     math::{Vec2, vec2},
     texture::{DrawTextureParams, FilterMode, Image, Texture2D, draw_texture_ex},
     time,
+    ui::root_ui,
     window::{screen_height, screen_width},
 };
 
 use crate::life::{Cell, Life, Pos};
+
+#[derive(Default)]
+pub struct ViewContext {
+    pub key_pressed: Option<char>,
+    pub mouse_pos: Option<Vec2>,
+    pub screen_size: Vec2,
+}
+
+impl ViewContext {
+    pub fn update(&mut self) {
+        let mouse_pos: Vec2 = mouse_position().into();
+        self.mouse_pos = if root_ui().is_mouse_over(mouse_pos) {
+            None
+        } else {
+            Some(mouse_pos)
+        };
+        self.screen_size = (screen_width(), screen_height()).into();
+        self.key_pressed = input::get_char_pressed();
+    }
+}
 
 /*
  * Simple life viewer
@@ -20,7 +41,8 @@ pub struct LifeViewer {
     last_map_update: f64,
     pub update_speed: f64,
 
-    pub life: Box<Life>,
+    // life is private, any changes to life need to update the image and texture as well
+    life: Box<Life>,
     image: Image,
     texture: Option<Texture2D>,
     pub color: Color,
@@ -56,6 +78,28 @@ impl LifeViewer {
             texture: None, // cannot create textures in unit tests, Create it on the first draw call
             color: WHITE,
         }
+    }
+
+    pub fn get_life(&self) -> &Life {
+        &self.life
+    }
+
+    pub fn paste_life(&mut self, other: &Life, pos: Pos, faction: Option<u8>) {
+        self.life.paste(other, pos, faction);
+        self.redraw();
+    }
+
+    pub fn edit_life<T: FnMut(&mut Life) -> ()>(&mut self, mut edit_func: T) {
+        edit_func(&mut self.life);
+        self.redraw();
+    }
+
+    /// new_life can change size in this case!
+    pub fn replace_life(&mut self, new_life: Box<Life>) {
+        let image = Image::gen_image_color(new_life.size().x, new_life.size().y, color::BLACK);
+        self.life = new_life;
+        self.image = image;
+        self.redraw();
     }
 
     pub fn new_fit_to_screen(life: Box<Life>) -> Self {
@@ -127,7 +171,8 @@ impl LifeViewer {
         self.redraw();
     }
 
-    pub fn update(&mut self) -> bool {
+    pub fn update(&mut self, _view_context: &mut ViewContext) -> bool {
+
         if self.update_speed != GAME_SPEED_1_PAUSED
             && time::get_time() - self.last_map_update > self.update_speed
         {
@@ -162,7 +207,7 @@ impl LifeViewer {
         );
     }
 
-    pub fn handle_input(&mut self) -> bool {
+    pub fn handle_input(&mut self, view_context: &mut ViewContext) {
         if is_key_down(KeyCode::W) {
             self.life_offset.y -= WASD_MOVE_SENSITIVITY / self.zoom;
         }
@@ -176,17 +221,19 @@ impl LifeViewer {
             self.life_offset.x += WASD_MOVE_SENSITIVITY / self.zoom;
         }
 
-        let new_mouse_wheel = mouse_wheel();
-        if new_mouse_wheel.1 != 0. {
-            self.change_zoom(
-                SCROLL_SENSITIVITY * new_mouse_wheel.1,
-                mouse_position().into(),
-            );
+        // only do these if we have the mouse
+        if let Some(mouse_pos) = &view_context.mouse_pos {
+            let new_mouse_wheel = mouse_wheel();
+            if new_mouse_wheel.1 != 0. {
+                self.change_zoom(
+                    SCROLL_SENSITIVITY * new_mouse_wheel.1,
+                    *mouse_pos,
+                );
+            }
         }
-        // if scrol
-        if let Some(chr) = input::get_char_pressed() {
+        // only do these if no one else has used them yet
+        if let Some(chr) = view_context.key_pressed.take() {
             match chr {
-                // 'q' => ctx.request_quit = true,
                 ' ' => {
                     if self.update_speed == GAME_SPEED_1_PAUSED {
                         self.update_speed = GAME_SPEED_2_NORMAL;
@@ -205,23 +252,11 @@ impl LifeViewer {
                 '4' => self.update_speed = GAME_SPEED_4_VERY_FAST,
                 '5' => self.update_speed = GAME_SPEED_5_EXTREME,
                 '6' => self.update_speed = GAME_SPEED_6_VERY_EXTREME,
-                '=' => self.change_zoom(
-                    PLUS_MINUS_SENSITVITY,
-                    (screen_width() / 2., screen_height() / 2.).into(),
-                ),
-                '-' => self.change_zoom(
-                    -PLUS_MINUS_SENSITVITY,
-                    (screen_width() / 2., screen_height() / 2.).into(),
-                ),
-                _ => {
-                    return false;
-                }
+                '=' => self.change_zoom(PLUS_MINUS_SENSITVITY, view_context.screen_size / 2.),
+                '-' => self.change_zoom(-PLUS_MINUS_SENSITVITY, view_context.screen_size / 2.),
+                _ => view_context.key_pressed = Some(chr),
             }
-        } else {
-            return false;
         }
-
-        true
     }
 }
 

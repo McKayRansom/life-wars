@@ -3,8 +3,7 @@ use crate::{context::Context, pattern_view::PatternLibViewer};
 
 use macroquad::{
     color::{self, Color},
-    input::{self, mouse_position},
-    ui::root_ui,
+    input::{self},
 };
 
 use life_io::{
@@ -66,91 +65,60 @@ impl Gameplay {
         }
     }
 
-    fn handle_input(&mut self, _ctx: &mut Context) {
-        if root_ui().is_mouse_over(mouse_position().into()) {
-            return;
-        }
-
-        self.viewer.handle_input();
-        // return;
-        // }
-        if let Some(pos) = self
-            .viewer
-            .screen_to_life_pos(input::mouse_position().into())
-        {
-            if input::is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
-                if let Some(pattern) = &self.pattern_view.selected_pattern {
-                    // TODO: calc better cost...
-                    let cost = pattern.life.get_pop(0);
-                    if self.resources[0] >= cost {
-                        self.resources[0] -= cost;
-                        self.viewer
-                            .life
-                            .paste(&pattern.life, pos - pattern.life.size() / 2, None);
-                        self.viewer.redraw();
-                        println!("Subing {cost} from");
-                    } else {
-                        // TODO: UI somewhere??
-                        println!("NOT ENOUGH RESOURCES");
+    fn handle_input(&mut self, ctx: &mut Context) {
+        self.viewer.handle_input(&mut ctx.view_context);
+        if let Some(mouse_pos) = ctx.view_context.mouse_pos {
+            if let Some(pos) = self.viewer.screen_to_life_pos(mouse_pos) {
+                if input::is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
+                    if let Some(pattern) = &self.pattern_view.selected_pattern {
+                        // TODO: calc better cost...
+                        let cost = pattern.get_life().get_pop(0);
+                        if self.resources[0] >= cost {
+                            self.resources[0] -= cost;
+                            self.viewer.paste_life(
+                                &pattern.get_life(),
+                                pos - pattern.get_life().size() / 2,
+                                None,
+                            );
+                            self.viewer.redraw();
+                            println!("Subing {cost} from");
+                        } else {
+                            // TODO: UI somewhere??
+                            println!("NOT ENOUGH RESOURCES");
+                        }
                     }
                 }
             }
         }
 
-        // if let Some(chr) = input::get_char_pressed() {
-        //     match chr {
-        //         'q' => ctx.request_quit = true,
-        //         'g' => self.viewer.life.paste(
-        //             &Life::new_life_from_rle(life_io::life::GOSPER_RLE),
-        //             pos.unwrap(),
-        //         ),
-        //         'p' => {
-        //             // if let Some(string) = clipboard_get() {
-        //             //     println!("Pasting {string:?}");
-        //             //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
-        //             // } else {
-        //             println!("No clipboard!");
-        //             // }
-        //         }
-        //         _ => {}
-        //     }
-        // }
+        if let Some(chr) = ctx.view_context.key_pressed.take() {
+            match chr {
+                'v' => {
+                    // if let Some(string) = clipboard_get() {
+                    //     println!("Pasting {string:?}");
+                    //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
+                    // } else {
+                    println!("No clipboard!");
+                    // }
+                }
+                _ => ctx.view_context.key_pressed = Some(chr),
+            }
+        }
     }
 
-    fn draw_selected_pattern(&mut self) {
-        if let Some(pattern_view) = &mut self.pattern_view.selected_pattern {
-            if let Some(mouse_grid_pos) = self
-                .viewer
-                .screen_to_life_pos(input::mouse_position().into())
-            {
-                // TODO: one could argue this should be centered instead of starting from the top left...
-                let start_pos = self.viewer.life_to_screen_pos(mouse_grid_pos);
-                // let pattern_size = pattern_view.size();
+    fn draw_selected_pattern(&mut self, ctx: &mut Context) {
+        if let Some(mouse_pos) = ctx.view_context.mouse_pos {
+            if let Some(pattern_view) = &mut self.pattern_view.selected_pattern {
+                if let Some(mouse_grid_pos) = self.viewer.screen_to_life_pos(mouse_pos) {
+                    let start_pos = self.viewer.life_to_screen_pos(mouse_grid_pos);
 
-                pattern_view.zoom = self.viewer.zoom;
-                pattern_view.color = Color::new(1., 1., 1., 0.5);
-                pattern_view.screen_offset =
-                    start_pos - pattern_view.life_to_screen_scale(pattern_view.life.size() / 2); //(
-                //     start_pos.0
-                //         - pattern_view.life_to_screen_scale(pattern_view.life.size().x) / 2.,
-                //     start_pos.1
-                //         - pattern_view.life_to_screen_scale(pattern_view.life.size().y) / 2.,
-                // );
+                    pattern_view.zoom = self.viewer.zoom;
+                    pattern_view.color = Color::new(1., 1., 1., 0.5);
+                    pattern_view.screen_offset = start_pos
+                        - pattern_view.life_to_screen_scale(pattern_view.get_life().size() / 2);
 
-                pattern_view.draw();
-
-                //     macroquad::shapes::draw_rectangle(
-                //         start_pos.0,
-                //         start_pos.1,
-                //         self.viewer.life_to_screen_scale(pattern_size.0),
-                //         self.viewer.life_to_screen_scale(pattern_size.1),
-                //         color::Color {
-                //             r: 1.,
-                //             g: 1.,
-                //             b: 1.,
-                //             a: 0.6,
-                //         },
-                //     );
+                    pattern_view.draw();
+                }
             }
         }
     }
@@ -203,7 +171,7 @@ pub const AI_UPDATE_TICKS: u32 = 16;
 
 impl Scene for Gameplay {
     fn update(&mut self, ctx: &mut Context) {
-        if self.viewer.update() {
+        if self.viewer.update(&mut ctx.view_context) {
             self.ai_update_ticks += 1;
 
             if self.ai_update_ticks > AI_UPDATE_TICKS {
@@ -214,7 +182,7 @@ impl Scene for Gameplay {
                         AI_CELL_PER_RESOURCE
                     };
                     self.resources[i] = self.resources[i]
-                        .saturating_add(self.viewer.life.get_pop(i as u8) / cell_per_resource)
+                        .saturating_add(self.viewer.get_life().get_pop(i as u8) / cell_per_resource)
 
                     // TODO: If player resources are below X and pop is below CELL_PER_RESOURCE, just eliminate them!
                     // if self.map.update() && self.map.metadata.is_level {
@@ -233,16 +201,16 @@ impl Scene for Gameplay {
                 let rand_pattern_i =
                     macroquad::rand::rand() as usize % ctx.pattern_lib.patterns.len();
                 let rand_pattern = &ctx.pattern_lib.patterns[rand_pattern_i];
-                if rand_pattern.life.get_rule() != self.viewer.life.get_rule() {
+                if rand_pattern.life.get_rule() != self.viewer.get_life().get_rule() {
                     return;
                 }
 
                 if self.resources[1] > rand_pattern.life.get_pop(0) {
                     self.resources[1] -= rand_pattern.life.get_pop(0);
-                    let size = self.viewer.life.size();
+                    let size = self.viewer.get_life().size();
                     let rand_x = macroquad::rand::rand() % (size.x as u32);
                     let rand_y = macroquad::rand::rand() % (size.y as u32) / 4;
-                    self.viewer.life.paste(
+                    self.viewer.paste_life(
                         &rand_pattern.life,
                         pos(rand_x as u16, rand_y as u16),
                         Some(1),
@@ -250,28 +218,16 @@ impl Scene for Gameplay {
                 }
             }
         }
+        self.handle_input(ctx);
     }
 
     fn draw(&mut self, ctx: &mut Context) {
-        // let size = self.viewer.life.size();
-        // self.viewer.resize_to_fit(
-        //     size,
-        //     (
-        //         (macroquad::window::screen_width() - BORDER_SIZE * 2.),
-        //         (macroquad::window::screen_height() - BORDER_SIZE * 2.),
-        //     ),
-        // );
-        // self.viewer.set_pos((BORDER_SIZE, BORDER_SIZE));
-
-        self.handle_input(ctx);
-
         self.viewer.draw();
+        self.pattern_view
+            .draw(ctx, self.viewer.get_life().get_rule());
+        self.draw_selected_pattern(ctx);
 
-        self.pattern_view.draw(ctx, self.viewer.life.get_rule());
-
-        self.draw_selected_pattern();
-
-        draw_score(&self.viewer.life, ctx);
+        draw_score(self.viewer.get_life(), ctx);
 
         macroquad::text::draw_text_ex(
             format!("Battle in progress... speed: {}", self.viewer.update_speed).as_str(),

@@ -1,4 +1,4 @@
-use life_io::{life::{Life, LifeOptions}, viewer::LifeViewer};
+use life_io::{life::{Life, LifeOptions}, viewer::{LifeViewer, ViewContext}};
 use macroquad::{
     texture::set_default_filter_mode,
     window::{self, next_frame},
@@ -68,9 +68,12 @@ async fn main() {
         LifeOptions::default()
     )));
 
+    let mut view_context = ViewContext::default();
+
     loop {
-        viewer.update();
-        viewer.handle_input();
+        view_context.update();
+        viewer.handle_input(&mut view_context);
+        viewer.update(&mut view_context);
         viewer.draw();
         next_frame().await;
     }

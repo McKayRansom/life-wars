@@ -1,6 +1,5 @@
-
 use life_io::{
-    life::{pos, Life, LifeOptions, LifeRule, Pos},
+    life::{Life, LifeOptions, LifeRule, Pos, pos},
     pattern::Pattern,
     viewer::LifeViewer,
 };
@@ -21,7 +20,7 @@ use crate::{context::Context, pattern_view::PatternLibViewer};
 const SIDE_BAR_WIDTH: f32 = 250.;
 
 pub struct Editor {
-    main_view: LifeViewer,
+    viewer: LifeViewer,
     clipboard: Option<Life>,
     edit_select: EditBar,
     mouse_down_pos: Option<Pos>,
@@ -82,7 +81,7 @@ impl Editor {
         skin.window_style = window_style;
 
         Self {
-            main_view: LifeViewer::new_fit_to_screen(Box::new(Life::new_ex(
+            viewer: LifeViewer::new_fit_to_screen(Box::new(Life::new_ex(
                 pos(256, 256),
                 LifeOptions {
                     algo: life_io::life::LifeAlgoSelect::Cached,
@@ -99,7 +98,8 @@ impl Editor {
     }
 
     fn iter_area(min_pos: Pos, max_pos: Pos) -> impl Iterator<Item = Pos> {
-        (min_pos.y..max_pos.y).flat_map(move |y: u16| (min_pos.x..max_pos.x).map(move |x| pos(x, y)))
+        (min_pos.y..max_pos.y)
+            .flat_map(move |y: u16| (min_pos.x..max_pos.x).map(move |x| pos(x, y)))
     }
 
     fn do_edit_action(&mut self, start_pos: Pos, end_pos: Pos) {
@@ -107,59 +107,48 @@ impl Editor {
         let max_pos = start_pos.max(end_pos);
         println!("Mouse down: {start_pos:?} to {end_pos:?}");
         match self.edit_select {
-            EditBar::Fill => {
+            EditBar::Fill => self.viewer.edit_life(|life| {
                 for pos in Self::iter_area(min_pos, max_pos) {
-                    self.main_view
-                        .life
-                        .insert(pos, life_io::life::Cell::new(1, 0))
+                    life.insert(pos, life_io::life::Cell::new(1, 0))
                 }
-            }
-            EditBar::Clear => {
+            }),
+            EditBar::Clear => self.viewer.edit_life(|life| {
                 for pos in Self::iter_area(min_pos, max_pos) {
-                    self.main_view
-                        .life
-                        .insert(pos, life_io::life::Cell::new(0, 0))
+                    life.insert(pos, life_io::life::Cell::new(0, 0))
                 }
-            }
+            }),
             EditBar::Copy => {
                 if max_pos == min_pos {
                     return;
                 }
-                self.clipboard = Some(
-                    self.main_view
-                        .life
-                        .copy(min_pos, max_pos - min_pos)
-                )
+                self.clipboard = Some(self.viewer.get_life().copy(min_pos, max_pos - min_pos))
             }
             EditBar::Paste => {
                 if let Some(clipboard) = &self.clipboard {
-                    self.main_view.life.paste(clipboard, start_pos, None);
+                    self.viewer.paste_life(clipboard, start_pos, None);
                 }
             }
             EditBar::Pattern => {
                 if let Some(pattern) = &self.pattern_view.selected_pattern {
-                    self.main_view.life.paste(&pattern.life, start_pos, None);
+                    self.viewer.paste_life(&pattern.get_life(), start_pos, None);
                 }
             }
         }
     }
 
-    fn handle_input(&mut self, _ctx: &mut Context) {
-        if root_ui().is_mouse_over(input::mouse_position().into()) {
-            return;
-        }
-        self.main_view.handle_input();
-
-        let mouse_pos = input::mouse_position();
-        if let Some(pos) = self.main_view.screen_to_life_pos(mouse_pos.into()) {
-            if input::is_mouse_button_pressed(input::MouseButton::Left) {
-                self.mouse_down_pos = Some(pos);
-            }
-            if input::is_mouse_button_released(input::MouseButton::Left) {
-                if let Some(mouse_down_pos) = self.mouse_down_pos {
-                    let pos = pos + (1, 1).into();
-                    self.do_edit_action(mouse_down_pos, pos);
-                    self.mouse_down_pos = None;
+    fn handle_input(&mut self, ctx: &mut Context) {
+        self.viewer.handle_input(&mut ctx.view_context);
+        if let Some(mouse_pos) = ctx.view_context.mouse_pos {
+            if let Some(pos) = self.viewer.screen_to_life_pos(mouse_pos) {
+                if input::is_mouse_button_pressed(input::MouseButton::Left) {
+                    self.mouse_down_pos = Some(pos);
+                }
+                if input::is_mouse_button_released(input::MouseButton::Left) {
+                    if let Some(mouse_down_pos) = self.mouse_down_pos {
+                        let pos = pos + (1, 1).into();
+                        self.do_edit_action(mouse_down_pos, pos);
+                        self.mouse_down_pos = None;
+                    }
                 }
             }
         }
@@ -224,14 +213,13 @@ impl Editor {
     fn draw_selected(&self) {
         if let Some(mouse_down_pos) = self.mouse_down_pos {
             let mouse_pos = mouse_position();
-            if let Some(life_pos) = self.main_view.screen_to_life_pos(mouse_pos.into()) {
-
+            if let Some(life_pos) = self.viewer.screen_to_life_pos(mouse_pos.into()) {
                 let life_pos = life_pos + pos(1, 1);
                 let min_pos = life_pos.min(mouse_down_pos);
                 let max_pos = life_pos.max(mouse_down_pos);
 
-                let mouse_down_screen_pos = self.main_view.life_to_screen_pos(min_pos.into());
-                let selected_area = self.main_view.life_to_screen_scale(max_pos - min_pos);
+                let mouse_down_screen_pos = self.viewer.life_to_screen_pos(min_pos.into());
+                let selected_area = self.viewer.life_to_screen_scale(max_pos - min_pos);
                 draw_rectangle(
                     mouse_down_screen_pos.x,
                     mouse_down_screen_pos.y,
@@ -250,16 +238,15 @@ impl Editor {
 }
 
 impl super::Scene for Editor {
-    fn update(&mut self, _ctx: &mut crate::context::Context) {
-        self.main_view.update();
+    fn update(&mut self, ctx: &mut crate::context::Context) {
+        self.viewer.update(&mut ctx.view_context);
+        self.handle_input(ctx);
     }
 
     fn draw(&mut self, ctx: &mut crate::context::Context) {
         root_ui().push_skin(&self.skin);
 
-        self.handle_input(ctx);
-
-        self.main_view.draw();
+        self.viewer.draw();
 
         self.draw_selected();
 
@@ -275,7 +262,7 @@ impl super::Scene for Editor {
             },
         );
 
-        if self.pattern_view.draw(ctx, self.main_view.life.get_rule()) {
+        if self.pattern_view.draw(ctx, self.viewer.get_life().get_rule()) {
             self.edit_select = EditBar::Pattern;
         }
         self.draw_clipboard(ctx);
@@ -283,8 +270,8 @@ impl super::Scene for Editor {
 
         let faction_text = format!(
             "Pop: {} Gen: {}",
-            self.main_view.life.get_pop(0),
-            self.main_view.life.get_generation()
+            self.viewer.get_life().get_pop(0),
+            self.viewer.get_life().get_generation()
         );
 
         let measure = macroquad::text::measure_text(faction_text.as_str(), Some(&ctx.font), 40, 1.);

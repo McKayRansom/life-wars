@@ -1,4 +1,5 @@
 use life_io::life::pattern_lib;
+use life_io::viewer::ViewContext;
 use macroquad::text::Font;
 
 // use crate::assets_path::determine_asset_path;
@@ -19,8 +20,7 @@ use crate::skin;
 /// game-wide data and resources
 pub struct Context {
     pub request_quit: bool,
-    pub key_pressed: Option<char>,
-    pub mouse_pos: Option<(f32, f32)>,
+    pub view_context: ViewContext,
     // pub gamepads: Gamepads,
     // pub textures: texture::TextureAtlas,
     // pub tileset: Tileset,
@@ -39,8 +39,7 @@ impl Context {
     pub async fn new() -> Self {
         Self {
             // gamepads: Gamepads::new(),
-            key_pressed: None,
-            mouse_pos: None,
+            view_context: ViewContext::default(),
             request_quit: false,
             // tileset: Tileset::new().await,
             font: skin::init().await,
@@ -53,5 +52,22 @@ impl Context {
             // save: Save::load(),
             pattern_lib: pattern_lib::PatternLib::new(),
         }
+    }
+
+    // global keybinds
+    fn input_handler(&mut self) {
+        if let Some(chr) = self.view_context.key_pressed.take() {
+            match chr {
+                'q' => self.request_quit = true,
+                _ => {
+                    self.view_context.key_pressed = Some(chr);
+                }
+            }
+        }
+    }
+
+    pub fn update(&mut self) {
+        self.view_context.update();
+        self.input_handler();
     }
 }
