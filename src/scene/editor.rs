@@ -1,4 +1,3 @@
-use std::str::FromStr;
 
 use life_io::{
     life::{Life, LifeOptions, LifeRule},

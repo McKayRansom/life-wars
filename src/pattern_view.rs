@@ -1,5 +1,5 @@
 use life_io::{
-    life::{Life, LifeRule},
+    life::LifeRule,
     viewer::LifeViewer,
 };
 use macroquad::{
