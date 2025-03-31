@@ -1,5 +1,7 @@
 use std::ops::{Add, Div, Sub};
 
+use macroquad::math::Vec2;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub struct Pos {
     pub x: u16,
@@ -57,6 +59,36 @@ impl Pos {
         (0..area.y).flat_map(move |y: u16| {
             (0..area.x).map(move |x| (self.x + x, self.y + y).into())
         })
+    }
+
+    pub fn as_vec2(&self) -> Vec2 {
+        Vec2::new(self.x as f32, self.y as f32)
+    }
+
+    pub fn try_from_vec2(vec2: Vec2, max: Pos) -> Option<Self> {
+        if vec2.x < 0. || vec2.y < 0. {
+            return None;
+        }
+        let pos = Self::new(vec2.x as u16, vec2.y as u16);
+        if pos.x > max.x || pos.y > max.y {
+            None
+        } else {
+            Some(pos)
+        }
+    }
+
+    pub fn min(self, rhs: Self) -> Self {
+        Self {
+            x: self.x.min(rhs.x),
+            y: self.y.min(rhs.y),
+        }
+    }
+
+    pub fn max(self, rhs: Self) -> Self {
+        Self {
+            x: self.x.max(rhs.x),
+            y: self.y.max(rhs.y),
+        }
     }
 }
 

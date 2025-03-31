@@ -63,7 +63,7 @@ impl super::Scene for GameOptions {
     fn draw(&mut self, ctx: &mut crate::context::Context) {
         self.preview_life.resize_to_fit(
             self.preview_life.life.size(),
-            (screen_width(), screen_height()),
+            (screen_width(), screen_height()).into(),
         );
         self.preview_life.draw();
 

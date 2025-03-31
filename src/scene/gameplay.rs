@@ -74,20 +74,19 @@ impl Gameplay {
         self.viewer.handle_input();
         // return;
         // }
-
-        let mouse_pos = input::mouse_position();
-        if let Some(pos) = self.viewer.screen_to_life_pos(mouse_pos) {
+        if let Some(pos) = self
+            .viewer
+            .screen_to_life_pos(input::mouse_position().into())
+        {
             if input::is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
                 if let Some(pattern) = &self.pattern_view.selected_pattern {
                     // TODO: calc better cost...
                     let cost = pattern.life.get_pop(0);
                     if self.resources[0] >= cost {
                         self.resources[0] -= cost;
-                        self.viewer.life.paste(
-                            &pattern.life,
-                            pos - pattern.life.size() / 2,
-                            None,
-                        );
+                        self.viewer
+                            .life
+                            .paste(&pattern.life, pos - pattern.life.size() / 2, None);
                         self.viewer.redraw();
                         println!("Subing {cost} from");
                     } else {
@@ -120,20 +119,23 @@ impl Gameplay {
 
     fn draw_selected_pattern(&mut self) {
         if let Some(pattern_view) = &mut self.pattern_view.selected_pattern {
-            let mouse_pos = input::mouse_position();
-            if let Some(mouse_grid_pos) = self.viewer.screen_to_life_pos(mouse_pos) {
+            if let Some(mouse_grid_pos) = self
+                .viewer
+                .screen_to_life_pos(input::mouse_position().into())
+            {
                 // TODO: one could argue this should be centered instead of starting from the top left...
                 let start_pos = self.viewer.life_to_screen_pos(mouse_grid_pos);
                 // let pattern_size = pattern_view.size();
 
                 pattern_view.zoom = self.viewer.zoom;
                 pattern_view.color = Color::new(1., 1., 1., 0.5);
-                pattern_view.screen_offset = (
-                    start_pos.0
-                        - pattern_view.life_to_screen_scale(pattern_view.life.size().x) / 2.,
-                    start_pos.1
-                        - pattern_view.life_to_screen_scale(pattern_view.life.size().y) / 2.,
-                );
+                pattern_view.screen_offset =
+                    start_pos - pattern_view.life_to_screen_scale(pattern_view.life.size() / 2); //(
+                //     start_pos.0
+                //         - pattern_view.life_to_screen_scale(pattern_view.life.size().x) / 2.,
+                //     start_pos.1
+                //         - pattern_view.life_to_screen_scale(pattern_view.life.size().y) / 2.,
+                // );
 
                 pattern_view.draw();
 

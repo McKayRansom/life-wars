@@ -151,7 +151,7 @@ impl Editor {
         self.main_view.handle_input();
 
         let mouse_pos = input::mouse_position();
-        if let Some(pos) = self.main_view.screen_to_life_pos(mouse_pos) {
+        if let Some(pos) = self.main_view.screen_to_life_pos(mouse_pos.into()) {
             if input::is_mouse_button_pressed(input::MouseButton::Left) {
                 self.mouse_down_pos = Some(pos);
             }
@@ -224,18 +224,19 @@ impl Editor {
     fn draw_selected(&self) {
         if let Some(mouse_down_pos) = self.mouse_down_pos {
             let mouse_pos = mouse_position();
-            if let Some(life_pos) = self.main_view.screen_to_life_pos(mouse_pos) {
+            if let Some(life_pos) = self.main_view.screen_to_life_pos(mouse_pos.into()) {
 
                 let life_pos = life_pos + pos(1, 1);
                 let min_pos = life_pos.min(mouse_down_pos);
                 let max_pos = life_pos.max(mouse_down_pos);
 
                 let mouse_down_screen_pos = self.main_view.life_to_screen_pos(min_pos.into());
+                let selected_area = self.main_view.life_to_screen_scale(max_pos - min_pos);
                 draw_rectangle(
-                    mouse_down_screen_pos.0,
-                    mouse_down_screen_pos.1,
-                    self.main_view.life_to_screen_scale(max_pos.x - min_pos.x),
-                    self.main_view.life_to_screen_scale(max_pos.y - min_pos.y),
+                    mouse_down_screen_pos.x,
+                    mouse_down_screen_pos.y,
+                    selected_area.x,
+                    selected_area.y,
                     color::Color {
                         r: 1.,
                         g: 1.,
