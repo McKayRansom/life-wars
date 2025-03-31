@@ -1,6 +1,6 @@
 use std::{hash::Hash, mem::replace};
 
-use super::{Cell, LifeAlgo, LifePops, LifeRule};
+use super::{Cell, LifeAlgo, LifePops, LifeRule, Pos};
 
 /*
  * Naive algorithm:
@@ -23,19 +23,19 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  */
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct LifeBasic {
-    size: (u16, u16),
+    size: Pos,
     grid: Vec<Cell>,
 }
 
 impl LifeBasic {
-    pub fn new(dim: (u16, u16)) -> Self {
+    pub fn new(dim: Pos) -> Self {
         Self {
             size: dim,
-            grid: vec![Cell::new(0, 0); (dim.0 + 2) as usize * (dim.1 + 2) as usize],
+            grid: vec![Cell::new(0, 0); (dim.x + 2) as usize * (dim.y + 2) as usize],
         }
     }
 
-    fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
+    fn neighbors(&self, faction: u8, pos: Pos) -> (u8, u8) {
         const NEIGHBOR_OFFSETS: &[(i32, i32)] = &[
             (-1, -1),
             (0, -1),
@@ -50,10 +50,10 @@ impl LifeBasic {
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for (dx, dy) in NEIGHBOR_OFFSETS {
-            let x = pos.0 as i32 + dx;
-            let y = pos.1 as i32 + dy;
+            let x = pos.x as i32 + dx;
+            let y = pos.y as i32 + dy;
 
-            let cell = self.grid[(y as usize) * (self.size.0 as usize + 2) + (x as usize)];
+            let cell = self.grid[(y as usize) * (self.size.x as usize + 2) + (x as usize)];
 
             if cell.is_alive() {
                 if cell.get_faction() == faction {
@@ -71,23 +71,23 @@ impl LifeBasic {
 }
 
 impl LifeAlgo for LifeBasic {
-    fn size(&self) -> (u16, u16) {
+    fn size(&self) -> Pos {
         self.size
     }
 
-    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
-        if pos.1 >= self.size.1 || pos.0 >= self.size.0 {
+    fn get(&self, pos: Pos) -> Option<&Cell> {
+        if pos.y >= self.size.y || pos.x >= self.size.x {
             None
         } else {
             self.grid
-                .get((pos.1 as usize + 1) * (self.size.0 as usize + 2) + (pos.0 as usize + 1))
+                .get((pos.y as usize + 1) * (self.size.x as usize + 2) + (pos.x as usize + 1))
         }
     }
 
-    fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
+    fn insert(&mut self, pos: Pos, new_cell: Cell) -> Option<Cell> {
         let cell = self
             .grid
-            .get_mut((pos.1 as usize + 1) * (self.size.0 as usize + 2) + (pos.0 as usize + 1))?;
+            .get_mut((pos.y as usize + 1) * (self.size.x as usize + 2) + (pos.x as usize + 1))?;
         Some(replace(cell, new_cell))
     }
 
@@ -98,10 +98,10 @@ impl LifeAlgo for LifeBasic {
             grid: self.grid.clone(), // This clone doesn't even show up on the flamegraph (just 1 alocation probably)
         };
 
-        for y in 1..self.size.1 + 1 {
-            for x in 1..self.size.0 + 1 {
-                let pos = (x, y);
-                let cell = self.grid[pos.1 as usize * (self.size.0 as usize + 2) + pos.0 as usize];
+        for y in 1..self.size.y + 1 {
+            for x in 1..self.size.x + 1 {
+                let pos: Pos = (x, y).into();
+                let cell = self.grid[pos.y as usize * (self.size.x as usize + 2) + pos.x as usize];
                 let new_cell =
                     rule.update(cell.get_state(), self.neighbors(cell.get_faction(), pos));
 
@@ -109,7 +109,7 @@ impl LifeAlgo for LifeBasic {
                 if new_cell.is_alive() {
                     pops.add(new_cell.get_faction(), 1);
                 }
-                new_self.grid[pos.1 as usize * (self.size.0 as usize + 2) + pos.0 as usize] =
+                new_self.grid[pos.y as usize * (self.size.x as usize + 2) + pos.x as usize] =
                     new_cell;
             }
         }
@@ -128,19 +128,19 @@ pub mod life_basic_test {
 
     #[test]
     fn life_test_basic_new() {
-        let mut life = LifeBasic::new((3, 3));
+        let mut life = LifeBasic::new((3, 3).into());
 
-        life.insert((1, 0), 1.into());
-        life.insert((1, 1), 1.into());
-        life.insert((1, 2), 1.into());
+        life.insert((1, 0).into(), 1.into());
+        life.insert((1, 1).into(), 1.into());
+        life.insert((1, 2).into(), 1.into());
 
-        assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
-        assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
-        assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
+        assert_eq!(life.get((0, 0).into()).unwrap().get_state(), 0);
+        assert_eq!(life.get((1, 0).into()).unwrap().get_state(), 1);
+        assert_eq!(life.get((0, 1).into()).unwrap().get_state(), 0);
 
         // these are virtual x/y not real x/y
-        assert_eq!(life.neighbors(0, (1, 1)), (2, 0));
-        assert_eq!(life.neighbors(0, (2, 1)), (1, 0));
-        assert_eq!(life.neighbors(0, (1, 2)), (3, 0));
+        assert_eq!(life.neighbors(0, (1, 1).into()), (2, 0));
+        assert_eq!(life.neighbors(0, (2, 1).into()), (1, 0));
+        assert_eq!(life.neighbors(0, (1, 2).into()), (3, 0));
     }
 }

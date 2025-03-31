@@ -14,7 +14,7 @@ Gosper, sp 13 * 1     820    60      ?
 
 use std::time::Instant;
 
-use life_io::life::{Life, LifeOptions, WORKING_ALGOS};
+use life_io::life::{Life, LifeOptions, WORKING_ALGOS, pos};
 
 const ACORN: &str = "\
 !Name: Acorn
@@ -33,11 +33,11 @@ fn main() {
     println!("-------------------------");
 
     for algo in WORKING_ALGOS {
-        let mut life = Life::new_ex((256, 256), LifeOptions {
+        let mut life = Life::new_ex(pos(256, 256), LifeOptions {
             algo: *algo,
             ..Default::default()
         });
-        life.paste(&acorn_life, (128, 128), None);
+        life.paste(&acorn_life, pos(128, 128), None);
 
         let now = Instant::now();
 

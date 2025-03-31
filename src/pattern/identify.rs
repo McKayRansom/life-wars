@@ -14,7 +14,7 @@
 
 use std::collections::HashMap;
 
-use crate::life::{Life, LifeOptions, Pos};
+use crate::life::{Life, LifeOptions, Pos, pos};
 
 use super::Pattern;
 
@@ -67,7 +67,7 @@ impl CellGroupTracker {
     pub fn new(life: &Life) -> Self {
         let size = life.size();
         let mut tracker = Self {
-            group_grid_map: vec![vec![0; size.0 as usize]; size.1 as usize],
+            group_grid_map: vec![vec![0; size.x as usize]; size.y as usize],
             next_group_id: 1,
             groups: HashMap::new(),
         };
@@ -106,8 +106,8 @@ impl CellGroupTracker {
         (-2, -1),
     ];
 
-    fn current_group_for_cell(&self, pos: (u16, u16), offset: (i32, i32)) -> u8 {
-        let final_pos: (i32, i32) = (pos.0 as i32 + offset.0, pos.1 as i32 + offset.1);
+    fn current_group_for_cell(&self, pos: Pos, offset: (i32, i32)) -> u8 {
+        let final_pos: (i32, i32) = (pos.x as i32 + offset.0, pos.y as i32 + offset.1);
 
         // TODO: THIS IS STUPID!
         if final_pos.0 >= 0
@@ -121,7 +121,7 @@ impl CellGroupTracker {
         }
     }
 
-    fn calc_group_for_cell(&mut self, pos: (u16, u16)) -> u8 {
+    fn calc_group_for_cell(&mut self, pos: Pos) -> u8 {
         let mut found_group: Option<u8> = None;
         for neigh_off in Self::NEIGHBOR_OFFSETS {
             let neigh_group = self.current_group_for_cell(pos, *neigh_off);
@@ -152,20 +152,20 @@ impl CellGroupTracker {
     fn setup_tracking(&mut self, life: &Life) {
         for (x, y, cell) in life.iter() {
             if cell.is_alive() {
-                self.group_grid_map[y as usize][x as usize] = self.calc_group_for_cell((x, y));
+                self.group_grid_map[y as usize][x as usize] = self.calc_group_for_cell(pos(x, y));
             }
         }
     }
 
     fn update(&mut self, life: &Life) {
-        let edge = (life.size().0 - 1, life.size().1 - 1);
+        let edge = life.size() - pos(1, 1);
         for (x, y, cell) in life.iter() {
             if cell.is_alive() {
-                let group_id = self.calc_group_for_cell((x, y));
+                let group_id = self.calc_group_for_cell(pos(x, y));
                 self.group_grid_map[y as usize][x as usize] = group_id;
 
                 // spaceship detection
-                if x == 0 || y == 0 || x == edge.0 || y == edge.1 {
+                if x == 0 || y == 0 || x == edge.x || y == edge.y {
                     // remove this group
                     let group = self.groups.get(&group_id).unwrap();
                     dbg!(group);
@@ -240,12 +240,12 @@ impl CellGroupTracker {
 // TODO: PERIOD INPUT!
 pub fn identify(life: &Life) -> Vec<Pattern> {
     // TODO: some cases we want big, if we know the pattern fits we don't need to do this...
-    let mut test_life = Life::new_ex((life.size().0 + 6, life.size().1 + 6), LifeOptions {
+    let mut test_life = Life::new_ex(life.size() + pos(6, 6), LifeOptions {
         algo: crate::life::LifeAlgoSelect::Cached,
         rule: *life.get_rule(),
     });
 
-    test_life.paste(life, (3, 3), None);
+    test_life.paste(life, pos(3, 3), None);
 
     let mut tracker = CellGroupTracker::new(&test_life);
     let start_hash = test_life.hash();
@@ -728,12 +728,12 @@ OO...O
 OO
 .O...OOO";
 
-        let mut life = Life::new_ex((64, 64), LifeOptions {
+        let mut life = Life::new_ex(pos(64, 64), LifeOptions {
             algo: crate::life::LifeAlgoSelect::Cached,
             ..Default::default()
         });
         let die_hard_life = Life::from_plaintext(DIEHARD, LifeOptions::default());
-        life.paste(&die_hard_life, (32, 32), None);
+        life.paste(&die_hard_life, pos(32, 32), None);
 
         let _patterns = identify(&mut life);
 

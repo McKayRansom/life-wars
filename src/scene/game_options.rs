@@ -1,5 +1,5 @@
 use life_io::{
-    life::{Life, LifeOptions, LifeRule},
+    life::{Life, LifeOptions, LifeRule, pos, Pos},
     viewer::LifeViewer,
 };
 use macroquad::{
@@ -19,7 +19,7 @@ pub struct GameOptions {
 impl GameOptions {
     pub fn new() -> Self {
         Self {
-            preview_life: LifeViewer::new(Box::new(Life::new((256, 256)))),
+            preview_life: LifeViewer::new(Box::new(Life::new(pos(256, 256)))),
 
             selected_rule: 1,
             selected_size: 1,
@@ -50,7 +50,7 @@ impl Default for GameOptions {
 const GAME_RULES: &[&LifeRule] = &[&LifeRule::GOL, &LifeRule::STAR_WARS];
 const GAME_RULES_NAMES: &[&str] = &["Game of Life", "Star Wars"];
 
-const GAME_SIZES: &[(u16, u16)] = &[(64, 64), (128, 128), (256, 256), (512, 512)];
+const GAME_SIZES: &[Pos] = &[pos(64, 64), pos(128, 128), pos(256, 256), pos(512, 512)];
 const GAME_SIZES_NAMES: &[&str] = &["small", "medium", "large", "huge"];
 
 const GAME_DIFFICULTY_NAMES: &[&str] = &["easy", "normal", "hard"];

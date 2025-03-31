@@ -8,12 +8,12 @@ use macroquad::{
 };
 
 use life_io::{
-    life::{self, Cell, FACTION_MAX, Life, LifeAlgoSelect, LifeOptions, LifeRule},
+    life::{self, Cell, FACTION_MAX, Life, LifeAlgoSelect, LifeOptions, LifeRule, Pos, pos},
     viewer::{self, LifeViewer},
 };
 
 pub struct GameOptions {
-    pub size: (u16, u16),
+    pub size: Pos,
     pub rule: LifeRule,
     pub algo: LifeAlgoSelect,
 }
@@ -21,7 +21,7 @@ pub struct GameOptions {
 impl Default for GameOptions {
     fn default() -> Self {
         Self {
-            size: (256, 256),
+            size: pos(256, 256),
             rule: LifeRule::GOL,
             algo: LifeAlgoSelect::Basic,
         }
@@ -85,7 +85,7 @@ impl Gameplay {
                         self.resources[0] -= cost;
                         self.viewer.life.paste(
                             &pattern.life,
-                            (pos.0 - pattern.life.size().0 / 2, pos.1 - pattern.life.size().1 / 2),
+                            pos - pattern.life.size() / 2,
                             None,
                         );
                         self.viewer.redraw();
@@ -130,9 +130,9 @@ impl Gameplay {
                 pattern_view.color = Color::new(1., 1., 1., 0.5);
                 pattern_view.screen_offset = (
                     start_pos.0
-                        - pattern_view.life_to_screen_scale(pattern_view.life.size().0) / 2.,
+                        - pattern_view.life_to_screen_scale(pattern_view.life.size().x) / 2.,
                     start_pos.1
-                        - pattern_view.life_to_screen_scale(pattern_view.life.size().1) / 2.,
+                        - pattern_view.life_to_screen_scale(pattern_view.life.size().y) / 2.,
                 );
 
                 pattern_view.draw();
@@ -238,11 +238,11 @@ impl Scene for Gameplay {
                 if self.resources[1] > rand_pattern.life.get_pop(0) {
                     self.resources[1] -= rand_pattern.life.get_pop(0);
                     let size = self.viewer.life.size();
-                    let rand_x = macroquad::rand::rand() % (size.0 as u32);
-                    let rand_y = macroquad::rand::rand() % (size.1 as u32) / 4;
+                    let rand_x = macroquad::rand::rand() % (size.x as u32);
+                    let rand_y = macroquad::rand::rand() % (size.y as u32) / 4;
                     self.viewer.life.paste(
                         &rand_pattern.life,
-                        (rand_x as u16, rand_y as u16),
+                        pos(rand_x as u16, rand_y as u16),
                         Some(1),
                     );
                 }

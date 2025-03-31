@@ -100,7 +100,10 @@ impl Life {
             .max()
             .unwrap();
 
-        let mut life: Life = Life::new_ex((row_size as u16, (row_of_5_count * 5) as u16), options);
+        let mut life: Life = Life::new_ex(
+            (row_size as u16, (row_of_5_count * 5) as u16).into(),
+            options,
+        );
 
         for (row_of_5_count, row) in suffix.split('z').enumerate() {
             let mut x = 0;
@@ -117,7 +120,10 @@ impl Life {
 
                 for y in 0..6 {
                     if col_vals & 1 != 0 {
-                        life.insert((x as u16, (row_of_5_count * 5) as u16 + y), Cell::new(1, 0));
+                        life.insert(
+                            (x as u16, (row_of_5_count * 5) as u16 + y).into(),
+                            Cell::new(1, 0),
+                        );
                     }
                     col_vals >>= 1;
                 }
@@ -132,13 +138,13 @@ impl Life {
         let mut string = String::with_capacity(16);
         // iterate by cols instead of by rows
         let size = self.size();
-        for row_of_5 in 0..(size.1 / 5 + if size.1 % 5 == 0 { 0 } else { 1 }) {
+        for row_of_5 in 0..(size.y / 5 + if size.y % 5 == 0 { 0 } else { 1 }) {
             let mut zero_count: usize = 0;
-            for x in 0..size.0 {
+            for x in 0..size.x {
                 let mut col_vals = 0;
                 for dy in 0..5 {
                     col_vals >>= 1;
-                    if let Some(cell) = self.get_cell((x, (row_of_5 * 5) + dy)) {
+                    if let Some(cell) = self.get_cell((x, (row_of_5 * 5) + dy).into()) {
                         if cell.is_alive() {
                             col_vals |= 1 << 4;
                         }

@@ -29,17 +29,17 @@ fn test_blinker() {
 
 #[test]
 fn test_compare() {
-    let mut life_basic = Life::new_ex((64, 64), LifeOptions {
+    let mut life_basic = Life::new_ex(pos(64, 64), LifeOptions {
         algo: LifeAlgoSelect::Basic,
         rule: LifeRule::default(),
     });
-    let mut life_cached = Life::new_ex((64, 64), LifeOptions {
+    let mut life_cached = Life::new_ex(pos(64, 64), LifeOptions {
         algo: LifeAlgoSelect::Cached,
         rule: LifeRule::default(),
     });
 
-    rand::rand_life(&mut life_basic, (0, 0), (64, 64), 1234, None);
-    rand::rand_life(&mut life_cached, (0, 0), (64, 64), 1234, None);
+    rand::rand_life(&mut life_basic, pos(0, 0), pos(64, 64), 1234, None);
+    rand::rand_life(&mut life_cached, pos(0, 0), pos(64, 64), 1234, None);
 
     for i in 0..50 {
         life_basic.update();

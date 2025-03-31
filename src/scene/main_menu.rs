@@ -64,7 +64,7 @@ impl MainMenu {
             // popup: None,
             // settings_subscene: Settings::new(ctx, false),
             // credits_subscene: Credits::new(ctx),
-            background_life: LifeViewer::new(Box::new(Life::new_ex((256, 150), LifeOptions {
+            background_life: LifeViewer::new(Box::new(Life::new_ex((256, 150).into(), LifeOptions {
                 algo: life_io::life::LifeAlgoSelect::Basic,
                 rule: life_io::life::LifeRule::STAR_WARS,
             }))),
@@ -132,9 +132,9 @@ impl Scene for MainMenu {
 
         if self.background_life.update() {
             let size = self.background_life.life.size();
-            for x in 0..size.0 {
+            for x in 0..size.x {
                 self.background_life.life.insert(
-                    (x, 0),
+                    (x, 0).into(),
                     life_io::life::Cell::new(
                         if macroquad::rand::rand() < u32::MAX / 10 {
                             1
@@ -145,7 +145,7 @@ impl Scene for MainMenu {
                     ),
                 );
                 self.background_life.life.insert(
-                    (x, size.1 - 1),
+                    (x, size.y - 1).into(),
                     life_io::life::Cell::new(
                         if macroquad::rand::rand() < u32::MAX / 10 {
                             1

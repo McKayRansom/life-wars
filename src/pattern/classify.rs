@@ -1,36 +1,36 @@
-use crate::life::{Life, LifeOptions};
+use crate::life::{Life, LifeOptions, Pos, pos};
 
 use super::{Classification, Pattern, PatternMetadata};
 
 const MAX_PERIOD: u32 = 140;
 
 impl Life {
-    fn calc_live_bounds(&self) -> ((u16, u16), (u16, u16)) {
+    fn calc_live_bounds(&self) -> (Pos, Pos) {
         // shouldn't usually get too far
         let mut min_pos = self.size();
-        let mut max_pos: (u16, u16) = (0, 0);
+        let mut max_pos = pos(0, 0);
 
         // TODO: THIS IS STUPID BUT MY HEAD HURTS TRYING TO THINK OF A BETTER METHOD!
         for (x, y, cell) in self.iter() {
             if cell.is_alive() {
-                if x < min_pos.0 {
-                    min_pos.0 = x;
+                if x < min_pos.x {
+                    min_pos.x = x;
                 }
-                if y < min_pos.1 {
-                    min_pos.1 = y;
+                if y < min_pos.y {
+                    min_pos.y = y;
                 }
-                if x > max_pos.0 {
-                    max_pos.0 = x;
+                if x > max_pos.x {
+                    max_pos.x = x;
                 }
-                if y > max_pos.1 {
-                    max_pos.1 = y;
+                if y > max_pos.y {
+                    max_pos.y = y;
                 }
             }
         }
         // go diagonally top-left to bot-right and look in strips
-        // while start_pos.0 < self.size().0 && start_pos.1 < self.size().1 {
+        // while start_pos.x < self.size().0 && start_pos.y < self.size().1 {
         //     // strip left to right
-        //     for x in start_pos.0..self.size().0 {
+        //     for x in start_pos.x..self.size().0 {
 
         //     }
         // }
@@ -40,16 +40,18 @@ impl Life {
 
 #[cfg(test)]
 mod life_tests {
-    use crate::life::{Cell, Life};
+    use crate::life::Cell;
+
+    use super::*;
 
     #[test]
     fn test_calc_top_left_life() {
-        let mut life = Life::new((4, 4));
-        assert_eq!(life.calc_live_bounds(), ((4, 4), (0, 0)));
-        life.insert((1, 2), Cell::new(1, 0));
-        assert_eq!(life.calc_live_bounds(), ((1, 2), (1, 2)));
-        life.insert((2, 1), Cell::new(1, 0));
-        assert_eq!(life.calc_live_bounds(), ((1, 1), (2, 2)));
+        let mut life = Life::new(pos(4, 4));
+        assert_eq!(life.calc_live_bounds(), (pos(4, 4), pos(0, 0)));
+        life.insert(pos(1, 2), Cell::new(1, 0));
+        assert_eq!(life.calc_live_bounds(), (pos(1, 2), pos(1, 2)));
+        life.insert(pos(2, 1), Cell::new(1, 0));
+        assert_eq!(life.calc_live_bounds(), (pos(1, 1), pos(2, 2)));
     }
 }
 
@@ -65,19 +67,19 @@ impl Pattern {
      */
     pub fn classify(&mut self) {
         let mut new_life = Life::new_ex(
-            (self.life.size().0 + 2, self.life.size().1 + 2),
+            self.life.size() + pos(2, 2),
             LifeOptions {
                 algo: crate::life::LifeAlgoSelect::Cached,
                 rule: *self.life.get_rule(),
             },
         );
 
-        new_life.paste(&self.life, (1, 1), None);
+        new_life.paste(&self.life, pos(1, 1), None);
 
         // let starting_hash = self.life.hash();
         let initial_pop = self.life.get_pop(0);
         let mut min_form: String = self.life.to_apgcode();
-        let mut min_top_left_pos: (u16, u16) = (1, 1);
+        let mut min_top_left_pos = pos(1, 1);
         let mut min_form_period: u32 = 0;
         // let starting_form = min_form.clone();
 
@@ -101,16 +103,13 @@ impl Pattern {
 
             // dbg!(top_left_pos);
 
-            let new_form: String = if top_left_pos == (0, 0) {
+            let new_form: String = if top_left_pos == pos(0, 0) {
                 new_life.to_apgcode()
             } else {
                 new_life
                     .copy(
                         top_left_pos,
-                        (
-                            new_life.size().0 - top_left_pos.0 + 1,
-                            new_life.size().1 - top_left_pos.1 + 1,
-                        ),
+                        new_life.size() - top_left_pos + pos(1, 1)
                     )
                     .to_apgcode()
             };
@@ -140,8 +139,8 @@ impl Pattern {
                 // self.life = new_life.copy(
                 //     top_left_pos.into(),
                 //     (
-                //         _bot_right_pos.0 - top_left_pos.0,
-                //         _bot_right_pos.1 - top_left_pos.1,
+                //         _bot_right_pos.x - top_left_pos.x,
+                //         _bot_right_pos.y - top_left_pos.y,
                 //     ),
                 // );
                 return;

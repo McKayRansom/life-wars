@@ -1,13 +1,20 @@
 use std::ops::{Add, Div, Sub};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub struct Pos {
     pub x: u16,
     pub y: u16,
 }
 
+
+#[inline(always)]
+pub const fn pos(x: u16, y: u16) -> Pos {
+    Pos::new(x, y)
+}
+
 impl Pos {
-    pub fn new(x: u16, y: u16) -> Self {
+    #[inline(always)]
+    pub const fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
 
@@ -51,7 +58,6 @@ impl Pos {
             (0..area.x).map(move |x| (self.x + x, self.y + y).into())
         })
     }
-
 }
 
 impl From<(u16, u16)> for Pos {

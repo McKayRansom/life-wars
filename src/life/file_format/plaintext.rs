@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    life::{Cell, Life, LifeOptions},
+    life::{Cell, Life, LifeOptions, Pos},
     pattern::{Pattern, PatternMetadata},
 };
 
@@ -9,16 +9,16 @@ impl Life {
     // Based on Plaintext format https://conwaylife.com/wiki/Plaintext
     // TODO: TryFrom instead...
     pub fn from_plaintext(value: &str, options: LifeOptions) -> Life {
-        let mut size: (u16, u16) = (0, 0);
+        let mut size = Pos::new(0, 0);
         for line in value.lines() {
             if !line.starts_with("!") {
-                size.1 += 1;
-                size.0 = size.0.max(line.len() as u16);
+                size.y += 1;
+                size.x = size.x.max(line.len() as u16);
             }
         }
         let mut life = Life::new_ex(size, options);
 
-        let mut pos: (u16, u16) = (0, 0);
+        let mut pos = Pos::new(0, 0);
         for line in value.lines() {
             if line.starts_with("!") {
                 continue;
@@ -37,11 +37,11 @@ impl Life {
                 } {
                     life.insert(pos, cell);
                 }
-                pos.0 += 1;
+                pos.x += 1;
             }
 
-            pos.0 = 0;
-            pos.1 += 1;
+            pos.x = 0;
+            pos.y += 1;
         }
         life
     }

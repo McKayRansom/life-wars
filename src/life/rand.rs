@@ -24,8 +24,8 @@ fn rand_cell(rand: &RandGenerator) -> Cell {
 
 pub fn rand_life(
     life: &mut Life,
-    pos: (u16, u16),
-    area: (u16, u16),
+    pos: Pos,
+    area: Pos,
     seed: u64,
     symmetry: Option<RandSymmetry>,
 ) {
@@ -45,7 +45,7 @@ pub fn rand_life(
             }
             // for y in 0..area.y {
             // for x in 0..area.x {
-            // this.insert((pos.0 + x, pos.1 + area.1 - 1 - y), cell);
+            // this.insert((pos.x + x, pos.y + area.1 - 1 - y), cell);
             // }
             // }
         }
@@ -96,7 +96,7 @@ mod rand_life_tests {
     #[test]
     fn test_rand() {
         let mut life = Life::default(); // 8x8
-        rand_life(&mut life, (2, 2), (4, 4), 1234, None);
+        rand_life(&mut life, (2, 2).into(), (4, 4).into(), 1234, None);
 
         assert_eq!(
             life.to_plaintext(),
@@ -116,7 +116,7 @@ mod rand_life_tests {
     #[test]
     fn test_rand_d2_1() {
         let mut life = Life::default(); // 8x8
-        rand_life(&mut life, (2, 2), (5, 5), 1234, Some(RandSymmetry::D2_1));
+        rand_life(&mut life, (2, 2).into(), (5, 5).into(), 1234, Some(RandSymmetry::D2_1));
 
         assert_eq!(
             life.to_plaintext(),
@@ -136,7 +136,7 @@ mod rand_life_tests {
     #[test]
     fn test_rand_d2_2() {
         let mut life = Life::default(); // 8x8
-        rand_life(&mut life, (2, 2), (4, 4), 1234, Some(RandSymmetry::D2_2));
+        rand_life(&mut life, (2, 2).into(), (4, 4).into(), 1234, Some(RandSymmetry::D2_2));
 
         assert_eq!(
             life.to_plaintext(),
@@ -156,7 +156,7 @@ mod rand_life_tests {
     #[test]
     fn test_rand_c2_1() {
         let mut life = Life::default(); // 8x8
-        rand_life(&mut life, (2, 2), (5, 5), 1234, Some(RandSymmetry::C2_1));
+        rand_life(&mut life, (2, 2).into(), (5, 5).into(), 1234, Some(RandSymmetry::C2_1));
 
         assert_eq!(
             life.to_plaintext(),
@@ -176,7 +176,7 @@ mod rand_life_tests {
     #[test]
     fn test_rand_c4_1() {
         let mut life = Life::default(); // 8x8
-        rand_life(&mut life, (2, 2), (5, 5), 1234, Some(RandSymmetry::C4_1));
+        rand_life(&mut life, (2, 2).into(), (5, 5).into(), 1234, Some(RandSymmetry::C4_1));
 
         assert_eq!(
             life.to_plaintext(),

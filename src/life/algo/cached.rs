@@ -1,6 +1,6 @@
 use std::{hash::Hash, mem::swap};
 
-use super::{Cell, LifeAlgo, LifePops, LifeRule};
+use super::{Cell, LifeAlgo, LifePops, LifeRule, Pos};
 
 /*
  * Simple optimizations from the Naive algorithm:
@@ -35,16 +35,16 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
 pub struct LifeCached {
     grid: Vec<Vec<(Cell, i8)>>,
     old_grid: Vec<Vec<(Cell, i8)>>,
-    recent_updates: Vec<(u16, u16)>,
-    old_updates: Vec<(u16, u16)>,
+    recent_updates: Vec<Pos>,
+    old_updates: Vec<Pos>,
 }
 
 impl LifeCached {
-    pub fn new(dim: (u16, u16)) -> Self {
+    pub fn new(dim: Pos) -> Self {
         Self {
-            grid: vec![vec![(Cell::new(0, 0), 0); dim.0 as usize]; dim.1 as usize],
+            grid: vec![vec![(Cell::new(0, 0), 0); dim.x as usize]; dim.y as usize],
             recent_updates: Vec::new(),
-            old_grid: vec![vec![(Cell::new(0, 0), 0); dim.0 as usize]; dim.1 as usize],
+            old_grid: vec![vec![(Cell::new(0, 0), 0); dim.x as usize]; dim.y as usize],
             old_updates: Vec::new(),
         }
     }
@@ -53,15 +53,15 @@ impl LifeCached {
         grid: &mut [Vec<(Cell, i8)>],
         faction: u8,
         amount: i8,
-        pos: (u16, u16),
+        pos: Pos,
     ) {
         for dy in -1..2 {
             for dx in -1..2 {
                 if dx == 0 && dy == 0 {
                     continue;
                 }
-                if let Some(row) = grid.get_mut((pos.1 as i32 + dy) as usize) {
-                    if let Some((cell, neigh)) = row.get_mut((pos.0 as i32 + dx) as usize) {
+                if let Some(row) = grid.get_mut((pos.y as i32 + dy) as usize) {
+                    if let Some((cell, neigh)) = row.get_mut((pos.x as i32 + dx) as usize) {
 
                         // NOTE: This impacts performance ~20% :(
                         if cell.get_faction() != faction {
@@ -88,32 +88,32 @@ impl LifeCached {
     }
 
     fn check_cell_and_neighbors(
-        size: (u16, u16),
+        size: Pos,
         old_grid: &[Vec<(Cell, i8)>],
         new_grid: &mut [Vec<(Cell, i8)>],
-        updates: &mut Vec<(u16, u16)>,
-        pos: (u16, u16),
+        updates: &mut Vec<Pos>,
+        pos: Pos,
         rule: &LifeRule,
         pops: &mut LifePops,
     ) {
         // let size = self.size();
         for dy in -1..2 {
-            let py = pos.1 as i32 + dy;
-            if py < 0 || py as u16 >= size.1 {
+            let py = pos.y as i32 + dy;
+            if py < 0 || py as u16 >= size.y {
                 continue;
             }
             for dx in -1..2 {
-                let px = pos.0 as i32 + dx;
-                if px < 0 || px as u16 >= size.0 {
+                let px = pos.x as i32 + dx;
+                if px < 0 || px as u16 >= size.x {
                     continue;
                 }
-                let new_pos: (u16, u16) = (px as u16, py as u16);
+                let new_pos: Pos = (px as u16, py as u16).into();
 
-                let old = old_grid[new_pos.1 as usize][new_pos.0 as usize];
+                let old = old_grid[new_pos.y as usize][new_pos.x as usize];
 
                 let new_cell = rule.update(old.0.get_state(), (old.1 as u8, old.0.get_faction()));
 
-                let new = &mut new_grid[new_pos.1 as usize][new_pos.0 as usize];
+                let new = &mut new_grid[new_pos.y as usize][new_pos.x as usize];
 
                 if new_cell != new.0 {
                     // println!("Cell at: {new_pos:?} was {:?} now {new_cell:?}", new);
@@ -132,20 +132,20 @@ impl LifeCached {
 }
 
 impl LifeAlgo for LifeCached {
-    fn size(&self) -> (u16, u16) {
-        (self.grid[0].len() as u16, self.grid.len() as u16)
+    fn size(&self) -> Pos {
+        (self.grid[0].len() as u16, self.grid.len() as u16).into()
     }
 
-    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
+    fn get(&self, pos: Pos) -> Option<&Cell> {
         self.grid
-            .get(pos.1 as usize)
-            .map(|thing| thing.get(pos.0 as usize).map(|(cell, _neigh)| cell))
+            .get(pos.y as usize)
+            .map(|thing| thing.get(pos.x as usize).map(|(cell, _neigh)| cell))
             .unwrap_or(None)
     }
 
-    fn insert(&mut self, pos: (u16, u16), new_cell: Cell) -> Option<Cell> {
-        let row = self.grid.get_mut(pos.1 as usize)?;
-        let cell = row.get_mut(pos.0 as usize)?;
+    fn insert(&mut self, pos: Pos, new_cell: Cell) -> Option<Cell> {
+        let row = self.grid.get_mut(pos.y as usize)?;
+        let cell = row.get_mut(pos.x as usize)?;
 
         if new_cell == cell.0 {
             return None;
@@ -204,12 +204,12 @@ pub mod life_cached_test {
 
     #[test]
     fn test_cached() {
-        let mut life: LifeCached = LifeCached::new((3, 3));
+        let mut life: LifeCached = LifeCached::new((3, 3).into());
 
-        life.insert((1, 1), 1.into());
+        life.insert((1, 1).into(), 1.into());
 
-        assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
-        assert_eq!(life.get((1, 1)).unwrap().get_state(), 1);
+        assert_eq!(life.get((0, 0).into()).unwrap().get_state(), 0);
+        assert_eq!(life.get((1, 1).into()).unwrap().get_state(), 1);
 
         assert_eq!(life.neighbors_cached((0, 0)), (1, 0));
         assert_eq!(life.neighbors_cached((1, 0)), (1, 0));
@@ -218,14 +218,14 @@ pub mod life_cached_test {
 
     #[test]
     fn test_cached_faction() {
-        let mut life: LifeCached = LifeCached::new((3, 3));
-        life.insert((1, 0), Cell::new(1, 1));
-        life.insert((1, 1), Cell::new(1, 1));
-        life.insert((1, 2), Cell::new(1, 1));
+        let mut life: LifeCached = LifeCached::new((3, 3).into());
+        life.insert((1, 0).into(), Cell::new(1, 1));
+        life.insert((1, 1).into(), Cell::new(1, 1));
+        life.insert((1, 2).into(), Cell::new(1, 1));
 
-        assert_eq!(life.get((0, 0)).unwrap().get_state(), 0);
-        assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
-        assert_eq!(life.get((0, 1)).unwrap().get_state(), 0);
+        assert_eq!(life.get((0, 0).into()).unwrap().get_state(), 0);
+        assert_eq!(life.get((1, 0).into()).unwrap().get_state(), 1);
+        assert_eq!(life.get((0, 1).into()).unwrap().get_state(), 0);
 
         let mut life_pops: LifePops = LifePops::new();
         life.update(&LifeRule::GOL, &mut life_pops);

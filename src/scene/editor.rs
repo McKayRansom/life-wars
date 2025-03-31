@@ -1,6 +1,6 @@
 
 use life_io::{
-    life::{Life, LifeOptions, LifeRule},
+    life::{pos, Life, LifeOptions, LifeRule, Pos},
     pattern::Pattern,
     viewer::LifeViewer,
 };
@@ -24,7 +24,7 @@ pub struct Editor {
     main_view: LifeViewer,
     clipboard: Option<Life>,
     edit_select: EditBar,
-    mouse_down_pos: Option<(u16, u16)>,
+    mouse_down_pos: Option<Pos>,
     pattern_name: String,
     skin: Skin,
     pattern_view: PatternLibViewer,
@@ -83,7 +83,7 @@ impl Editor {
 
         Self {
             main_view: LifeViewer::new_fit_to_screen(Box::new(Life::new_ex(
-                (256, 256),
+                pos(256, 256),
                 LifeOptions {
                     algo: life_io::life::LifeAlgoSelect::Cached,
                     rule: LifeRule::STAR_WARS, //from_str("B345/S4567").unwrap(),
@@ -98,13 +98,13 @@ impl Editor {
         }
     }
 
-    fn iter_area(min_pos: (u16, u16), max_pos: (u16, u16)) -> impl Iterator<Item = (u16, u16)> {
-        (min_pos.1..max_pos.1).flat_map(move |y: u16| (min_pos.0..max_pos.0).map(move |x| (x, y)))
+    fn iter_area(min_pos: Pos, max_pos: Pos) -> impl Iterator<Item = Pos> {
+        (min_pos.y..max_pos.y).flat_map(move |y: u16| (min_pos.x..max_pos.x).map(move |x| pos(x, y)))
     }
 
-    fn do_edit_action(&mut self, start_pos: (u16, u16), end_pos: (u16, u16)) {
-        let min_pos = (start_pos.0.min(end_pos.0), start_pos.1.min(end_pos.1));
-        let max_pos = (start_pos.0.max(end_pos.0), start_pos.1.max(end_pos.1));
+    fn do_edit_action(&mut self, start_pos: Pos, end_pos: Pos) {
+        let min_pos = start_pos.min(end_pos);
+        let max_pos = start_pos.max(end_pos);
         println!("Mouse down: {start_pos:?} to {end_pos:?}");
         match self.edit_select {
             EditBar::Fill => {
@@ -122,14 +122,14 @@ impl Editor {
                 }
             }
             EditBar::Copy => {
-                if max_pos.0 == min_pos.0 || max_pos.1 == min_pos.1 {
+                if max_pos == min_pos {
                     return;
                 }
                 self.clipboard = Some(
                     self.main_view
                         .life
-                        .copy(min_pos, (max_pos.0 - min_pos.0, max_pos.1 - min_pos.1)),
-                );
+                        .copy(min_pos, max_pos - min_pos)
+                )
             }
             EditBar::Paste => {
                 if let Some(clipboard) = &self.clipboard {
@@ -157,7 +157,7 @@ impl Editor {
             }
             if input::is_mouse_button_released(input::MouseButton::Left) {
                 if let Some(mouse_down_pos) = self.mouse_down_pos {
-                    let pos = (pos.0 + 1, pos.1 + 1);
+                    let pos = pos + (1, 1).into();
                     self.do_edit_action(mouse_down_pos, pos);
                     self.mouse_down_pos = None;
                 }
@@ -225,22 +225,17 @@ impl Editor {
         if let Some(mouse_down_pos) = self.mouse_down_pos {
             let mouse_pos = mouse_position();
             if let Some(life_pos) = self.main_view.screen_to_life_pos(mouse_pos) {
-                let life_pos = (life_pos.0 + 1, life_pos.1 + 1);
-                let min_pos = (
-                    life_pos.0.min(mouse_down_pos.0),
-                    life_pos.1.min(mouse_down_pos.1),
-                );
-                let max_pos = (
-                    life_pos.0.max(mouse_down_pos.0),
-                    life_pos.1.max(mouse_down_pos.1),
-                );
 
-                let mouse_down_screen_pos = self.main_view.life_to_screen_pos(min_pos);
+                let life_pos = life_pos + pos(1, 1);
+                let min_pos = life_pos.min(mouse_down_pos);
+                let max_pos = life_pos.max(mouse_down_pos);
+
+                let mouse_down_screen_pos = self.main_view.life_to_screen_pos(min_pos.into());
                 draw_rectangle(
                     mouse_down_screen_pos.0,
                     mouse_down_screen_pos.1,
-                    self.main_view.life_to_screen_scale(max_pos.0 - min_pos.0),
-                    self.main_view.life_to_screen_scale(max_pos.1 - min_pos.1),
+                    self.main_view.life_to_screen_scale(max_pos.x - min_pos.x),
+                    self.main_view.life_to_screen_scale(max_pos.y - min_pos.y),
                     color::Color {
                         r: 1.,
                         g: 1.,

@@ -12,7 +12,7 @@ pub use algo::WORKING_ALGOS;
 
 mod pos;
 pub mod rand;
-pub use pos::Pos;
+pub use pos::{Pos, pos};
 
 mod file_format;
 
@@ -105,7 +105,7 @@ pub struct Life {
 impl Default for Life {
     fn default() -> Self {
         Self {
-            algo: algo::new(LifeAlgoSelect::Basic, (8, 8)),
+            algo: algo::new(LifeAlgoSelect::Basic, (8, 8).into()),
             rule: LifeRule::GOL,
             pops: LifePops::new(),
             generation: 0,
@@ -114,14 +114,14 @@ impl Default for Life {
 }
 
 impl Life {
-    pub fn new(size: (u16, u16)) -> Self {
+    pub fn new(size: Pos) -> Self {
         Self {
             algo: algo::new(LifeAlgoSelect::Basic, size),
             ..Default::default()
         }
     }
 
-    pub fn new_rule(size: (u16, u16), rule: LifeRule) -> Self {
+    pub fn new_rule(size: Pos, rule: LifeRule) -> Self {
         Self {
             algo: algo::new(LifeAlgoSelect::Basic, size),
             rule,
@@ -129,7 +129,7 @@ impl Life {
         }
     }
 
-    pub fn new_ex(size: (u16, u16), options: LifeOptions) -> Self {
+    pub fn new_ex(size: Pos, options: LifeOptions) -> Self {
         Self {
             rule: options.rule,
             algo: algo::new(options.algo, size),
@@ -145,7 +145,7 @@ impl Life {
         self.generation
     }
 
-    pub fn get_cell(&self, pos: (u16, u16)) -> Option<&Cell> {
+    pub fn get_cell(&self, pos: Pos) -> Option<&Cell> {
         self.algo.get(pos)
     }
 
@@ -154,13 +154,13 @@ impl Life {
         macroquad::rand::srand(seed);
 
         let size = self.size();
-        for x in 0..size.0 {
-            for y in 0..size.1 {
+        for x in 0..size.x {
+            for y in 0..size.y {
                 self.insert(
-                    (x, y),
+                    (x, y).into(),
                     Cell::new(
                         if macroquad::rand::rand() < u32::MAX / 5 {
-                            if !use_factions || (y < size.1 / 4 || y > (size.1 * 3) / 4) {
+                            if !use_factions || (y < size.y / 4 || y > (size.y * 3) / 4) {
                                 1
                             } else {
                                 0
@@ -168,22 +168,22 @@ impl Life {
                         } else {
                             0
                         },
-                        if use_factions && y < size.1 / 2 { 1 } else { 0 },
+                        if use_factions && y < size.y / 2 { 1 } else { 0 },
                     ),
                 );
             }
         }
     }
 
-    pub fn paste(&mut self, other: &Self, pos: (u16, u16), faction: Option<u8>) {
+    pub fn paste(&mut self, other: &Self, pos: Pos, faction: Option<u8>) {
         let faction = faction.unwrap_or(0);
         for (x, y, cell) in other.iter() {
             let cell = Cell::new(cell.get_state(), faction);
-            self.insert((pos.0 + x, pos.1 + y), cell);
+            self.insert(pos + (x, y).into(), cell);
         }
     }
 
-    pub fn copy(&self, pos: (u16, u16), area: (u16, u16)) -> Self {
+    pub fn copy(&self, pos: Pos, area: Pos) -> Self {
         let mut life = Life::new_ex(area, LifeOptions {
             algo: LifeAlgoSelect::Basic,
             rule: self.rule,
@@ -202,13 +202,13 @@ impl Life {
 
     pub fn rotate(&self) -> Self {
         let size = self.size();
-        let mut life = Life::new_ex((size.1, size.0), LifeOptions {
+        let mut life = Life::new_ex((size.y, size.x).into(), LifeOptions {
             algo: LifeAlgoSelect::Basic,
             rule: self.rule,
         });
 
         for (x, y, cell) in self.iter() {
-            life.insert((y, x), *cell);
+            life.insert((y, x).into(), *cell);
         }
 
         life
@@ -216,8 +216,8 @@ impl Life {
 
     pub fn iter(&self) -> impl Iterator<Item = (u16, u16, &Cell)> {
         let size = self.algo.size();
-        (0..size.1).flat_map(move |y: u16| {
-            (0..size.0).map(move |x| (x, y, self.algo.get((x, y)).unwrap()))
+        (0..size.y).flat_map(move |y: u16| {
+            (0..size.x).map(move |x| (x, y, self.algo.get((x, y).into()).unwrap()))
         })
     }
 
@@ -226,11 +226,11 @@ impl Life {
         self.generation = self.generation.saturating_add(1);
     }
 
-    pub fn size(&self) -> (u16, u16) {
+    pub fn size(&self) -> Pos {
         self.algo.size()
     }
 
-    pub fn insert(&mut self, pos: (u16, u16), cell: Cell) {
+    pub fn insert(&mut self, pos: Pos, cell: Cell) {
         if let Some(old_cell) = self.algo.get(pos) {
             if old_cell != &cell {
                 // TODO: Is this edge case the reason cached is failing for multiple factions?
@@ -293,12 +293,14 @@ mod life_tests {
 
     #[test]
     fn test_rotate() {
-        let mut life = Life::new((2, 1));
-        life.insert((1, 0), Cell::new(1, 1));
+        let mut life = Life::new((2, 1).into());
+        life.insert((1, 0).into(), Cell::new(1, 1));
 
         let rotated = life.rotate();
 
-        assert_eq!(life.get_cell((2, 1)), rotated.get_cell((1, 2)));
+        assert_eq!(
+            life.get_cell((2, 1).into()),
+            rotated.get_cell((1, 2).into())
+        );
     }
-
 }

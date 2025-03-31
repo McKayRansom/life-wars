@@ -9,7 +9,7 @@ use std::str::{FromStr, Split};
  */
 
 use crate::{
-    life::{Cell, Life, LifeRule},
+    life::{Cell, Life, LifeRule, Pos},
     pattern::{Pattern, PatternMetadata},
 };
 
@@ -27,13 +27,13 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Pattern> {
             }
         } else if line.starts_with("x") {
             // header
-            let mut size: (u16, u16) = (16, 16);
+            let mut size= Pos::new(16, 16);
             let mut rule: LifeRule = LifeRule::GOL;
             for field in line.split(", ") {
                 let (name, value) = field.split_once(" = ").expect("Failed to parse field");
                 match name {
-                    "x" => size.0 = value.parse().expect("Failed to parse field"),
-                    "y" => size.1 = value.parse().expect("Failed to parse field"),
+                    "x" => size.x = value.parse().expect("Failed to parse field"),
+                    "y" => size.y = value.parse().expect("Failed to parse field"),
                     "rule" => rule = LifeRule::from_str(value).unwrap(),
                     _ => panic!("Unkown header field: {}", name),
                 }
@@ -50,7 +50,7 @@ fn rle_parse_header(it: &mut Split<'_, char>) -> Option<Pattern> {
 }
 
 fn rle_parse_body(it: &mut Split<'_, char>, life: &mut Life) {
-    let mut pos: (u16, u16) = (0, 0);
+    let mut pos = Pos::new(0, 0);
     for line in it {
         let mut run_count = 0;
         for chr in line.chars() {
@@ -62,37 +62,37 @@ fn rle_parse_body(it: &mut Split<'_, char>, life: &mut Life) {
                 }
                 match chr {
                     // Default Life tags
-                    'b' => pos.0 += run_count as u16,
-                    '.' => pos.0 += run_count as u16,
+                    'b' => pos.x += run_count as u16,
+                    '.' => pos.x += run_count as u16,
                     'o' => {
                         for _ in 0..run_count {
                             life.insert(pos, Cell::new(1, 0));
-                            pos.0 += 1;
+                            pos.x += 1;
                         }
                     }
                     // Generations tags
                     'A' => {
                         for _ in 0..run_count {
                             life.insert(pos, Cell::new(1, 0));
-                            pos.0 += 1;
+                            pos.x += 1;
                         }
                     }
                     'B' => {
                         for _ in 0..run_count {
                             life.insert(pos, Cell::new(2, 0));
-                            pos.0 += 1;
+                            pos.x += 1;
                         }
                     }
                     'C' => {
                         for _ in 0..run_count {
                             life.insert(pos, Cell::new(3, 0));
-                            pos.0 += 1;
+                            pos.x += 1;
                         }
                     }
 
                     '$' => {
-                        pos.1 += run_count as u16;
-                        pos.0 = 0;
+                        pos.y += run_count as u16;
+                        pos.x = 0;
                     }
                     '!' => break,
 
@@ -217,8 +217,8 @@ impl Pattern {
         string.push_str(
             format!(
                 "x = {}, y = {}, rule = {}\n",
-                size.0,
-                size.1,
+                size.x,
+                size.y,
                 self.life.rule.to_str().as_str()
             )
             .as_str(),
@@ -266,7 +266,7 @@ bo$2bo$3o!";
     fn test_rle_glider() {
         let pattern = Pattern::from_rle(GLIDER_RLE);
 
-        assert_eq!(pattern.life.size(), (3, 3));
+        assert_eq!(pattern.life.size(), (3, 3).into());
         assert_eq!(pattern.to_rle(), GLIDER_RLE);
     }
 
@@ -280,8 +280,8 @@ x = 36, y = 9, rule = B3/S23
     fn test_rle_gosper() {
         let pattern = Pattern::from_rle(GOSPER_RLE);
         assert_eq!(pattern.life.rule, LifeRule::GOL);
-        assert_eq!(pattern.life.size(), (36, 9));
-        assert_eq!(pattern.life.algo.get((24, 0)).unwrap(), &Cell::new(1, 0));
+        assert_eq!(pattern.life.size(), (36, 9).into());
+        assert_eq!(pattern.life.algo.get((24, 0).into()).unwrap(), &Cell::new(1, 0));
         assert_eq!(pattern.to_rle(), GOSPER_RLE);
     }
 

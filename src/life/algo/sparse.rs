@@ -5,7 +5,7 @@ use std::{
 
 use fxhash::FxHasher;
 
-use super::{Cell, LifeAlgo, LifePops, LifeRule};
+use super::{Cell, LifeAlgo, LifePops, LifeRule, Pos};
 
 /*
  * Sparse algorithm
@@ -34,15 +34,15 @@ use super::{Cell, LifeAlgo, LifePops, LifeRule};
  */
 #[derive(PartialEq, Eq, Debug)]
 pub struct LifeSparse {
-    size: (u16, u16),
-    living: HashMap<(u16, u16), Cell, BuildHasherDefault<FxHasher>>,
-    recent_updates: Vec<(u16, u16)>,
+    size: Pos,
+    living: HashMap<Pos, Cell, BuildHasherDefault<FxHasher>>,
+    recent_updates: Vec<Pos>,
 }
 
 const EMPTY_CELL: Cell = Cell::new(0, 0);
 
 impl LifeSparse {
-    pub fn new(size: (u16, u16)) -> Self {
+    pub fn new(size: Pos) -> Self {
         Self {
             size,
             living: HashMap::with_capacity_and_hasher(64, BuildHasherDefault::default()),
@@ -51,7 +51,7 @@ impl LifeSparse {
         }
     }
 
-    pub fn neighbors(&self, faction: u8, pos: (u16, u16)) -> (u8, u8) {
+    pub fn neighbors(&self, faction: u8, pos: Pos) -> (u8, u8) {
         let mut faction: u8 = faction;
         let mut sum: u8 = 0;
         for dy in -1..2 {
@@ -63,7 +63,7 @@ impl LifeSparse {
                 }
                 if let Some(cell) = self
                     .living
-                    .get(&((pos.0 as i32 + dx) as u16, (pos.1 as i32 + dy) as u16))
+                    .get(&((pos.x as i32 + dx) as u16, (pos.y as i32 + dy) as u16).into())
                 {
                     if cell.is_alive() {
                         // sum += 1;
@@ -85,21 +85,21 @@ impl LifeSparse {
     fn check_cell_and_neighbors(
         &self,
         new_self: &mut Self,
-        pos: (u16, u16),
+        pos: Pos,
         rule: &LifeRule,
         pops: &mut LifePops,
     ) {
         for dy in -1..2 {
-            let py = pos.1 as i32 + dy;
-            if py < 0 || py as u16 >= self.size.1 {
+            let py = pos.y as i32 + dy;
+            if py < 0 || py as u16 >= self.size.y {
                 continue;
             }
             for dx in -1..2 {
-                let px = pos.0 as i32 + dx;
-                if px < 0 || px as u16 >= self.size.0 {
+                let px = pos.x as i32 + dx;
+                if px < 0 || px as u16 >= self.size.x {
                     continue;
                 }
-                let new_pos: (u16, u16) = (px as u16, py as u16);
+                let new_pos: Pos = (px as u16, py as u16).into();
                 // if new_pos == pos {
                 let old_cell = self.living.get(&new_pos).unwrap_or(&EMPTY_CELL);
                 let new_cell = rule.update(
@@ -124,15 +124,15 @@ impl LifeSparse {
 }
 
 impl LifeAlgo for LifeSparse {
-    fn size(&self) -> (u16, u16) {
+    fn size(&self) -> Pos {
         self.size
     }
 
-    fn get(&self, pos: (u16, u16)) -> Option<&Cell> {
+    fn get(&self, pos: Pos) -> Option<&Cell> {
         self.living.get(&pos).or(Some(&EMPTY_CELL))
     }
 
-    fn insert(&mut self, pos: (u16, u16), cell: Cell) -> Option<Cell> {
+    fn insert(&mut self, pos: Pos, cell: Cell) -> Option<Cell> {
         match (cell.is_alive(), self.living.entry(pos)) {
             // Already alive
             (true, Entry::Occupied(_)) => None,
@@ -182,19 +182,19 @@ pub mod life_sprase_test {
 
     #[test]
     fn life_test_basic() {
-        let mut life: LifeSparse = LifeSparse::new((3, 3));
+        let mut life: LifeSparse = LifeSparse::new((3, 3).into());
 
-        life.insert((1, 0), Cell::new(1, 0));
-        life.insert((1, 1), Cell::new(1, 0));
-        life.insert((1, 2), Cell::new(1, 0));
+        life.insert((1, 0).into(), Cell::new(1, 0));
+        life.insert((1, 1).into(), Cell::new(1, 0));
+        life.insert((1, 2).into(), Cell::new(1, 0));
 
-        assert_eq!(life.get((0, 0)).unwrap(), &EMPTY_CELL);
-        assert_eq!(life.get((1, 0)).unwrap().get_state(), 1);
-        assert_eq!(life.get((0, 1)).unwrap(), &EMPTY_CELL);
+        assert_eq!(life.get((0, 0).into()).unwrap(), &EMPTY_CELL);
+        assert_eq!(life.get((1, 0).into()).unwrap().get_state(), 1);
+        assert_eq!(life.get((0, 1).into()).unwrap(), &EMPTY_CELL);
 
-        assert_eq!(life.neighbors(0, (0, 0)), (2, 0));
-        assert_eq!(life.neighbors(0, (1, 0)), (1, 0));
-        assert_eq!(life.neighbors(0, (0, 1)), (3, 0));
+        assert_eq!(life.neighbors(0, (0, 0).into()), (2, 0));
+        assert_eq!(life.neighbors(0, (1, 0).into()), (1, 0));
+        assert_eq!(life.neighbors(0, (0, 1).into()), (3, 0));
 
         let mut pops = LifePops::new();
 
@@ -203,7 +203,12 @@ pub mod life_sprase_test {
         //     update.living,
         //     <&str as Into<LifeSparse>>::into("   \n***\n   ").living
         // );
-        assert_eq!(life.recent_updates, [(1, 0), (0, 1), (2, 1), (1, 2)]);
+        assert_eq!(life.recent_updates, [
+            (1, 0).into(),
+            (0, 1).into(),
+            (2, 1).into(),
+            (1, 2).into()
+        ]);
 
         life.update(&LifeRule::GOL, &mut pops);
         // assert_eq!(

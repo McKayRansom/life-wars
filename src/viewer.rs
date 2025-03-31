@@ -1,12 +1,12 @@
 use macroquad::{
     color::{self, Color, WHITE},
-    input::{self, is_key_down, mouse_position, mouse_wheel, KeyCode},
-    texture::{draw_texture_ex, DrawTextureParams, FilterMode, Image, Texture2D},
+    input::{self, KeyCode, is_key_down, mouse_position, mouse_wheel},
+    texture::{DrawTextureParams, FilterMode, Image, Texture2D, draw_texture_ex},
     time,
     window::{screen_height, screen_width},
 };
 
-use crate::life::{Cell, Life};
+use crate::life::{Cell, Life, Pos, pos};
 
 /*
  * Simple life viewer
@@ -41,7 +41,7 @@ pub const GAME_SPEED_6_VERY_EXTREME: f64 = 1. / 120.;
 
 impl LifeViewer {
     pub fn new(life: Box<Life>) -> Self {
-        let mut image = Image::gen_image_color(life.size().0, life.size().1, color::BLACK);
+        let mut image = Image::gen_image_color(life.size().x, life.size().y, color::BLACK);
         Self::update_image(&life, &mut image);
 
         // texture is boinked
@@ -71,8 +71,8 @@ impl LifeViewer {
         self.life_offset = pos
     }
 
-    pub fn resize_to_fit(&mut self, size: (u16, u16), screen_size: (f32, f32)) {
-        self.zoom = (screen_size.0 / size.0 as f32).min(screen_size.1 / size.1 as f32);
+    pub fn resize_to_fit(&mut self, size: Pos, screen_size: (f32, f32)) {
+        self.zoom = (screen_size.0 / size.x as f32).min(screen_size.1 / size.y as f32);
         // self.camera.zoom = (zoom, zoom).into();
         // self.camera = {
         //     let rect = Rect { x: 0., y: 0., w: screen_size.0, h: screen_size.1 };
@@ -88,8 +88,10 @@ impl LifeViewer {
         //         viewport: None,
         //     }
         // }
-        self.life_offset.0 = (-(screen_size.0 - self.life_to_screen_scale(size.0)) / 2.) / self.zoom;
-        self.life_offset.1 = (-(screen_size.1 - self.life_to_screen_scale(size.1)) / 2.) / self.zoom;
+        self.life_offset.0 =
+            (-(screen_size.0 - self.life_to_screen_scale(size.x)) / 2.) / self.zoom;
+        self.life_offset.1 =
+            (-(screen_size.1 - self.life_to_screen_scale(size.y)) / 2.) / self.zoom;
     }
 
     pub fn fit_to_screen(&mut self) {
@@ -111,8 +113,8 @@ impl LifeViewer {
         self.zoom += amount;
     }
 
-    pub fn screen_to_life_pos(&self, screen_pos: (f32, f32)) -> Option<(u16, u16)> {
-        let pos: (u16, u16) = (
+    pub fn screen_to_life_pos(&self, screen_pos: (f32, f32)) -> Option<Pos> {
+        let pos: Pos = pos(
             (self.life_offset.0 + (screen_pos.0 / self.zoom)) as u16,
             (self.life_offset.1 + (screen_pos.1 / self.zoom)) as u16,
         );
@@ -122,10 +124,10 @@ impl LifeViewer {
         Some(pos)
     }
 
-    pub fn life_to_screen_pos(&self, (x, y): (u16, u16)) -> (f32, f32) {
+    pub fn life_to_screen_pos(&self, pos: Pos) -> (f32, f32) {
         (
-            (x as f32 - self.life_offset.0) * self.zoom,
-            (y as f32 - self.life_offset.1) * self.zoom,
+            (pos.x as f32 - self.life_offset.0) * self.zoom,
+            (pos.y as f32 - self.life_offset.1) * self.zoom,
         )
         // self.camera.world_to_screen((x as f32, y as f32).into()).into()
     }
@@ -151,7 +153,7 @@ impl LifeViewer {
         self.last_map_update = macroquad::time::get_time();
         self.life.update();
         self.redraw();
-   }
+    }
 
     pub fn update(&mut self) -> bool {
         if self.update_speed != GAME_SPEED_1_PAUSED
@@ -187,8 +189,8 @@ impl LifeViewer {
             DrawTextureParams {
                 dest_size: Some(
                     (
-                        self.life_to_screen_scale(size.0),
-                        self.life_to_screen_scale(size.1),
+                        self.life_to_screen_scale(size.x),
+                        self.life_to_screen_scale(size.y),
                     )
                         .into(),
                 ),
@@ -344,15 +346,15 @@ mod viewer_tests {
         assert_eq!(viewer.life_to_screen_scale(1), 16.);
         assert_eq!(viewer.life_to_screen_scale(2), 32.);
 
-        assert_eq!(viewer.screen_to_life_pos((0., 0.)), Some((0, 0)));
-        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some((1, 1)));
+        assert_eq!(viewer.screen_to_life_pos((0., 0.)), Some(pos(0, 0)));
+        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some(pos(1, 1)));
         assert_eq!(
             viewer.screen_to_life_pos((16. * 8., 16. * 8.)),
-            Some((8, 8))
+            Some(pos(8, 8))
         );
 
-        assert_eq!(viewer.life_to_screen_pos((0, 0)), (0., 0.));
-        assert_eq!(viewer.life_to_screen_pos((1, 1)), (16., 16.));
+        assert_eq!(viewer.life_to_screen_pos(pos(0, 0)), (0., 0.));
+        assert_eq!(viewer.life_to_screen_pos(pos(1, 1)), (16., 16.));
     }
 
     #[test]
@@ -366,14 +368,14 @@ mod viewer_tests {
         assert_eq!(viewer.life_to_screen_scale(1), 16.);
         assert_eq!(viewer.life_to_screen_scale(2), 32.);
 
-        assert_eq!(viewer.screen_to_life_pos((0., 0.)), Some((8, 8)));
-        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some((9, 9)));
+        assert_eq!(viewer.screen_to_life_pos((0., 0.)), Some(pos(8, 8)));
+        assert_eq!(viewer.screen_to_life_pos((16., 16.)), Some(pos(9, 9)));
         assert_eq!(
             viewer.screen_to_life_pos((16. * 8., 16. * 8.)),
-            Some((16, 16))
+            Some(pos(16, 16))
         );
 
-        assert_eq!(viewer.life_to_screen_pos((0, 0)), (-128., -128.));
-        assert_eq!(viewer.life_to_screen_pos((1, 1)), (-112., -112.));
+        assert_eq!(viewer.life_to_screen_pos(pos(0, 0)), (-128., -128.));
+        assert_eq!(viewer.life_to_screen_pos(pos(1, 1)), (-112., -112.));
     }
 }
