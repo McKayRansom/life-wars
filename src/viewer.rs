@@ -103,6 +103,16 @@ impl LifeViewer {
         self.redraw();
     }
 
+    pub fn get_texture(&mut self) -> &Texture2D {
+        if self.texture.is_none() {
+            let texture = Texture2D::from_image(&self.image);
+            texture.set_filter(FilterMode::Nearest);
+            self.texture = Some(texture);
+        }
+
+        self.texture.as_ref().unwrap()
+    }
+
     pub fn new_fit_to_screen(life: Box<Life>) -> Self {
         let mut viewer = Self::new(life);
         viewer.fit_to_screen();
@@ -188,18 +198,15 @@ impl LifeViewer {
      * See https://github.com/not-fl3/macroquad/blob/master/examples/life.rs
      */
     pub fn draw(&mut self) {
-        if self.texture.is_none() {
-            let texture = Texture2D::from_image(&self.image);
-            texture.set_filter(FilterMode::Nearest);
-            self.texture = Some(texture);
-        }
         let texture_pos = self.life_to_screen_pos(Pos::new(0, 0));
         let size = self.life_to_screen_scale(self.life.size());
+        let color = self.color;
+        let texture = self.get_texture();
         draw_texture_ex(
-            self.texture.as_ref().unwrap(),
+            texture,
             texture_pos.x,
             texture_pos.y,
-            self.color,
+            color,
             DrawTextureParams {
                 dest_size: Some(size),
                 ..Default::default()

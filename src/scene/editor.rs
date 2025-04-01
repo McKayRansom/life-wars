@@ -6,11 +6,10 @@ use life_io::{
 use macroquad::{
     color,
     input::{self, mouse_position},
-    math::{self, RectOffset},
+    math::{self, vec2, Rect, RectOffset},
     shapes::draw_rectangle,
     ui::{
-        self, Skin, hash, root_ui,
-        widgets::{self},
+        self, hash, root_ui, widgets::{self}, Skin
     },
     window::{self},
 };
@@ -77,8 +76,28 @@ impl Editor {
             .font_size(32)
             .build();
 
+        let tabbar_style = root_ui()
+            .style_builder()
+            .background_margin(RectOffset::new(4., 4., 2., 2.))
+            .with_font(&ctx.font)
+            .unwrap()
+            .margin(RectOffset::new(4., 4., 2., 2.))
+            .color_inactive(color::WHITE)
+            .color_hovered(color::LIGHTGRAY)
+            .color_clicked(color::GREEN)
+            // .color_clicked(Color::from_rgba(187, 187, 187, 255))
+            // .color_hovered(Color::from_rgba(170, 170, 170, 235))
+            // .text_color(Color::from_rgba(0, 0, 0, 255))
+            // .text_color(Color::from_rgba(180, 180, 100, 255))
+            .text_color(color::BLACK)
+            .text_color_hovered(color::BLACK)
+            .text_color_clicked(color::BLACK)
+            .font_size(32)
+            .build();
+
         skin.button_style = button_style;
         skin.window_style = window_style;
+        skin.tabbar_style = tabbar_style;
 
         Self {
             viewer: LifeViewer::new_fit_to_screen(Box::new(Life::new_ex(
@@ -185,6 +204,7 @@ impl Editor {
     }
 
     fn draw_edit_bar(&mut self, _ctx: &crate::context::Context) {
+        // widgets::
         widgets::Window::new(
             hash!(),
             math::vec2(0., 0.),
@@ -193,24 +213,37 @@ impl Editor {
         .titlebar(false)
         .movable(false)
         .ui(&mut ui::root_ui(), |ui| {
-            // Group::new(hash!(), math::vec2(500., 100.))
-            // .layout(ui::Layout::Horizontal)
-            // .ui(ui, |ui| {
-            if ui.button(None, "Fill") {
-                self.edit_select = EditBar::Fill;
+            match ui.tabbar(hash!(), math::vec2(200., 50.), &["edit", "options", ""]) {
+                0 => {
+                    // Group::new(hash!(), math::vec2(500., 100.))
+                    // .layout(ui::Layout::Horizontal)
+                    // .ui(ui, |ui| {
+                    if ui.button(None, "Fill") {
+                        self.edit_select = EditBar::Fill;
+                    }
+                    if ui.button(None, "Clear") {
+                        self.edit_select = EditBar::Clear;
+                    }
+                    if ui.button(None, "Copy") {
+                        self.edit_select = EditBar::Copy;
+                    }
+                    if ui.button(None, "Paste") {
+                        self.edit_select = EditBar::Paste;
+                    }
+                    // if ui.button(math::vec2(600., 0.), "Save") {
+                    //     self.edit_select = EditBar::Paste;
+                    // }
+                    ui.label(vec2(0., 400.), "Clipboard");
+                    if let Some(clipboard) = self.clipboard.as_mut() {
+                        ui.canvas().image(Rect::new(0., 450., 100., 100.), clipboard.get_texture());
+                        // ui.button(None, clipboard.get_texture().clone());
+                    }
+                },
+                1 => {
+                    ui.label(None, "Options");
+                },
+                _ => {}
             }
-            if ui.button(None, "Clear") {
-                self.edit_select = EditBar::Clear;
-            }
-            if ui.button(None, "Copy") {
-                self.edit_select = EditBar::Copy;
-            }
-            if ui.button(None, "Paste") {
-                self.edit_select = EditBar::Paste;
-            }
-            // if ui.button(math::vec2(600., 0.), "Save") {
-            //     self.edit_select = EditBar::Paste;
-            // }
         });
     }
 
