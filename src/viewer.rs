@@ -84,8 +84,8 @@ impl LifeViewer {
         &self.life
     }
 
-    pub fn paste_life(&mut self, other: &Life, pos: Pos, faction: Option<u8>) {
-        self.life.paste(other, pos, faction);
+    pub fn paste_life(&mut self, other: &Life, center_pos: Pos, faction: Option<u8>) {
+        self.life.paste(other, center_pos.saturating_sub(other.size() / 2), faction);
         self.redraw();
     }
 
@@ -97,6 +97,7 @@ impl LifeViewer {
     /// new_life can change size in this case!
     pub fn replace_life(&mut self, new_life: Box<Life>) {
         let image = Image::gen_image_color(new_life.size().x, new_life.size().y, color::BLACK);
+        self.texture = None;
         self.life = new_life;
         self.image = image;
         self.redraw();
@@ -145,7 +146,7 @@ impl LifeViewer {
     }
 
     pub fn life_to_screen_pos(&self, pos: Pos) -> Vec2 {
-        (pos.as_vec2() - self.life_offset) * self.zoom
+        self.screen_offset + (pos.as_vec2() - self.life_offset) * self.zoom
     }
 
     pub fn life_to_screen_scale(&self, distance: Pos) -> Vec2 {
@@ -158,7 +159,7 @@ impl LifeViewer {
         }
     }
 
-    pub fn redraw(&mut self) {
+    fn redraw(&mut self) {
         Self::update_image(&self.life, &mut self.image);
         if let Some(texture) = &self.texture {
             texture.update(&self.image);
@@ -172,7 +173,6 @@ impl LifeViewer {
     }
 
     pub fn update(&mut self, _view_context: &mut ViewContext) -> bool {
-
         if self.update_speed != GAME_SPEED_1_PAUSED
             && time::get_time() - self.last_map_update > self.update_speed
         {
@@ -207,6 +207,18 @@ impl LifeViewer {
         );
     }
 
+    pub fn draw_selected(&self, center_pos: Pos, other: &mut LifeViewer) {
+        other.zoom = self.zoom;
+        other.life_offset = Vec2::ZERO;
+
+        // TODO: change color based on if we can place!
+        other.color = Color::new(1., 1., 1., 0.5);
+        other.screen_offset = self.life_to_screen_pos(center_pos)
+            - other.life_to_screen_scale(other.get_life().size() / 2);
+
+        other.draw();
+    }
+
     pub fn handle_input(&mut self, view_context: &mut ViewContext) {
         if is_key_down(KeyCode::W) {
             self.life_offset.y -= WASD_MOVE_SENSITIVITY / self.zoom;
@@ -225,10 +237,7 @@ impl LifeViewer {
         if let Some(mouse_pos) = &view_context.mouse_pos {
             let new_mouse_wheel = mouse_wheel();
             if new_mouse_wheel.1 != 0. {
-                self.change_zoom(
-                    SCROLL_SENSITIVITY * new_mouse_wheel.1,
-                    *mouse_pos,
-                );
+                self.change_zoom(SCROLL_SENSITIVITY * new_mouse_wheel.1, *mouse_pos);
             }
         }
         // only do these if no one else has used them yet

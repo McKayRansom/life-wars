@@ -8,7 +8,6 @@ pub struct Pos {
     pub y: u16,
 }
 
-
 #[inline(always)]
 pub const fn pos(x: u16, y: u16) -> Pos {
     Pos::new(x, y)
@@ -56,9 +55,8 @@ impl Pos {
     }
 
     pub fn iter(&self, area: Self) -> impl Iterator<Item = Self> {
-        (0..area.y).flat_map(move |y: u16| {
-            (0..area.x).map(move |x| (self.x + x, self.y + y).into())
-        })
+        (0..area.y)
+            .flat_map(move |y: u16| (0..area.x).map(move |x| (self.x + x, self.y + y).into()))
     }
 
     pub fn as_vec2(&self) -> Vec2 {
@@ -88,6 +86,13 @@ impl Pos {
         Self {
             x: self.x.max(rhs.x),
             y: self.y.max(rhs.y),
+        }
+    }
+
+    pub fn saturating_sub(self, rhs: Self) -> Self {
+        Self {
+            x: self.x.saturating_sub(rhs.x),
+            y: self.y.saturating_sub(rhs.y),
         }
     }
 }
@@ -129,7 +134,6 @@ impl Sub for Pos {
     }
 }
 
-
 impl Div<u16> for Pos {
     type Output = Self;
 
@@ -140,7 +144,6 @@ impl Div<u16> for Pos {
         }
     }
 }
-
 
 #[cfg(test)]
 mod pos_tests {

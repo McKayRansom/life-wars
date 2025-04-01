@@ -1,4 +1,4 @@
-use super::Scene;
+use super::{Scene, popup::Popup};
 use crate::{context::Context, pattern_view::PatternLibViewer};
 
 use macroquad::{
@@ -7,7 +7,9 @@ use macroquad::{
 };
 
 use life_io::{
-    life::{self, Cell, FACTION_MAX, Life, LifeAlgoSelect, LifeOptions, LifeRule, Pos, pos},
+    life::{
+        self, Cell, FACTION_MAX, Faction, Life, LifeAlgoSelect, LifeOptions, LifeRule, Pos, pos,
+    },
     viewer::{self, LifeViewer},
 };
 
@@ -44,20 +46,66 @@ impl GameOptions {
     }
 }
 
+type Resource = i16;
+type Resources = [Resource; FACTION_MAX];
+
 pub struct Gameplay {
     // ui: UiState,
-    // popup: Option<Popup>,
+    popup: Option<Popup>,
     viewer: LifeViewer,
-    resources: [i16; FACTION_MAX],
+    resources: Resources,
     pattern_view: PatternLibViewer,
     ai_update_ticks: u32,
+}
+
+fn is_occupied(dst: &mut Life, start: Pos, area: Pos, faction: Faction) -> bool {
+    dst.iter_area(&start, area)
+        .any(|cell| cell.get_state() > 0 && cell.get_faction() != faction)
+}
+
+fn cost(life: &Life) -> i16 {
+    // TODO: calc better cost...
+    life.get_pop(0)
+}
+
+fn can_afford(cost: Resource, resources: &Resources, faction: Faction) -> bool {
+    resources[faction as usize] >= cost
+}
+
+#[derive(Debug)]
+pub enum PlaceError {
+    Occupied,
+    NotEnoughResources,
+}
+
+fn place_pattern(
+    dst: &mut Life,
+    src: &Life,
+    pos: Pos,
+    resources: &mut Resources,
+    faction: Faction,
+) -> Result<Resource, PlaceError> {
+    if is_occupied(dst, pos, src.size(), faction) {
+        return Err(PlaceError::Occupied);
+    }
+
+    let cost = cost(src);
+
+    if !can_afford(cost, resources, faction) {
+        return Err(PlaceError::NotEnoughResources);
+    }
+
+    resources[faction as usize] -= cost;
+    dst.paste(src, pos, Some(faction));
+
+    Ok(cost)
 }
 
 impl Gameplay {
     pub async fn new(_ctx: &mut Context, life: Box<Life>) -> Self {
         Self {
             // ui: UiState::new(unlocked),
-            // popup: None,Gameplay
+            popup: None,
             viewer: LifeViewer::new_fit_to_screen(life),
             resources: [0; FACTION_MAX],
             pattern_view: PatternLibViewer::new(),
@@ -65,62 +113,58 @@ impl Gameplay {
         }
     }
 
-    fn handle_input(&mut self, ctx: &mut Context) {
-        self.viewer.handle_input(&mut ctx.view_context);
-        if let Some(mouse_pos) = ctx.view_context.mouse_pos {
-            if let Some(pos) = self.viewer.screen_to_life_pos(mouse_pos) {
-                if input::is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
-                    if let Some(pattern) = &self.pattern_view.selected_pattern {
-                        // TODO: calc better cost...
-                        let cost = pattern.get_life().get_pop(0);
-                        if self.resources[0] >= cost {
-                            self.resources[0] -= cost;
-                            self.viewer.paste_life(
-                                &pattern.get_life(),
-                                pos - pattern.get_life().size() / 2,
-                                None,
-                            );
-                            self.viewer.redraw();
-                            println!("Subing {cost} from");
-                        } else {
-                            // TODO: UI somewhere??
-                            println!("NOT ENOUGH RESOURCES");
-                        }
-                    }
+    fn place_selected_pattern(&mut self, pos: Pos) {
+        if let Some(pattern) = &self.pattern_view.selected_pattern {
+            let sel_pat_life = pattern.get_life();
+            self.viewer.edit_life(|life| {
+                match place_pattern(
+                    life,
+                    sel_pat_life,
+                    pos - sel_pat_life.size() / 2,
+                    &mut self.resources,
+                    0,
+                ) {
+                    Ok(cost) => println!("subbing cost {cost}"),
+                    Err(err) => println!("error: {err:?}"),
                 }
-            }
-        }
-
-        if let Some(chr) = ctx.view_context.key_pressed.take() {
-            match chr {
-                'v' => {
-                    // if let Some(string) = clipboard_get() {
-                    //     println!("Pasting {string:?}");
-                    //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
-                    // } else {
-                    println!("No clipboard!");
-                    // }
-                }
-                _ => ctx.view_context.key_pressed = Some(chr),
-            }
+            });
         }
     }
 
-    fn draw_selected_pattern(&mut self, ctx: &mut Context) {
-        if let Some(mouse_pos) = ctx.view_context.mouse_pos {
-            if let Some(pattern_view) = &mut self.pattern_view.selected_pattern {
-                if let Some(mouse_grid_pos) = self.viewer.screen_to_life_pos(mouse_pos) {
-                    let start_pos = self.viewer.life_to_screen_pos(mouse_grid_pos);
+    fn handle_input(&mut self, ctx: &mut Context) -> Option<()> {
+        self.viewer.handle_input(&mut ctx.view_context);
 
-                    pattern_view.zoom = self.viewer.zoom;
-                    pattern_view.color = Color::new(1., 1., 1., 0.5);
-                    pattern_view.screen_offset = start_pos
-                        - pattern_view.life_to_screen_scale(pattern_view.get_life().size() / 2);
+        let pos = self
+            .viewer
+            .screen_to_life_pos(ctx.view_context.mouse_pos?)?;
 
-                    pattern_view.draw();
-                }
-            }
+        if input::is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
+            self.place_selected_pattern(pos);
         }
+
+        match ctx.view_context.key_pressed.take()? {
+            'v' => {
+                self.place_selected_pattern(pos);
+                // if let Some
+                // if let Some(string) = clipboard_get() {
+                //     println!("Pasting {string:?}");
+                //     life.paste(&Life::new_life_from_rle(string.as_str()), pos)
+                // } else {
+                // println!("No clipboard!");
+                // }
+            }
+            chr => ctx.view_context.key_pressed = Some(chr),
+        }
+        Some(())
+    }
+
+    fn draw_selected_pattern(&mut self, ctx: &mut Context) -> Option<()> {
+        self.viewer.draw_selected(
+            self.viewer
+                .screen_to_life_pos(ctx.view_context.mouse_pos?)?,
+            self.pattern_view.selected_pattern.as_mut()?,
+        );
+        Some(())
     }
 }
 
@@ -163,11 +207,7 @@ pub const AI_CELL_PER_RESOURCE: i16 = 2;
 // pub const AI_UPDATE_TICKS: u32 = 4;
 pub const AI_UPDATE_TICKS: u32 = 16;
 
-// TODO: This bomber is great but it's facing left
-// const BOMBER_RLE: &str = "\
-// #N bomber
-// x = 16, y = 10, rule = B2/S345/4
-// 3$7.A$6.B.B$4.3AC2A$4.3ACA.CB.C$5.A.BA.CBA2$!";
+pub const MIN_RESOURCES: Resource = 16;
 
 impl Scene for Gameplay {
     fn update(&mut self, ctx: &mut Context) {
@@ -181,10 +221,19 @@ impl Scene for Gameplay {
                     } else {
                         AI_CELL_PER_RESOURCE
                     };
-                    self.resources[i] = self.resources[i]
-                        .saturating_add(self.viewer.get_life().get_pop(i as u8) / cell_per_resource)
+                    self.resources[i] = self.resources[i].saturating_add(
+                        self.viewer.get_life().get_pop(i as u8) / cell_per_resource,
+                    );
 
                     // TODO: If player resources are below X and pop is below CELL_PER_RESOURCE, just eliminate them!
+                    // if self.resources[0] < MIN_RESOURCES && self.viewer.get_life().get_pop(0) < MIN_RESOURCES {
+                    //     // lost
+                    //     self.popup = Some(Popup::new("Game Lost".into()));
+
+                    // }
+                    // if self.popup.is_none() {
+                    //     if for i in
+                    // }
                     // if self.map.update() && self.map.metadata.is_level {
                     //     self.popup = Some(Popup::new(format!(
                     //         "Level {} completed!",
@@ -205,17 +254,19 @@ impl Scene for Gameplay {
                     return;
                 }
 
-                if self.resources[1] > rand_pattern.life.get_pop(0) {
-                    self.resources[1] -= rand_pattern.life.get_pop(0);
-                    let size = self.viewer.get_life().size();
-                    let rand_x = macroquad::rand::rand() % (size.x as u32);
-                    let rand_y = macroquad::rand::rand() % (size.y as u32) / 4;
-                    self.viewer.paste_life(
+                let size = self.viewer.get_life().size();
+                let rand_x = macroquad::rand::rand() % (size.x as u32);
+                let rand_y = macroquad::rand::rand() % (size.y as u32) / 4;
+
+                self.viewer.edit_life(|life| {
+                    let _ = place_pattern(
+                        life,
                         &rand_pattern.life,
                         pos(rand_x as u16, rand_y as u16),
-                        Some(1),
+                        &mut self.resources,
+                        1,
                     );
-                }
+                });
             }
         }
         self.handle_input(ctx);

@@ -45,6 +45,7 @@ async fn main() {
         Box::new(scene::main_menu::MainMenu::new(&mut ctx).await);
 
     loop {
+        ctx.update();
         current_scene.update(&mut ctx);
 
         clear_background(colors::DARKGRAY);

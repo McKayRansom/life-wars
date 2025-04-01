@@ -18,6 +18,7 @@ mod file_format;
 
 pub mod pattern_lib;
 
+pub type Faction = u8;
 pub const FACTION_MAX: usize = 16;
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy, Default)]
@@ -175,7 +176,7 @@ impl Life {
         }
     }
 
-    pub fn paste(&mut self, other: &Self, pos: Pos, faction: Option<u8>) {
+    pub fn paste(&mut self, other: &Self, pos: Pos, faction: Option<Faction>) {
         let faction = faction.unwrap_or(0);
         for (x, y, cell) in other.iter() {
             let cell = Cell::new(cell.get_state(), faction);
@@ -219,6 +220,10 @@ impl Life {
         (0..size.y).flat_map(move |y: u16| {
             (0..size.x).map(move |x| (x, y, self.algo.get((x, y).into()).unwrap()))
         })
+    }
+
+    pub fn iter_area(&self, start: &Pos, area: Pos) -> impl Iterator<Item = &Cell> {
+        start.iter(area).filter_map(|pos| self.get_cell(pos))
     }
 
     pub fn update(&mut self) {
