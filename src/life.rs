@@ -298,14 +298,18 @@ mod life_tests {
 
     #[test]
     fn test_rotate() {
-        let mut life = Life::new((2, 1).into());
+        let mut life = Life::new((2, 2).into());
         life.insert((1, 0).into(), Cell::new(1, 1));
 
         let rotated = life.rotate();
 
+        // rotate CW:
+        // .O -> ..
+        // .. -> .O
         assert_eq!(
-            life.get_cell((2, 1).into()),
-            rotated.get_cell((1, 2).into())
+            life.get_cell((1, 0).into()),
+            rotated.get_cell((1, 1).into()),
+            "rotated: {rotated}"
         );
     }
 }

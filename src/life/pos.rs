@@ -33,7 +33,14 @@ impl Pos {
         }
     }
 
-    pub fn rotate_90_cw(&self, pivot: Self) -> Self {
+    pub fn rotate_90_cw_odd(&self, pivot: Self) -> Self {
+        Self {
+            x: pivot.x + (pivot.y - self.y),
+            y: self.x,
+        }
+    }
+
+    pub fn rotate_90_cw_even(&self, pivot: Self) -> Self {
         Self {
             x: pivot.x + (pivot.y - self.y),
             y: self.x,
@@ -161,7 +168,7 @@ mod pos_tests {
 
     #[test]
     fn test_rotate() {
-        assert_eq!(Pos::new(1, 2).rotate_90_cw((3, 3).into()), (4, 1).into());
+        assert_eq!(Pos::new(1, 2).rotate_90_cw_odd((3, 3).into()), (4, 1).into());
         assert_eq!(Pos::new(1, 2).rotate_90_ccw((3, 3).into()), (2, 5).into());
         assert_eq!(Pos::new(1, 2).rotate_180((3, 3).into()), (5, 4).into());
     }

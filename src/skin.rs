@@ -1,8 +1,5 @@
 use macroquad::{
-    color::{self, Color},
-    math::RectOffset,
-    text::Font,
-    ui::{root_ui, Skin},
+    color::{self, Color}, math::RectOffset, text::Font, texture::set_default_filter_mode, ui::{root_ui, Skin}
 };
 
 pub const MENU_FONT_SIZE: u16 = 48;
@@ -20,9 +17,13 @@ pub const BUTTON_MARGIN: (f32, f32) = (
 );
 
 pub async fn init() -> Font {
-    let font = macroquad::text::load_ttf_font("resources/Micro5-Regular.ttf")
+    let mut font = macroquad::text::load_ttf_font("resources/Micro5-Regular.ttf")
         .await
         .unwrap();
+
+    font.set_filter(macroquad::texture::FilterMode::Nearest);
+
+    set_default_filter_mode(macroquad::texture::FilterMode::Nearest);
 
     let skin2 = {
         let label_style = root_ui()

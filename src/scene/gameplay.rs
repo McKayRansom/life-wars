@@ -2,7 +2,7 @@ use super::{Scene, popup::Popup};
 use crate::{context::Context, pattern_view::PatternLibViewer};
 
 use macroquad::{
-    color::{self, Color},
+    color::{self},
     input::{self},
 };
 
@@ -51,7 +51,7 @@ type Resources = [Resource; FACTION_MAX];
 
 pub struct Gameplay {
     // ui: UiState,
-    popup: Option<Popup>,
+    _popup: Option<Popup>,
     viewer: LifeViewer,
     resources: Resources,
     pattern_view: PatternLibViewer,
@@ -105,7 +105,7 @@ impl Gameplay {
     pub async fn new(_ctx: &mut Context, life: Box<Life>) -> Self {
         Self {
             // ui: UiState::new(unlocked),
-            popup: None,
+            _popup: None,
             viewer: LifeViewer::new_fit_to_screen(life),
             resources: [0; FACTION_MAX],
             pattern_view: PatternLibViewer::new(),
@@ -120,7 +120,7 @@ impl Gameplay {
                 match place_pattern(
                     life,
                     sel_pat_life,
-                    pos - sel_pat_life.size() / 2,
+                    pos.saturating_sub(sel_pat_life.size() / 2),
                     &mut self.resources,
                     0,
                 ) {
@@ -152,6 +152,11 @@ impl Gameplay {
                 // } else {
                 // println!("No clipboard!");
                 // }
+            },
+            'r' => {
+                if let Some(pattern) = &mut self.pattern_view.selected_pattern {
+                    pattern.replace_life(Box::new(pattern.get_life().rotate()));
+                }
             }
             chr => ctx.view_context.key_pressed = Some(chr),
         }
@@ -203,9 +208,9 @@ fn draw_score(life: &Life, ctx: &Context) {
 }
 
 pub const PLAYER_CELL_PER_RESOURCE: i16 = 64;
-pub const AI_CELL_PER_RESOURCE: i16 = 2;
+pub const AI_CELL_PER_RESOURCE: i16 = 12;
 // pub const AI_UPDATE_TICKS: u32 = 4;
-pub const AI_UPDATE_TICKS: u32 = 16;
+pub const AI_UPDATE_TICKS: u32 = 64;
 
 pub const MIN_RESOURCES: Resource = 16;
 

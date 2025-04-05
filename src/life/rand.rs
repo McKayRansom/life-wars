@@ -64,7 +64,7 @@ pub fn rand_life(
             for new_pos in pos.iter(Pos::new(area.x / 2 + 1, area.y / 2 + 1)) {
                 let cell = rand_cell(&rand);
                 this.insert(new_pos.into(), cell);
-                this.insert(new_pos.rotate_90_cw(pivot).into(), cell);
+                this.insert(new_pos.rotate_90_cw_odd(pivot).into(), cell);
                 this.insert(new_pos.rotate_180(pivot).into(), cell);
                 this.insert(new_pos.rotate_90_ccw(pivot).into(), cell);
             }

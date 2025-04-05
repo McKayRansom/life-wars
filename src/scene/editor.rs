@@ -5,7 +5,7 @@ use life_io::{
 };
 use macroquad::{
     color,
-    input::{self, mouse_position},
+    input::{self},
     math::{self, vec2, Rect, RectOffset},
     shapes::draw_rectangle,
     ui::{
