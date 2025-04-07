@@ -8,6 +8,8 @@ pub mod context;
 pub mod scene;
 pub mod skin;
 pub mod pattern_view;
+pub mod default_patterns;
+pub mod ui;
 
 fn window_conf() -> window::Conf {
     window::Conf {

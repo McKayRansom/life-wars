@@ -1,7 +1,8 @@
-use life_io::life::pattern_lib;
-use life_io::viewer::ViewContext;
+use life_io::life::{pattern_lib, Life, LifeOptions};
+use life_io::viewer::{LifeViewer, ViewContext};
 use macroquad::text::Font;
 
+use crate::default_patterns::PLAYER_PATTERNS;
 // use crate::assets_path::determine_asset_path;
 // use crate::audio;
 // use crate::consts::*;
@@ -33,6 +34,7 @@ pub struct Context {
     // pub settings: Settings,
     // pub save: Save,
     pub pattern_lib: pattern_lib::PatternLib,
+    pub default_patterns: Vec<LifeViewer>,
 }
 
 impl Context {
@@ -51,6 +53,10 @@ impl Context {
             // settings: Settings::load(),
             // save: Save::load(),
             pattern_lib: pattern_lib::PatternLib::new(),
+            default_patterns: PLAYER_PATTERNS
+                .iter()
+                .map(|text| LifeViewer::new(Box::new(Life::from_plaintext(&text, LifeOptions::default()))))
+                .collect(),
         }
     }
 

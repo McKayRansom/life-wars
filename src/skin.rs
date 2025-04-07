@@ -16,6 +16,8 @@ pub const BUTTON_MARGIN: (f32, f32) = (
     BUTTON_INNER_MARGIN.1 + BUTTON_OUTER_MARGIN.1,
 );
 
+pub const WINDOW_COLOR: Color = Color::new(0., 0., 0., 0.7);
+
 pub async fn init() -> Font {
     let mut font = macroquad::text::load_ttf_font("resources/Micro5-Regular.ttf")
         .await
@@ -37,15 +39,14 @@ pub async fn init() -> Font {
         // let window_color = Color::from_hex(0x585858);
         // let window_color = Color::new(0., 0., 0., 0.);
         // let window_color = Color::new(0., 0.,0., 0.3);
-        let window_color = Color::new(0., 0., 0., 0.7);
 
         let window_style = root_ui()
             .style_builder()
-            .color_inactive(window_color)
-            .color_hovered(window_color)
-            .color_selected(window_color)
-            .color_clicked(window_color)
-            .color(window_color)
+            .color_inactive(WINDOW_COLOR)
+            .color_hovered(WINDOW_COLOR)
+            .color_selected(WINDOW_COLOR)
+            .color_clicked(WINDOW_COLOR)
+            .color(WINDOW_COLOR)
             // .font_size(120)
             // .text_color(WHITE)
             .background_margin(RectOffset::new(
