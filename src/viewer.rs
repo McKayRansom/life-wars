@@ -262,12 +262,12 @@ impl LifeViewer {
                     self.step();
                 }
                 // self.viewer.update_speed = !view_self.viewer.update_speed,
-                '1' => self.update_speed = GAME_SPEED_1_PAUSED,
-                '2' => self.update_speed = GAME_SPEED_2_NORMAL,
-                '3' => self.update_speed = GAME_SPEED_3_FAST,
-                '4' => self.update_speed = GAME_SPEED_4_VERY_FAST,
-                '5' => self.update_speed = GAME_SPEED_5_EXTREME,
-                '6' => self.update_speed = GAME_SPEED_6_VERY_EXTREME,
+                // '1' => self.update_speed = GAME_SPEED_1_PAUSED,
+                // '2' => self.update_speed = GAME_SPEED_2_NORMAL,
+                // '3' => self.update_speed = GAME_SPEED_3_FAST,
+                // '4' => self.update_speed = GAME_SPEED_4_VERY_FAST,
+                // '5' => self.update_speed = GAME_SPEED_5_EXTREME,
+                // '6' => self.update_speed = GAME_SPEED_6_VERY_EXTREME,
                 '=' => self.change_zoom(PLUS_MINUS_SENSITVITY, view_context.screen_size / 2.),
                 '-' => self.change_zoom(-PLUS_MINUS_SENSITVITY, view_context.screen_size / 2.),
                 _ => view_context.key_pressed = Some(chr),

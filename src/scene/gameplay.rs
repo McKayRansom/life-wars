@@ -1,23 +1,28 @@
-use super::{Scene, popup::Popup};
+use super::Scene;
 use crate::{
     context::Context,
     default_patterns::{PATTERN_MAX_COUNT, PATTERN_TIMES, PLAYER_PATTERNS},
     skin::WINDOW_COLOR,
+    ui::{
+        menu::{Menu, MenuItem},
+        popup::{Popup, PopupResult},
+    },
 };
 
 use macroquad::{
     color::{self, Color},
     input::{self, is_mouse_button_down},
-    math::{Rect, Vec2},
-    shapes::draw_rectangle,
-    text::draw_text,
+    math::{Rect, Vec2, vec2},
+    shapes::{draw_line, draw_rectangle},
+    text::{TextParams, draw_text_ex},
+    ui::{hash, root_ui, widgets},
 };
 
 use life_io::{
     life::{
         self, Cell, FACTION_MAX, Faction, Life, LifeAlgoSelect, LifeOptions, LifeRule, Pos, pos,
     },
-    viewer::{self, LifeViewer},
+    viewer::{self, GAME_SPEED_2_NORMAL, GAME_SPEED_3_FAST, LifeViewer},
 };
 
 pub struct GameOptions {
@@ -54,7 +59,7 @@ impl GameOptions {
 }
 
 type Resource = i16;
-type Resources = [Resource; FACTION_MAX];
+type Resources = [Resource; FACTION_MAX as usize];
 
 #[derive(Default)]
 pub struct PatternCount {
@@ -72,16 +77,24 @@ impl PatternCount {
     }
 }
 
-type PatternCounts = [[PatternCount; PATTERN_MAX_COUNT]; FACTION_MAX];
+type PatternCounts = [[PatternCount; PATTERN_MAX_COUNT]; FACTION_MAX as usize];
+
+enum MenuOption {
+    Resume,
+    MainMenu,
+}
 
 pub struct Gameplay {
     // ui: UiState,
-    _popup: Option<Popup>,
+    popup: Option<Popup>,
     viewer: LifeViewer,
     resources: Resources,
     pattern_times: PatternCounts,
     // pattern_view: PatternLibViewer,
     selected_pattern: Option<usize>,
+    menu: Menu<MenuOption>,
+    previous_speed: f64,
+    show_menu: bool,
     ai_update_ticks: u32,
 }
 
@@ -133,12 +146,18 @@ impl Gameplay {
     pub async fn new(_ctx: &mut Context, life: Box<Life>) -> Self {
         Self {
             // ui: UiState::new(unlocked),
-            _popup: None,
+            popup: None,
             viewer: LifeViewer::new_fit_to_screen(life),
             pattern_times: Default::default(),
-            resources: [0; FACTION_MAX],
+            resources: [0; FACTION_MAX as usize],
             // pattern_view: PatternLibViewer::new(),
             selected_pattern: None,
+            menu: Menu::new(vec![
+                MenuItem::new(MenuOption::Resume, "Resume".to_string()),
+                MenuItem::new(MenuOption::MainMenu, "Main Menu".to_string()),
+            ]),
+            previous_speed: 0.,
+            show_menu: false,
             ai_update_ticks: 0,
         }
     }
@@ -154,7 +173,7 @@ impl Gameplay {
                     &mut self.pattern_times[0][*index],
                     0,
                 ) {
-                    Ok(cost) => println!("subbing cost {cost}"),
+                    Ok(_cost) => {}
                     Err(err) => println!("error: {err:?}"),
                 }
             });
@@ -183,6 +202,18 @@ impl Gameplay {
                 // println!("No clipboard!");
                 // }
             }
+            '1' => self.selected_pattern = Some(0),
+            '2' => self.selected_pattern = Some(1),
+            '3' => self.selected_pattern = Some(2),
+            '4' => self.selected_pattern = Some(3),
+            '5' => self.selected_pattern = Some(4),
+            // ESC
+            '\u{1b}' => {
+                self.show_menu = true;
+                self.previous_speed = self.viewer.update_speed
+            }
+
+            // },
             // 'r' => {
             //     if let Some(pattern) = &mut self.pattern_view.selected_pattern {
             //         pattern.replace_life(Box::new(pattern.get_life().rotate()));
@@ -239,9 +270,9 @@ impl Gameplay {
             ctx.default_patterns[i].draw();
             draw_rectangle(
                 toolbar_pos.x + Self::TOOLBAR_PAD,
-                toolbar_pos.y + Self::TOOLBAR_PAD,
+                toolbar_pos.y + Self::TOOLBAR_PAD + Self::TOOLBAR_INNER_SIZE,
                 Self::TOOLBAR_INNER_SIZE,
-                Self::TOOLBAR_INNER_SIZE * percent,
+                -Self::TOOLBAR_INNER_SIZE + Self::TOOLBAR_INNER_SIZE * percent,
                 color,
             );
             let sel_rect = Rect::new(
@@ -265,17 +296,83 @@ impl Gameplay {
                     }
                 }
             }
-            draw_text(
-                pat.count.to_string().as_str(),
-                toolbar_pos.x,
-                toolbar_pos.y,
-                10.,
-                color::WHITE,
+
+            let count_string = pat.count.to_string();
+            draw_text_ex(
+                count_string.as_str(),
+                toolbar_pos.x + Self::TOOLBAR_INNER_SIZE - 0.,
+                toolbar_pos.y + 10.,
+                TextParams {
+                    font_size: 20,
+                    color: color::WHITE,
+                    font: Some(&ctx.font),
+                    ..Default::default()
+                },
             );
             toolbar_pos.x += Self::TOOLBAR_OUTER_SIZE;
         }
     }
+
+    const TIME_CONTROL_SIZE: Vec2 = vec2(300., 75.);
+    const TIME_CONTROL_MARGIN: f32 = 5.;
+    const TIME_CONTROL_BUTTON_SIZE: Vec2 = vec2(90., 40.);
+
+    fn draw_time_controls(&mut self, ctx: &mut Context) {
+        widgets::Window::new(
+            hash!(),
+            vec2(
+                ctx.view_context.screen_size.x - Self::TIME_CONTROL_SIZE.x,
+                0.,
+            ),
+            Self::TIME_CONTROL_SIZE,
+        )
+        .label(format!("speed: {}", self.viewer.update_speed).as_str())
+        .movable(false)
+        .ui(&mut root_ui(), |ui| {
+            if widgets::Button::new("-")
+                .position(vec2(Self::TIME_CONTROL_MARGIN, Self::TIME_CONTROL_MARGIN))
+                .size(Self::TIME_CONTROL_BUTTON_SIZE)
+                .ui(ui)
+            {
+                self.viewer.update_speed = 0.;
+            }
+            if widgets::Button::new(if self.viewer.update_speed == 0. {
+                "play"
+            } else {
+                "pause"
+            })
+            .position(vec2(
+                Self::TIME_CONTROL_MARGIN * 2. + Self::TIME_CONTROL_BUTTON_SIZE.x,
+                Self::TIME_CONTROL_MARGIN,
+            ))
+            .size(Self::TIME_CONTROL_BUTTON_SIZE)
+            .ui(ui)
+            {
+                if self.viewer.update_speed == 0. {
+                    self.viewer.update_speed = GAME_SPEED_2_NORMAL;
+                } else {
+                    self.viewer.update_speed = 0.;
+                }
+            }
+            if widgets::Button::new("+")
+                .position(vec2(
+                    Self::TIME_CONTROL_MARGIN * 3. + Self::TIME_CONTROL_BUTTON_SIZE.x * 2.,
+                    Self::TIME_CONTROL_MARGIN,
+                ))
+                .size(Self::TIME_CONTROL_BUTTON_SIZE)
+                .ui(ui)
+            {
+                self.viewer.update_speed = GAME_SPEED_3_FAST;
+            }
+        });
+    }
+
+    // fn draw_menu_controls(&mut self, ctx: &mut Context) {
+
+    // }
 }
+
+const WIN_MULTIPLIER: i16 = 10;
 
 const SCORE_WIDTH: f32 = 200.;
 const SCORE_HEIGHT: f32 = 50.;
@@ -296,11 +393,12 @@ fn draw_score(life: &Life, ctx: &Context) {
         .collect();
     pops.sort();
 
-    let mut score_pos = Vec2::new(ctx.view_context.screen_size.x / 2. - SCORE_WIDTH / 2., 0.);
+    let score_pos = Vec2::new(ctx.view_context.screen_size.x / 2. - SCORE_WIDTH / 2., 0.);
+    let mut this_pos = score_pos;
 
     draw_rectangle(
-        score_pos.x,
-        score_pos.y,
+        this_pos.x,
+        this_pos.y,
         SCORE_WIDTH,
         SCORE_HEIGHT,
         WINDOW_COLOR,
@@ -310,8 +408,8 @@ fn draw_score(life: &Life, ctx: &Context) {
         let width = *pop as f32 / total_pop as f32 * (SCORE_WIDTH - SCORE_PADDING * 2.);
         // width = width.round();
         draw_rectangle(
-            score_pos.x + SCORE_PADDING,
-            score_pos.y + SCORE_PADDING,
+            this_pos.x + SCORE_PADDING,
+            this_pos.y + SCORE_PADDING,
             width,
             SCORE_HEIGHT - SCORE_PADDING * 2.,
             viewer::faction_color(&Cell::new(1, *faction)),
@@ -330,8 +428,21 @@ fn draw_score(life: &Life, ctx: &Context) {
         //     },
         // );
 
-        score_pos.x += width;
+        this_pos.x += width;
     }
+
+    this_pos.x -= (1. / WIN_MULTIPLIER as f32) * (SCORE_WIDTH - SCORE_PADDING * 2.);
+
+    draw_line(
+        this_pos.x + SCORE_PADDING,
+        this_pos.y + SCORE_PADDING,
+        this_pos.x + SCORE_PADDING,
+        this_pos.y + SCORE_HEIGHT - SCORE_PADDING,
+        4.,
+        color::WHITE,
+    );
+
+    // draw marker at 9/10 win point
 }
 
 pub const PLAYER_CELL_PER_RESOURCE: i16 = 64;
@@ -341,6 +452,9 @@ pub const AI_UPDATE_TICKS: u32 = 4;
 
 pub const MIN_RESOURCES: Resource = 16;
 
+pub const PLAYER_FACTION: Faction = 0;
+pub const AI_FACTION: Faction = 1;
+
 impl Scene for Gameplay {
     fn update(&mut self, ctx: &mut Context) {
         if self.viewer.update(&mut ctx.view_context) {
@@ -348,34 +462,29 @@ impl Scene for Gameplay {
 
             if self.ai_update_ticks > AI_UPDATE_TICKS {
                 for i in 0..FACTION_MAX {
-                    let cell_per_resource = if i == 0 {
+                    let cell_per_resource = if i == PLAYER_FACTION {
                         PLAYER_CELL_PER_RESOURCE
                     } else {
                         AI_CELL_PER_RESOURCE
                     };
-                    self.resources[i] = self.resources[i].saturating_add(
-                        self.viewer.get_life().get_pop(i as u8) / cell_per_resource,
-                    );
+                    self.resources[i as usize] = self.resources[i as usize]
+                        .saturating_add(self.viewer.get_life().get_pop(i) / cell_per_resource);
 
-                    for (j, pat_time) in self.pattern_times[i].iter_mut().enumerate() {
+                    for (j, pat_time) in self.pattern_times[i as usize].iter_mut().enumerate() {
                         pat_time.update(j);
                     }
+                }
 
-                    // TODO: If player resources are below X and pop is below CELL_PER_RESOURCE, just eliminate them!
-                    // if self.resources[0] < MIN_RESOURCES && self.viewer.get_life().get_pop(0) < MIN_RESOURCES {
-                    //     // lost
-                    //     self.popup = Some(Popup::new("Game Lost".into()));
+                let player_pop = self.viewer.get_life().get_pop(PLAYER_FACTION);
+                let ai_pop = self.viewer.get_life().get_pop(AI_FACTION);
 
-                    // }
-                    // if self.popup.is_none() {
-                    //     if for i in
-                    // }
-                    // if self.map.update() && self.map.metadata.is_level {
-                    //     self.popup = Some(Popup::new(format!(
-                    //         "Level {} completed!",
-                    //         self.map.metadata.level_number
-                    //     )));
-                    // }
+                if ai_pop / WIN_MULTIPLIER > player_pop {
+                    // lost
+                    self.popup = Some(Popup::new("Game Over".into()));
+                }
+                if player_pop / WIN_MULTIPLIER > ai_pop {
+                    // won
+                    self.popup = Some(Popup::new("Game Won!".into()));
                 }
 
                 self.ai_update_ticks = 0;
@@ -417,17 +526,26 @@ impl Scene for Gameplay {
 
         draw_score(self.viewer.get_life(), ctx);
 
-        macroquad::text::draw_text_ex(
-            format!("Battle in progress... speed: {}", self.viewer.update_speed).as_str(),
-            10.,
-            20.,
-            macroquad::text::TextParams {
-                font: Some(&ctx.font),
-                font_size: 40,
-                color: color::GREEN,
-                ..Default::default()
-            },
-        );
+        self.draw_time_controls(ctx);
+
+        if self.show_menu {
+            match self.menu.draw(hash!()) {
+                Some(MenuOption::Resume) => {
+                    self.viewer.update_speed = self.previous_speed;
+                    self.show_menu = false;
+                }
+                Some(MenuOption::MainMenu) => ctx.switch_scene_to = Some(super::EScene::MainMenu),
+                None => {}
+            }
+        }
+
+        if let Some(popup) = &mut self.popup {
+            match popup.draw() {
+                Some(PopupResult::Cancel) => self.popup = None,
+                Some(PopupResult::Ok) => ctx.switch_scene_to = Some(super::EScene::MainMenu),
+                None => {}
+            }
+        }
 
         // macroquad::text::draw_text_ex(
         //     format!("Resources: {}", self.resources[0]).as_str(),

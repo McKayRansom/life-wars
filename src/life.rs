@@ -19,7 +19,7 @@ mod file_format;
 pub mod pattern_lib;
 
 pub type Faction = u8;
-pub const FACTION_MAX: usize = 16;
+pub const FACTION_MAX: Faction = 16;
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy, Default)]
 pub struct Cell {
@@ -71,13 +71,13 @@ impl From<u8> for Cell {
 
 #[derive(Default)]
 pub struct LifePops {
-    pops: [i16; FACTION_MAX],
+    pops: [i16; FACTION_MAX as usize],
 }
 
 impl LifePops {
     pub fn new() -> Self {
         Self {
-            pops: [0; FACTION_MAX],
+            pops: [0; FACTION_MAX as usize],
         }
     }
 

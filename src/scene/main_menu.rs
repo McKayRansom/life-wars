@@ -6,7 +6,7 @@ use super::{EScene, Scene};
 use crate::context::Context;
 // use crate::map::draw::draw_map;
 // use crate::map::{Map, DEFAULT_CITY_ID};
-use crate::scene::{
+use crate::ui::{
     menu::{Menu, MenuItem},
     // popup::Popup,
 };

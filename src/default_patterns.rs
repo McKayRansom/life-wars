@@ -21,15 +21,15 @@ const FRIGATE: &str = "\
 ..C.BOO..CO.
 ...OO.OOB.B.
 ....OOO.O.C.
-..C...OO.O..
-.OOB.OO.OO..
-BCO.O.OO.OOO
-OO.O.OO.OO.O
-.OO...OO.OBO
-..OC..O.OO.O
-.OBO..OO.O.O
-..C.BOO.OO.B
-..C.C.OO.O.C";
+..C...OO.O..";
+// .OOB.OO.OO..
+// BCO.O.OO.OOO
+// OO.O.OO.OO.O
+// .OO...OO.OBO
+// ..OC..O.OO.O
+// .OBO..OO.O.O
+// ..C.BOO.OO.B
+// ..C.C.OO.O.C";
 
 const DREADNAUGHT: &str = "\
 ..........

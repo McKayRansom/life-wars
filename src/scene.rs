@@ -19,8 +19,6 @@ pub mod editor;
 // pub mod level_select;
 // pub mod settings;
 
-pub mod menu;
-pub mod popup;
 
 pub trait Scene {
     fn update(&mut self, ctx: &mut Context);

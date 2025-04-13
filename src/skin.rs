@@ -167,18 +167,21 @@ pub async fn init() -> Font {
 
         // let combobox_style = root_ui()
         //     .style_builder()
-        //     .background(
-        //         Image::from_file_with_format(
-        //             include_bytes!("../examples/ui_assets/combobox_background.png"),
-        //             None,
-        //         )
-        //         .unwrap(),
-        //     )
-        //     .background_margin(RectOffset::new(4., 25., 6., 6.))
         //     .with_font(&font)
         //     .unwrap()
-        //     .text_color(Color::from_rgba(120, 120, 120, 255))
-        //     .color(Color::from_rgba(210, 210, 210, 255))
+        //     .text_color(color::BLACK)
+        //     .text_color_clicked(color::BLACK)
+        //     .text_color_hovered(color::BLACK)
+        //     .color_hovered(color::WHITE)
+        //     // .col
+        //     // .t
+        //     // .color(color::BLACK)
+        //     // .color_hovered(color::BLACK)
+        //     // .color_selected_hovered(color::BLACK)
+        //     // .color_clicked(color::BLANK)
+        //     // .color_selected(color::BLACK)
+        //     // .color_inactive(color::WHITE)
+        //     // .color(Color::from_rgba(210, 210, 210, 255))
         //     .font_size(25)
         //     .build();
 
