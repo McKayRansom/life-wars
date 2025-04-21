@@ -101,7 +101,7 @@ impl Life {
             .unwrap();
 
         let mut life: Life = Life::new_ex(
-            (row_size as u16, (row_of_5_count * 5) as u16).into(),
+            (row_size as i16, (row_of_5_count * 5) as i16).into(),
             options,
         );
 
@@ -121,7 +121,7 @@ impl Life {
                 for y in 0..6 {
                     if col_vals & 1 != 0 {
                         life.insert(
-                            (x as u16, (row_of_5_count * 5) as u16 + y).into(),
+                            (x as i16, (row_of_5_count * 5) as i16 + y).into(),
                             Cell::new(1, 0),
                         );
                     }

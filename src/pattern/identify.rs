@@ -228,7 +228,7 @@ impl CellGroupTracker {
                     self.groups
                         .get_mut(&master_group)
                         .unwrap()
-                        .add((x as u16, y as u16).into());
+                        .add((x as i16, y as i16).into());
                 }
             }
         }

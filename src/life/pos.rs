@@ -4,29 +4,29 @@ use macroquad::math::Vec2;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub struct Pos {
-    pub x: u16,
-    pub y: u16,
+    pub x: i16,
+    pub y: i16,
 }
 
 #[inline(always)]
-pub const fn pos(x: u16, y: u16) -> Pos {
+pub const fn pos(x: i16, y: i16) -> Pos {
     Pos::new(x, y)
 }
 
 impl Pos {
     #[inline(always)]
-    pub const fn new(x: u16, y: u16) -> Self {
+    pub const fn new(x: i16, y: i16) -> Self {
         Self { x, y }
     }
 
-    pub fn reflect_y_odd(&self, y_line: u16) -> Self {
+    pub fn reflect_y_odd(&self, y_line: i16) -> Self {
         Self {
             x: self.x,
             y: y_line + (y_line - self.y),
         }
     }
 
-    pub fn reflect_y_even(&self, y_line: u16) -> Self {
+    pub fn reflect_y_even(&self, y_line: i16) -> Self {
         Self {
             x: self.x,
             y: y_line + (y_line - self.y) + 1,
@@ -63,7 +63,7 @@ impl Pos {
 
     pub fn iter(&self, area: Self) -> impl Iterator<Item = Self> {
         (0..area.y)
-            .flat_map(move |y: u16| (0..area.x).map(move |x| (self.x + x, self.y + y).into()))
+            .flat_map(move |y: i16| (0..area.x).map(move |x| (self.x + x, self.y + y).into()))
     }
 
     pub fn as_vec2(&self) -> Vec2 {
@@ -74,7 +74,7 @@ impl Pos {
         if vec2.x < 0. || vec2.y < 0. {
             return None;
         }
-        let pos = Self::new(vec2.x as u16, vec2.y as u16);
+        let pos = Self::new(vec2.x as i16, vec2.y as i16);
         if pos.x > max.x || pos.y > max.y {
             None
         } else {
@@ -104,8 +104,8 @@ impl Pos {
     }
 }
 
-impl From<(u16, u16)> for Pos {
-    fn from(value: (u16, u16)) -> Self {
+impl From<(i16, i16)> for Pos {
+    fn from(value: (i16, i16)) -> Self {
         Self {
             x: value.0,
             y: value.1,
@@ -113,7 +113,7 @@ impl From<(u16, u16)> for Pos {
     }
 }
 
-impl From<Pos> for (u16, u16) {
+impl From<Pos> for (i16, i16) {
     fn from(value: Pos) -> Self {
         (value.x, value.y)
     }
@@ -141,10 +141,10 @@ impl Sub for Pos {
     }
 }
 
-impl Div<u16> for Pos {
+impl Div<i16> for Pos {
     type Output = Self;
 
-    fn div(self, rhs: u16) -> Self::Output {
+    fn div(self, rhs: i16) -> Self::Output {
         Self {
             x: self.x / rhs,
             y: self.y / rhs,

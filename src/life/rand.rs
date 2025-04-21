@@ -43,11 +43,6 @@ pub fn rand_life(
                 let cell = rand_cell(&rand);
                 this.insert(pos.into(), cell);
             }
-            // for y in 0..area.y {
-            // for x in 0..area.x {
-            // this.insert((pos.x + x, pos.y + area.1 - 1 - y), cell);
-            // }
-            // }
         }
         RandSymmetry::C2_1 => {
             let pivot = pos + area/2;

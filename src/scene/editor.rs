@@ -118,7 +118,7 @@ impl Editor {
 
     fn iter_area(min_pos: Pos, max_pos: Pos) -> impl Iterator<Item = Pos> {
         (min_pos.y..max_pos.y)
-            .flat_map(move |y: u16| (min_pos.x..max_pos.x).map(move |x| pos(x, y)))
+            .flat_map(move |y: i16| (min_pos.x..max_pos.x).map(move |x| pos(x, y)))
     }
 
     fn do_edit_action(&mut self, start_pos: Pos, end_pos: Pos) {

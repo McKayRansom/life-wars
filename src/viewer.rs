@@ -64,7 +64,8 @@ pub const GAME_SPEED_6_VERY_EXTREME: f64 = 1. / 120.;
 
 impl LifeViewer {
     pub fn new(life: Box<Life>) -> Self {
-        let mut image = Image::gen_image_color(life.size().x, life.size().y, color::BLACK);
+        let mut image =
+            Image::gen_image_color(life.size().x as u16, life.size().y as u16, color::BLACK);
         Self::update_image(&life, &mut image);
 
         Self {
@@ -85,7 +86,8 @@ impl LifeViewer {
     }
 
     pub fn paste_life(&mut self, other: &Life, center_pos: Pos, faction: Option<u8>) {
-        self.life.paste(other, center_pos.saturating_sub(other.size() / 2), faction);
+        self.life
+            .paste(other, center_pos.saturating_sub(other.size() / 2), faction);
         self.redraw();
     }
 
@@ -96,7 +98,11 @@ impl LifeViewer {
 
     /// new_life can change size in this case!
     pub fn replace_life(&mut self, new_life: Box<Life>) {
-        let image = Image::gen_image_color(new_life.size().x, new_life.size().y, color::BLACK);
+        let image = Image::gen_image_color(
+            new_life.size().x as u16,
+            new_life.size().y as u16,
+            color::BLACK,
+        );
         self.texture = None;
         self.life = new_life;
         self.image = image;

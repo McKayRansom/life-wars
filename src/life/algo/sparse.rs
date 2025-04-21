@@ -63,7 +63,7 @@ impl LifeSparse {
                 }
                 if let Some(cell) = self
                     .living
-                    .get(&((pos.x as i32 + dx) as u16, (pos.y as i32 + dy) as u16).into())
+                    .get(&((pos.x as i32 + dx) as i16, (pos.y as i32 + dy) as i16).into())
                 {
                     if cell.is_alive() {
                         // sum += 1;
@@ -91,15 +91,15 @@ impl LifeSparse {
     ) {
         for dy in -1..2 {
             let py = pos.y as i32 + dy;
-            if py < 0 || py as u16 >= self.size.y {
+            if py < 0 || py as i16 >= self.size.y {
                 continue;
             }
             for dx in -1..2 {
                 let px = pos.x as i32 + dx;
-                if px < 0 || px as u16 >= self.size.x {
+                if px < 0 || px as i16 >= self.size.x {
                     continue;
                 }
-                let new_pos: Pos = (px as u16, py as u16).into();
+                let new_pos: Pos = (px as i16, py as i16).into();
                 // if new_pos == pos {
                 let old_cell = self.living.get(&new_pos).unwrap_or(&EMPTY_CELL);
                 let new_cell = rule.update(

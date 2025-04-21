@@ -62,8 +62,8 @@ fn rle_parse_body(it: &mut Split<'_, char>, life: &mut Life) {
                 }
                 match chr {
                     // Default Life tags
-                    'b' => pos.x += run_count as u16,
-                    '.' => pos.x += run_count as u16,
+                    'b' => pos.x += run_count as i16,
+                    '.' => pos.x += run_count as i16,
                     'o' => {
                         for _ in 0..run_count {
                             life.insert(pos, Cell::new(1, 0));
@@ -91,7 +91,7 @@ fn rle_parse_body(it: &mut Split<'_, char>, life: &mut Life) {
                     }
 
                     '$' => {
-                        pos.y += run_count as u16;
+                        pos.y += run_count as i16;
                         pos.x = 0;
                     }
                     '!' => break,

@@ -99,15 +99,15 @@ impl LifeCached {
         // let size = self.size();
         for dy in -1..2 {
             let py = pos.y as i32 + dy;
-            if py < 0 || py as u16 >= size.y {
+            if py < 0 || py as i16 >= size.y {
                 continue;
             }
             for dx in -1..2 {
                 let px = pos.x as i32 + dx;
-                if px < 0 || px as u16 >= size.x {
+                if px < 0 || px as i16 >= size.x {
                     continue;
                 }
-                let new_pos: Pos = (px as u16, py as u16).into();
+                let new_pos: Pos = (px as i16, py as i16).into();
 
                 let old = old_grid[new_pos.y as usize][new_pos.x as usize];
 
@@ -133,7 +133,7 @@ impl LifeCached {
 
 impl LifeAlgo for LifeCached {
     fn size(&self) -> Pos {
-        (self.grid[0].len() as u16, self.grid.len() as u16).into()
+        (self.grid[0].len() as i16, self.grid.len() as i16).into()
     }
 
     fn get(&self, pos: Pos) -> Option<&Cell> {

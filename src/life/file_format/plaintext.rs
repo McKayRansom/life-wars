@@ -13,7 +13,7 @@ impl Life {
         for line in value.lines() {
             if !line.starts_with("!") {
                 size.y += 1;
-                size.x = size.x.max(line.len() as u16);
+                size.x = size.x.max(line.len() as i16);
             }
         }
         let mut life = Life::new_ex(size, options);

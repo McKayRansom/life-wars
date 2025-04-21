@@ -506,7 +506,7 @@ impl Scene for Gameplay {
                     let _ = place_pattern(
                         life,
                         rand_pattern.get_life(),
-                        pos(rand_x as u16, rand_y as u16),
+                        pos(rand_x as i16, rand_y as i16),
                         &mut self.pattern_times[1][rand_pattern_i],
                         1,
                     );
