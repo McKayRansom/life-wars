@@ -212,6 +212,11 @@ impl Gameplay {
                 self.show_menu = true;
                 self.previous_speed = self.viewer.update_speed
             }
+            // 'v' => {
+            //     if let Some(pattern) = &mut self.selected_pattern {
+            //         pattern.replace_life(Box::new(pattern.get_life().rotate()));
+            //     }
+            // }
 
             // },
             // 'r' => {
@@ -489,14 +494,8 @@ impl Scene for Gameplay {
 
                 self.ai_update_ticks = 0;
 
-                // Idea: Easy/Medium/Hard determins what the AI will spawn...
-                // let bomber_life = new_life_from_rle(BOMBER_RLE);
-                // MEAN: Steal our patterns!
                 let rand_pattern_i = macroquad::rand::rand() as usize % PATTERN_MAX_COUNT;
                 let rand_pattern = &ctx.default_patterns[rand_pattern_i];
-                // if rand_pattern.get_lif.get_rule() != self.viewer.get_life().get_rule() {
-                //     return;
-                // }
 
                 let size = self.viewer.get_life().size();
                 let rand_x = macroquad::rand::rand() % (size.x as u32);
@@ -505,7 +504,7 @@ impl Scene for Gameplay {
                 self.viewer.edit_life(|life| {
                     let _ = place_pattern(
                         life,
-                        rand_pattern.get_life(),
+                        &rand_pattern.get_life().flip_vert(),
                         pos(rand_x as i16, rand_y as i16),
                         &mut self.pattern_times[1][rand_pattern_i],
                         1,
@@ -546,38 +545,6 @@ impl Scene for Gameplay {
                 None => {}
             }
         }
-
-        // macroquad::text::draw_text_ex(
-        //     format!("Resources: {}", self.resources[0]).as_str(),
-        //     10.,
-        //     macroquad::window::screen_height() - 20.,
-        //     macroquad::text::TextParams {
-        //         font: Some(&ctx.font),
-        //         font_size: 40,
-        //         color: color::GREEN,
-        //         ..Default::default()
-        //     },
-        // );
-
-        // self.ui.draw(&mut self.map, ctx);
-
-        // if let Some(popup) = &self.popup {
-        //     match popup.draw() {
-        //         Some(PopupResult::Ok) => {
-        //             let level_number = self.map.metadata.level_number + 1;
-        //             ctx.switch_scene_to = if level_number < LEVEL_COUNT {
-        //                 Some(EScene::Gameplay(Box::new(new_level(level_number))))
-        //             } else {
-        //                 Some(EScene::MainMenu)
-        //             }
-        //         }
-        //         Some(PopupResult::Cancel) => {
-        //             self.popup = None;
-        //             self.map.metadata.level_complete = true;
-        //         }
-        //         None => {}
-        //     }
-        // }
     }
 }
 
