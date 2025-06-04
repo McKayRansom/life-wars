@@ -388,7 +388,7 @@ fn draw_score(life: &Life, ctx: &Context) {
     let mut pops: Vec<(i16, u8)> = (0..life::FACTION_MAX)
         .filter_map(|faction| {
             let pop = life.get_pop(faction as u8);
-            total_pop += pop;
+            total_pop = total_pop.saturating_add(pop);
             if pop > 0 {
                 Some((pop, faction as u8))
             } else {
@@ -526,6 +526,20 @@ impl Scene for Gameplay {
         draw_score(self.viewer.get_life(), ctx);
 
         self.draw_time_controls(ctx);
+
+        // TESTING: MINIMAP
+        // const MINIMAP_PAD: f32 = 5.;
+        // const MINIMAP_SIZE: f32 = 100.;
+        // draw_texture_ex(
+        //     self.viewer.get_texture(),
+        //     MINIMAP_PAD,
+        //     MINIMAP_PAD,
+        //     colors::WHITE,
+        //     DrawTextureParams {
+        //         dest_size: Some(vec2(MINIMAP_SIZE, MINIMAP_SIZE)),
+        //         ..Default::default()
+        //     },
+        // );
 
         if self.show_menu {
             match self.menu.draw(hash!()) {

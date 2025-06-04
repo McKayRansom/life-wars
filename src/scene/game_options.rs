@@ -11,9 +11,9 @@ use macroquad::{
 pub struct GameOptions {
     preview_life: LifeViewer,
 
-    selected_rule: usize,
+    _selected_rule: usize,
     selected_size: usize,
-    selected_difficulty: usize,
+    _selected_difficulty: usize,
 }
 
 impl GameOptions {
@@ -21,9 +21,9 @@ impl GameOptions {
         Self {
             preview_life: LifeViewer::new(Box::new(Life::new(pos(256, 256)))),
 
-            selected_rule: 1,
+            _selected_rule: 1,
             selected_size: 1,
-            selected_difficulty: 0,
+            _selected_difficulty: 0,
         }
     }
 
@@ -32,7 +32,7 @@ impl GameOptions {
             GAME_SIZES[self.selected_size],
             LifeOptions {
                 algo: life_io::life::LifeAlgoSelect::Basic,
-                rule: *GAME_RULES[self.selected_rule],
+                rule: *GAME_RULES[self._selected_rule],
             }, 
         ));
         // Should randomizing be part of the options?
@@ -48,12 +48,12 @@ impl Default for GameOptions {
 }
 
 const GAME_RULES: &[&LifeRule] = &[&LifeRule::GOL, &LifeRule::STAR_WARS];
-const GAME_RULES_NAMES: &[&str] = &["Game of Life", "Star Wars"];
+const _GAME_RULES_NAMES: &[&str] = &["Game of Life", "Star Wars"];
 
-const GAME_SIZES: &[Pos] = &[pos(64, 64), pos(128, 128), pos(256, 256), pos(512, 512)];
+const GAME_SIZES: &[Pos] = &[pos(64, 64), pos(256, 128), pos(256, 256), pos(512, 512)];
 const GAME_SIZES_NAMES: &[&str] = &["small", "medium", "large", "huge"];
 
-const GAME_DIFFICULTY_NAMES: &[&str] = &["easy", "normal", "hard"];
+const _GAME_DIFFICULTY_NAMES: &[&str] = &["easy", "normal", "hard"];
 
 impl super::Scene for GameOptions {
     fn update(&mut self, ctx: &mut crate::context::Context) {
@@ -80,31 +80,33 @@ impl super::Scene for GameOptions {
         .ui(&mut ui::root_ui(), |ui| {
             ui.label(None, "Game Options");
 
-            ui.combo_box(
-                hash!(),
-                "Rule",
-                GAME_RULES_NAMES,
-                Some(&mut self.selected_rule),
-            );
+            // Only star wars rule makes sense currently IMO
+            // ui.combo_box(
+            //     hash!(),
+            //     "Rule",
+            //     GAME_RULES_NAMES,
+            //     Some(&mut self._selected_rule),
+            // );
             ui.combo_box(
                 hash!(),
                 "Size",
                 GAME_SIZES_NAMES,
                 Some(&mut self.selected_size),
             );
-            ui.combo_box(
-                hash!(),
-                "Difficulty",
-                GAME_DIFFICULTY_NAMES,
-                Some(&mut self.selected_difficulty),
-            );
+            // NOT IMPLEMENTED
+            // ui.combo_box(
+            //     hash!(),
+            //     "Difficulty",
+            //     GAME_DIFFICULTY_NAMES,
+            //     Some(&mut self.selected_difficulty),
+            // );
 
             if ui.button(None, "Start") {
                 ctx.switch_scene_to = Some(super::EScene::Gameplay(self.create_life()));
             }
         });
 
-        if GAME_RULES[self.selected_rule] != self.preview_life.get_life().get_rule()
+        if GAME_RULES[self._selected_rule] != self.preview_life.get_life().get_rule()
             || GAME_SIZES[self.selected_size] != self.preview_life.get_life().size()
         {
             self.preview_life.replace_life(self.create_life());

@@ -1,6 +1,17 @@
 
 # Lifewars
 
+# IDEA: Fly a spaceship instead of RTS?
+- Fly a simple fighter/bomber/etc...
+- (OR crazy idea: Have "Units" of patterns that follow star wars rules, and lasers which do not...) So it's more inspired by cellular autonoma but more RTS-y
+
+# IDEA: Star-wars adjacent ruleset that allows for capitol ships
+- "ship" state B_never S_345 or S_2345
+- "laser" state (brian's brain" or similar) B2/S/G3
+- other states possible such as fighters, shields, etc...
+- Make ships very limited and have global turn based grid
+  - Experiment with regular star wars with very limited ships (need a way to somehow "track" individual "ships" with pattern matching...)
+
 Lifewars is a RTS game where you fight using Cellular Automatons.
 Discover and save interesting patterns and strategically deploy them to win battles!
 
@@ -11,10 +22,10 @@ Discover and save interesting patterns and strategically deploy them to win batt
 
 
 ## Required features:
-- [ ] Pattern hotbar with keys 1-9 (move speed to shift or faster/slower buttons?)
-- [ ] AI Pattern library easy/medium/hard
-- [ ] Winning/losing (Resign, victory screen with stats and graph?, global win/loss stats?)
-- [ ] Pattern cost/resource rethink, Respawn timer OR fixed counts
+- [x] Pattern hotbar with keys 1-9 (move speed to shift or faster/slower buttons?)
+- [x] AI Pattern library easy/medium/hard
+- [x] Winning/losing (Resign, victory screen with stats and graph?, global win/loss stats?)
+- [x] Pattern cost/resource rethink, Respawn timer OR fixed counts
 
 ## Bugs:
 - [ ] Rotation broken, just use other code

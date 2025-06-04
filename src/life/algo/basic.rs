@@ -76,12 +76,11 @@ impl LifeAlgo for LifeBasic {
     }
 
     fn get(&self, pos: Pos) -> Option<&Cell> {
-        if pos.y >= self.size.y || pos.x >= self.size.x {
-            None
-        } else {
-            self.grid
-                .get((pos.y as usize + 1) * (self.size.x as usize + 2) + (pos.x as usize + 1))
+        if pos.x < 0 || pos.y < 0 {
+            return None;
         }
+        self.grid
+            .get((pos.y as usize + 1) * (self.size.x as usize + 2) + (pos.x as usize + 1))
     }
 
     fn insert(&mut self, pos: Pos, new_cell: Cell) -> Option<Cell> {
@@ -92,7 +91,7 @@ impl LifeAlgo for LifeBasic {
     }
 
     fn update(&mut self, rule: &LifeRule, pops: &mut LifePops) {
-        *pops = LifePops::new(); // clear 
+        *pops = LifePops::new(); // clear
         let mut new_self = Self {
             size: self.size,
             grid: self.grid.clone(), // This clone doesn't even show up on the flamegraph (just 1 alocation probably)
